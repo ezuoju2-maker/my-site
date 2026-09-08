@@ -1,5 +1,9 @@
-import { rejectCrossSiteRequest } from "../../../lib/cors";
 import { env } from "cloudflare:workers";
+import {
+  corsHeaders,
+  getAllowedOrigin,
+  rejectCrossSiteRequest,
+} from "../../../lib/cors";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -9,12 +13,19 @@ type RegisterBody = {
   password?: unknown;
 };
 
-function json(data: unknown, status = 200) {
+function json(
+  data: unknown,
+  status = 200,
+  headers: Record<string, string> = {},
+  origin: string | null = null,
+) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
+      ...(origin ? corsHeaders(origin) : {}),
+      ...headers,
     },
   });
 }
@@ -49,7 +60,10 @@ async function hashPassword(password: string) {
     256,
   );
 
-  const saltBase64 = btoa(String.fromCharCode(...salt));
+  const saltBase64 = btoa(
+    String.fromCharCode(...salt),
+  );
+
   const hashBase64 = btoa(
     String.fromCharCode(...new Uint8Array(bits)),
   );
@@ -58,6 +72,23 @@ async function hashPassword(password: string) {
 }
 
 export async function POST({ request }: { request: Request }) {
+  const origin = getAllowedOrigin(request);
+
+  if (request.method === "OPTIONS") {
+    if (!origin) {
+      return new Response(null, { status: 403 });
+    }
+
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...corsHeaders(origin),
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
+
   const originError = rejectCrossSiteRequest(request);
 
   if (originError) {
@@ -75,17 +106,25 @@ export async function POST({ request }: { request: Request }) {
         error: "INVALID_REQUEST",
       },
       400,
+      {},
+      origin,
     );
   }
 
   const username =
-    typeof body.username === "string" ? body.username.trim() : "";
+    typeof body.username === "string"
+      ? body.username.trim()
+      : "";
 
   const email =
-    typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    typeof body.email === "string"
+      ? body.email.trim().toLowerCase()
+      : "";
 
   const password =
-    typeof body.password === "string" ? body.password : "";
+    typeof body.password === "string"
+      ? body.password
+      : "";
 
   if (!isValidUsername(username)) {
     return json(
@@ -94,6 +133,8 @@ export async function POST({ request }: { request: Request }) {
         error: "INVALID_USERNAME",
       },
       400,
+      {},
+      origin,
     );
   }
 
@@ -104,6 +145,8 @@ export async function POST({ request }: { request: Request }) {
         error: "INVALID_EMAIL",
       },
       400,
+      {},
+      origin,
     );
   }
 
@@ -114,6 +157,8 @@ export async function POST({ request }: { request: Request }) {
         error: "INVALID_PASSWORD",
       },
       400,
+      {},
+      origin,
     );
   }
 
@@ -132,6 +177,8 @@ export async function POST({ request }: { request: Request }) {
           error: "USERNAME_OR_EMAIL_EXISTS",
         },
         409,
+        {},
+        origin,
       );
     }
 
@@ -157,6 +204,8 @@ export async function POST({ request }: { request: Request }) {
         },
       },
       201,
+      {},
+      origin,
     );
   } catch {
     return json(
@@ -165,6 +214,8 @@ export async function POST({ request }: { request: Request }) {
         error: "USERNAME_OR_EMAIL_EXISTS",
       },
       409,
+      {},
+      origin,
     );
   }
 }
