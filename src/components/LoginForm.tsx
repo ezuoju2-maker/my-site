@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   return hidden ? (
@@ -101,70 +101,96 @@ function CaptchaImage({
   characters: string[];
   refreshKey: number;
 }) {
-  const rotations = [-8, 6, -5, 7, -6];
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const width = 256;
+    const height = 88;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    for (let i = 0; i < 70; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const radius = i % 4 === 0 ? 1.4 : 0.7;
+
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = i % 3 === 0 ? "#555555" : "#888888";
+      ctx.globalAlpha = i % 3 === 0 ? 0.58 : 0.32;
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(2, 18);
+    ctx.bezierCurveTo(45, 65, 72, 8, 128, 45);
+    ctx.bezierCurveTo(170, 75, 205, 10, 254, 62);
+    ctx.strokeStyle = "#666666";
+    ctx.lineWidth = 2.2;
+    ctx.globalAlpha = 0.62;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(2, 70);
+    ctx.bezierCurveTo(48, 10, 82, 78, 135, 28);
+    ctx.bezierCurveTo(180, 4, 212, 72, 254, 14);
+    ctx.strokeStyle = "#888888";
+    ctx.lineWidth = 1.8;
+    ctx.globalAlpha = 0.68;
+    ctx.stroke();
+
+    ctx.globalAlpha = 1;
+
+    const rotations = [-8, 6, -5, 7, -6];
+
+    characters.forEach((char, index) => {
+      const x = 26 + index * 51;
+      const y = 57 + (index % 2 === 0 ? -4 : 4);
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((rotations[index] * Math.PI) / 180);
+
+      ctx.font = '700 40px Arial, "Helvetica Neue", sans-serif';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = index % 2 === 0 ? "#111111" : "#333333";
+      ctx.fillText(char, 0, 0);
+
+      ctx.restore();
+    });
+  }, [characters, refreshKey]);
 
   return (
-    <svg
-      viewBox="0 0 128 44"
-      className="h-full w-full"
+    <canvas
+      ref={canvasRef}
       role="img"
       aria-label="图文验证码"
-      preserveAspectRatio="none"
-    >
-      {/* 浅灰背景 */}
-      <rect
-        width="128"
-        height="44"
-        rx="8"
-        fill="#f4f4f5"
-      />
-
-      {/* 少量干扰点 */}
-      {Array.from({ length: 18 }, (_, index) => (
-        <circle
-          key={`dot-${refreshKey}-${index}`}
-          cx={Math.random() * 124 + 2}
-          cy={Math.random() * 40 + 2}
-          r={index % 3 === 0 ? 1 : 0.65}
-          fill="#a3a3a3"
-          opacity={0.45}
-        />
-      ))}
-
-      {/* 少量干扰线 */}
-      <path
-        d="M2 12 C28 5 42 28 64 18 S100 8 126 28"
-        fill="none"
-        stroke="#a3a3a3"
-        strokeWidth="0.8"
-        opacity="0.65"
-      />
-
-      <path
-        d="M2 32 C26 22 44 38 66 25 S100 34 126 14"
-        fill="none"
-        stroke="#a3a3a3"
-        strokeWidth="0.7"
-        opacity="0.55"
-      />
-
-      {/* 验证码字符 */}
-      {characters.map((char, index) => (
-        <text
-          key={`char-${refreshKey}-${index}`}
-          x={16 + index * 24}
-          y="29"
-          textAnchor="middle"
-          fontSize="23"
-          fontWeight="700"
-          fontFamily="Arial, sans-serif"
-          fill={index % 2 === 0 ? "#262626" : "#404040"}
-          transform={`rotate(${rotations[index]} ${16 + index * 24} 24)`}
-        >
-          {char}
-        </text>
-      ))}
-    </svg>
+      className="h-full w-full rounded-lg"
+      style={{
+        display: "block",
+        background: "#ffffff",
+        colorScheme: "light",
+        forcedColorAdjust: "none",
+      }}
+    />
   );
 }
 
