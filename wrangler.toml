@@ -5,3 +5,9 @@ compatibility_date = "2026-09-08"
 [assets]
 directory = "./dist"
 binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "my-site-db"
+database_id = "8495798c-ee01-40d2-95fd-70f58a6e1613"
+migrations_dir = "migrations"
