@@ -5,6 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 const isGitHubPages = process.env.GITHUB_PAGES === "true";
 const isCloudflare = process.env.CLOUDFLARE_BUILD === "true";
+const cloudflareWorkersModule = new URL("./src/lib/cloudflare-workers-stub.ts", import.meta.url).pathname;
 
 const cloudflareAdapter = isCloudflare
   ? (await import("@astrojs/cloudflare")).default
@@ -30,6 +31,9 @@ export default defineConfig({
   },
   integrations: [react()],
   vite: {
+    resolve: {
+      alias: isCloudflare ? {} : { "cloudflare:workers": cloudflareWorkersModule },
+    },
     plugins: [tailwindcss()],
   },
 });
