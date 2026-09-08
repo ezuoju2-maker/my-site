@@ -241,7 +241,7 @@ export default function LoginForm() {
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (loading) {
@@ -273,7 +273,6 @@ export default function LoginForm() {
       return;
     }
 
-    // 收起手机键盘
     const activeElement = document.activeElement;
 
     if (activeElement instanceof HTMLElement) {
@@ -282,14 +281,51 @@ export default function LoginForm() {
 
     setLoading(true);
 
-    // 目前只是演示登录流程。
-    // 后续接入 Cloudflare Worker 后，这里会改成真实 API 请求。
-    window.setTimeout(() => {
-      setLoading(false);
-      alert("登录功能正在开发中");
-    }, 700);
-  }
+    try {
+      const response = await fetch(
+        "https://my-site.ezuoju2.workers.dev/api/auth/login",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            identifier: username.trim(),
+            password,
+          }),
+        },
+      );
 
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          data?.error === "INVALID_CREDENTIALS"
+            ? "用户名或密码错误"
+            : data?.error === "FORBIDDEN_ORIGIN"
+              ? "请求来源不被允许"
+              : data?.error || "登录失败，请稍后重试";
+
+        setPasswordError(message);
+        refreshCaptcha();
+        return;
+      }
+
+      if (remember) {
+        localStorage.setItem("rememberLogin", "true");
+      } else {
+        localStorage.removeItem("rememberLogin");
+      }
+
+      window.location.href = "/";
+    } catch {
+      setPasswordError("网络连接失败，请检查网络后重试");
+      refreshCaptcha();
+    } finally {
+      setLoading(false);
+    }
+  }
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {/* 用户名 */}
