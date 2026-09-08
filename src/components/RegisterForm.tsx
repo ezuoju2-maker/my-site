@@ -731,7 +731,7 @@ export default function RegisterForm() {
       <p className="pt-1 text-center text-sm text-neutral-500">
         已有账号？
         <a
-          href="/"
+          href={`${import.meta.env.BASE_URL}`}
           className="ml-1 font-medium text-neutral-800 underline underline-offset-4"
         >
           登录
