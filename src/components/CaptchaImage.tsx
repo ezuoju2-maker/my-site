@@ -30,10 +30,17 @@ export function CaptchaImage({
       viewBox="0 0 96 44"
       className="h-full w-full"
       role="img"
+      style={{
+        colorScheme: "light",
+        forcedColorAdjust: "none",
+        filter: "none",
+        opacity: 1,
+        isolation: "isolate",
+      }}
       aria-label="图形验证码"
       preserveAspectRatio="none"
     >
-      <rect width="96" height="44" rx="8" fill="#f4f4f5" />
+      <rect width="96" height="44" rx="8" fill="#ffffff" />
 
       {Array.from({ length: 28 }, (_, index) => (
         <circle
@@ -41,7 +48,7 @@ export function CaptchaImage({
           cx={Math.random() * 92 + 2}
           cy={Math.random() * 40 + 2}
           r={index % 4 === 0 ? 1.1 : 0.6}
-          fill="#737373"
+          fill="#555555"
           opacity={index % 3 === 0 ? 0.65 : 0.38}
         />
       ))}
@@ -49,7 +56,7 @@ export function CaptchaImage({
       <path
         d="M1 9 C20 31 31 4 48 22 S74 7 95 31"
         fill="none"
-        stroke="#737373"
+        stroke="#666666"
         strokeWidth="1.1"
         opacity="0.72"
       />
@@ -57,7 +64,7 @@ export function CaptchaImage({
       <path
         d="M1 35 C19 7 35 38 53 12 S76 34 95 7"
         fill="none"
-        stroke="#a3a3a3"
+        stroke="#888888"
         strokeWidth="0.9"
         opacity="0.82"
       />
@@ -71,7 +78,7 @@ export function CaptchaImage({
             key={`${char}-${refreshKey}-${index}`}
             x={x}
             y={y}
-            fill={index % 2 === 0 ? "#262626" : "#525252"}
+            fill={index % 2 === 0 ? "#111111" : "#333333"}
             fontSize="20"
             fontWeight="700"
             fontFamily="Arial, sans-serif"
