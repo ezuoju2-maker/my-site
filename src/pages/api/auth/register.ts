@@ -1,3 +1,4 @@
+import { rejectCrossSiteRequest } from "../../../lib/cors";
 import { env } from "cloudflare:workers";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
@@ -57,6 +58,12 @@ async function hashPassword(password: string) {
 }
 
 export async function POST({ request }: { request: Request }) {
+  const originError = rejectCrossSiteRequest(request);
+
+  if (originError) {
+    return originError;
+  }
+
   let body: RegisterBody;
 
   try {
