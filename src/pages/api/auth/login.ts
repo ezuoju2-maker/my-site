@@ -1,3 +1,4 @@
+import { rejectCrossSiteRequest } from "../../../lib/cors";
 import { env } from "cloudflare:workers";
 import {
   createSession,
@@ -28,6 +29,12 @@ function json(
 }
 
 export async function POST({ request }: { request: Request }) {
+  const originError = rejectCrossSiteRequest(request);
+
+  if (originError) {
+    return originError;
+  }
+
   let body: LoginBody;
 
   try {

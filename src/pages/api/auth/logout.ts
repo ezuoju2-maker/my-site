@@ -1,3 +1,4 @@
+import { rejectCrossSiteRequest } from "../../../lib/cors";
 import {
   clearSessionCookie,
   deleteSession,
@@ -21,6 +22,12 @@ function json(
 }
 
 export async function POST({ request }: { request: Request }) {
+  const originError = rejectCrossSiteRequest(request);
+
+  if (originError) {
+    return originError;
+  }
+
   try {
     await deleteSession(request);
 
