@@ -33,3 +33,12 @@ button,
 input {
   font: inherit;
 }
+
+
+/* iOS Safari 中文字体兼容 */
+.login-brand-title,
+.login-brand-subtitle {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: auto;
+}
