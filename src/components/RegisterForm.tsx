@@ -197,7 +197,7 @@ export default function RegisterForm() {
     );
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (loading) {
@@ -221,7 +221,7 @@ export default function RegisterForm() {
 
     const nextEmailCodeError = !emailCode.trim()
       ? "请输入邮箱验证码"
-      : !/^\d{6}$/.test(emailCode)
+      : !/^\\d{6}$/.test(emailCode)
         ? "请输入 6 位数字邮箱验证码"
         : "";
 
@@ -261,12 +261,48 @@ export default function RegisterForm() {
 
     setLoading(true);
 
-    window.setTimeout(() => {
-      setLoading(false);
-      alert("注册功能正在开发中");
-    }, 700);
-  }
+    try {
+      const response = await fetch(
+        "https://my-site.ezuoju2.workers.dev/api/auth/register",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username.trim(),
+            email: email.trim(),
+            password,
+          }),
+        },
+      );
 
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          data?.error === "USERNAME_EXISTS"
+            ? "用户名已存在"
+            : data?.error === "EMAIL_EXISTS"
+              ? "邮箱已注册"
+              : data?.error === "FORBIDDEN_ORIGIN"
+                ? "请求来源不被允许"
+                : data?.error || "注册失败，请稍后重试";
+
+        setUsernameError(message);
+        refreshCaptcha();
+        return;
+      }
+
+      window.location.href = "/";
+    } catch {
+      setUsernameError("网络连接失败，请检查网络后重试");
+      refreshCaptcha();
+    } finally {
+      setLoading(false);
+    }
+  }
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div>
