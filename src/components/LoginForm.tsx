@@ -486,7 +486,7 @@ export default function LoginForm() {
       <p className="pt-1 text-center text-sm text-neutral-500">
         还没有账号？{" "}
         <a
-          href={`${import.meta.env.BASE_URL}register/`}
+          href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/register/`}
           className="font-medium text-neutral-800 underline underline-offset-4"
         >
           注册
