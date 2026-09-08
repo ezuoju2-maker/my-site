@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import LoadingScreen from "../components/LoadingScreen";
 import LoginForm from "../components/LoginForm";
+import LoginBrand from "../components/LoginBrand";
 ---
 
 <div id="loading-screen">
@@ -12,21 +13,7 @@ import LoginForm from "../components/LoginForm";
   <Layout title="登录">
     <section class="flex min-h-screen items-center justify-center px-5 py-10 sm:px-6">
       <div class="w-full max-w-md">
-        <div class="mb-8 text-center">
-          <div
-            class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-sm font-semibold tracking-wide text-neutral-700"
-          >
-            LOGO
-          </div>
-
-          <h1 class="login-brand-title text-2xl font-semibold tracking-tight text-neutral-900">
-            网站名称
-          </h1>
-
-          <p class="login-brand-subtitle mt-2 text-sm text-neutral-500">
-            欢迎回来，请登录
-          </p>
-        </div>
+        <LoginBrand client:load />
 
         <LoginForm client:load />
       </div>
