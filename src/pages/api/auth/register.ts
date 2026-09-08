@@ -71,6 +71,23 @@ async function hashPassword(password: string) {
   return `pbkdf2-sha256$100000$${saltBase64}$${hashBase64}`;
 }
 
+export async function OPTIONS({ request }: { request: Request }) {
+  const origin = getAllowedOrigin(request);
+
+  if (!origin) {
+    return new Response(null, { status: 403 });
+  }
+
+  return new Response(null, {
+    status: 204,
+    headers: {
+      ...corsHeaders(origin),
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
 export async function POST({ request }: { request: Request }) {
   const origin = getAllowedOrigin(request);
 
