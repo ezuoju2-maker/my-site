@@ -137,7 +137,7 @@ export default function RegisterForm() {
     }
   }
 
-  function handleSendEmailCode() {
+  async function handleSendEmailCode() {
     if (!email.trim()) {
       setEmailCodeError("请先输入邮箱");
       return;
@@ -154,8 +154,48 @@ export default function RegisterForm() {
       return;
     }
 
-    alert("邮箱验证码发送功能正在开发中");
-    setEmailCodeCooldown(60);
+    setEmailCodeError("");
+
+    try {
+      const response = await fetch(
+        "https://my-site.ezuoju2.workers.dev/api/auth/send-code",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+          }),
+        },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          data?.error === "TOO_MANY_REQUESTS"
+            ? `请等待 ${data.retryAfter ?? 60} 秒后再试`
+            : data?.error === "FORBIDDEN_ORIGIN"
+              ? "请求来源不被允许"
+              : data?.error === "EMAIL_SERVICE_NOT_CONFIGURED"
+                ? "邮箱服务尚未配置"
+                : data?.error === "EMAIL_SEND_FAILED"
+                  ? "验证码发送失败，请稍后重试"
+                  : data?.error === "INVALID_EMAIL"
+                    ? "请输入正确的邮箱地址"
+                    : "验证码发送失败，请稍后重试";
+
+        setEmailCodeError(message);
+        return;
+      }
+
+      setEmailCodeError("");
+      setEmailCodeCooldown(data?.retryAfter ?? 60);
+    } catch {
+      setEmailCodeError("网络连接失败，请检查网络后重试");
+    }
   }
 
   useEffect(() => {
