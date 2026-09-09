@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { env } from "cloudflare:workers";
 import { corsHeaders, getAllowedOrigin, rejectCrossSiteRequest } from "../../../lib/cors";
 
 const CODE_TTL_SECONDS = 10 * 60;
@@ -90,13 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  const runtime = (locals as any).runtime;
-  const env = runtime?.env as {
-    RESEND_API_KEY?: string;
-    SESSION?: KVNamespace;
-  } | undefined;
-
-  const resendApiKey = env?.RESEND_API_KEY;
+  const resendApiKey = env.RESEND_API_KEY;
 
   if (!resendApiKey) {
     console.error("RESEND_API_KEY is not configured");
@@ -108,7 +103,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  const kv = env?.SESSION;
+  const kv = env.SESSION;
 
   if (!kv) {
     console.error("SESSION KV binding is not configured");
@@ -124,25 +119,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const cooldownKey = `email-code-cooldown:${clientKey}`;
   const codeKey = `email-code:${email}`;
 
-  let cooldown: string | null;
-
-  try {
-    cooldown = await kv.get(cooldownKey);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    console.error("SESSION KV get failed", detail);
-
-    return json(
-      {
-        ok: false,
-        error: "SESSION_KV_GET_FAILED",
-        detail,
-      },
-      500,
-      {},
-      origin,
-    );
-  }
+  const cooldown = await kv.get(cooldownKey);
 
   if (cooldown) {
     return json(
