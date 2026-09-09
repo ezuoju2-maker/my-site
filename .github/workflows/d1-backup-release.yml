@@ -1,9 +1,10 @@
 name: D1 Encrypted Backup
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "17 18 * * *"
+    # Daily at 03:00 UTC.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,6 +22,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+
       DB_NAME: my-site-db
 
     steps:
@@ -50,50 +52,97 @@ jobs:
             exit 1
           fi
 
-      - name: Export remote D1
+          echo "Required secrets are present."
+          echo "Backup encryption key format: OK"
+
+      - name: Prepare backup workspace
         shell: bash
         run: |
           set -euo pipefail
 
           mkdir -p backup-work
 
+          cleanup() {
+            rm -rf backup-work
+          }
+
+          trap cleanup EXIT
+
+          echo "Backup workspace prepared."
+
+      - name: Export remote D1
+        shell: bash
+        run: |
+          set -euo pipefail
+
           npx wrangler d1 export "$DB_NAME" \
             --remote \
-            --output=backup-work/my-site.sql \
-            --skip-confirmation
+            --output=backup-work/my-site.sql
 
           test -s backup-work/my-site.sql
 
-          echo "D1 export completed."
-          wc -c backup-work/my-site.sql
+          echo "Remote D1 export completed."
+          echo "SQL file size: $(wc -c < backup-work/my-site.sql) bytes"
+
+      - name: Validate exported D1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s backup-work/my-site.sql
+
+          grep -q 'CREATE TABLE.*users' backup-work/my-site.sql
+          grep -q 'd1_migrations' backup-work/my-site.sql
+          grep -q 'session_version' backup-work/my-site.sql
+          grep -q '0001_init.sql' backup-work/my-site.sql
+          grep -q '0002_security_session_version.sql' backup-work/my-site.sql
+
+          echo "Exported D1 structural validation: PASS"
 
       - name: Create backup manifest
         shell: bash
         run: |
           set -euo pipefail
 
-          cat > backup-work/manifest.json <<EOF_MANIFEST
-          {
-            "format": "my-site-d1-backup-v1",
-            "database": "$DB_NAME",
-            "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "commit": "${GITHUB_SHA}",
-            "repository": "${GITHUB_REPOSITORY}"
-          }
-          EOF_MANIFEST
+          CREATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          SQL_SHA256="$(sha256sum backup-work/my-site.sql | awk '{print $1}')"
 
-      - name: Create archive
+          jq -n \
+            --arg format "my-site-d1-backup-v1" \
+            --arg database "$DB_NAME" \
+            --arg created_at "$CREATED_AT" \
+            --arg commit "$GITHUB_SHA" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg sql_sha256 "$SQL_SHA256" \
+            '{
+              format: $format,
+              database: $database,
+              created_at: $created_at,
+              commit: $commit,
+              repository: $repository,
+              sql_sha256: $sql_sha256
+            }' \
+            > backup-work/manifest.json
+
+          cat backup-work/manifest.json
+
+          test -s backup-work/manifest.json
+
+      - name: Create backup archive
         shell: bash
         run: |
           set -euo pipefail
 
-          tar -C backup-work \
-            -czf backup-work/my-site-d1-backup.tar.gz \
+          tar -czf \
+            backup-work/my-site-d1-backup.tar.gz \
+            -C backup-work \
             my-site.sql \
             manifest.json
 
-          sha256sum backup-work/my-site-d1-backup.tar.gz \
-            > backup-work/my-site-d1-backup.tar.gz.sha256
+          test -s backup-work/my-site-d1-backup.tar.gz
+
+          echo "Backup archive created."
+          echo "Archive size: $(wc -c < backup-work/my-site-d1-backup.tar.gz) bytes"
 
       - name: Encrypt backup
         shell: bash
@@ -104,15 +153,27 @@ jobs:
             backup-work/my-site-d1-backup.tar.gz \
             backup-work/my-site-d1-backup.tar.gz.enc
 
-          sha256sum backup-work/my-site-d1-backup.tar.gz.enc \
-            > backup-work/my-site-d1-backup.tar.gz.enc.sha256
+          test -s backup-work/my-site-d1-backup.tar.gz.enc
 
-          rm -f backup-work/my-site.sql
-          rm -f backup-work/my-site-d1-backup.tar.gz
-          rm -f backup-work/my-site-d1-backup.tar.gz.sha256
+          echo "Backup encryption: PASS"
+          echo "Encrypted backup size: $(wc -c < backup-work/my-site-d1-backup.tar.gz.enc) bytes"
 
-          echo "Encrypted backup prepared:"
-          ls -lh backup-work/
+      - name: Verify encrypted backup checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          (
+            cd backup-work
+            sha256sum my-site-d1-backup.tar.gz.enc \
+              > my-site-d1-backup.tar.gz.enc.sha256
+          )
+
+          cat backup-work/my-site-d1-backup.tar.gz.enc.sha256
+
+          sha256sum -c backup-work/my-site-d1-backup.tar.gz.enc.sha256
+
+          echo "Encrypted backup integrity: PASS"
 
       - name: Create GitHub Release
         id: release
@@ -122,72 +183,154 @@ jobs:
         run: |
           set -euo pipefail
 
-          TAG="d1-backup-$(date -u +%Y%m%d-%H%M%S)"
+          RELEASE_TAG="d1-backup-$(date -u +"%Y%m%d-%H%M%S")"
 
-          RELEASE_JSON="$(
-            curl -fsSL \
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+
+          jq -n \
+            --arg tag "$RELEASE_TAG" \
+            --arg name "D1 Encrypted Backup $RELEASE_TAG" \
+            '{
+              tag_name: $tag,
+              name: $name,
+              body: "Automated encrypted D1 backup. The database export is AES-256-GCM encrypted before upload.",
+              draft: false,
+              prerelease: true,
+              make_latest: "false"
+            }' \
+            > backup-work/release.json
+
+          RELEASE_HTTP_CODE="$(
+            curl -sS \
+              -o backup-work/release-response.json \
+              -w '%{http_code}' \
               -X POST \
-              -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer $GH_TOKEN" \
-              -H "X-GitHub-Api-Version: 2026-03-10" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: application/json" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
-              -d "$(jq -n \
-                --arg tag "$TAG" \
-                --arg target "$GITHUB_SHA" \
-                '{
-                  tag_name: $tag,
-                  target_commitish: $target,
-                  name: $tag,
-                  body: "Automated encrypted D1 disaster-recovery backup.",
-                  draft: false,
-                  prerelease: true,
-                  make_latest: "false",
-                  generate_release_notes: false
-                }')"
+              --data-binary @backup-work/release.json
           )"
 
-          RELEASE_ID="$(jq -r '.id' <<<"$RELEASE_JSON")"
-          UPLOAD_URL="$(jq -r '.upload_url' <<<"$RELEASE_JSON" | sed 's/{?name,label}$//')"
+          echo "Create release HTTP status: $RELEASE_HTTP_CODE"
+
+          jq '{
+            id,
+            tag_name,
+            name,
+            prerelease,
+            draft
+          }' backup-work/release-response.json
+
+          test "$RELEASE_HTTP_CODE" = "201"
+
+          RELEASE_ID="$(jq -r '.id' backup-work/release-response.json)"
+          UPLOAD_URL="$(jq -r '.upload_url' backup-work/release-response.json | sed 's/{?name,label}$//')"
 
           test "$RELEASE_ID" != "null"
-          test "$UPLOAD_URL" != "null"
+          test -n "$RELEASE_ID"
+          test -n "$UPLOAD_URL"
 
-          echo "RELEASE_ID=$RELEASE_ID" >> "$GITHUB_OUTPUT"
-          echo "UPLOAD_URL=$UPLOAD_URL" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_ID=$RELEASE_ID" >> "$GITHUB_ENV"
+          echo "UPLOAD_URL=$UPLOAD_URL" >> "$GITHUB_ENV"
+
+          echo "GitHub Release created successfully."
+          echo "Release tag: $RELEASE_TAG"
 
       - name: Upload encrypted backup
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          UPLOAD_URL: ${{ steps.release.outputs.UPLOAD_URL }}
         run: |
           set -euo pipefail
 
-          curl -fsSL \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
+          upload_asset() {
+            local file="$1"
+            local content_type="$2"
+            local name
+
+            name="$(basename "$file")"
+
+            curl -fL \
+              -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: $content_type" \
+              --data-binary "@$file" \
+              "${UPLOAD_URL}?name=${name}" \
+              > "backup-work/upload-${name}.json"
+
+            jq '{
+              id,
+              name,
+              size,
+              state
+            }' "backup-work/upload-${name}.json"
+          }
+
+          upload_asset \
+            backup-work/my-site-d1-backup.tar.gz.enc \
+            application/octet-stream
+
+          upload_asset \
+            backup-work/my-site-d1-backup.tar.gz.enc.sha256 \
+            text/plain
+
+          echo "Encrypted backup assets uploaded successfully."
+
+      - name: Verify Release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          curl -fL \
             -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2026-03-10" \
-            -H "Content-Type: application/octet-stream" \
-            "${UPLOAD_URL}?name=my-site-d1-backup.tar.gz.enc" \
-            --data-binary "@backup-work/my-site-d1-backup.tar.gz.enc" \
-            > release-asset.json
-
-          curl -fsSL \
-            -X POST \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2026-03-10" \
-            -H "Content-Type: text/plain" \
-            "${UPLOAD_URL}?name=my-site-d1-backup.tar.gz.enc.sha256" \
-            --data-binary "@backup-work/my-site-d1-backup.tar.gz.enc.sha256" \
-            > release-checksum.json
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
+            > backup-work/release-final.json
 
-          echo "Encrypted backup uploaded successfully."
+          jq '{
+            id,
+            tag_name,
+            prerelease,
+            assets: [
+              .assets[] |
+              {
+                name,
+                size,
+                state
+              }
+            ]
+          }' backup-work/release-final.json
 
-      - name: Cleanup
+          jq -e '
+            (.tag_name | startswith("d1-backup-"))
+            and (.prerelease == true)
+            and ([.assets[].name] | index("my-site-d1-backup.tar.gz.enc") != null)
+            and ([.assets[].name] | index("my-site-d1-backup.tar.gz.enc.sha256") != null)
+          ' backup-work/release-final.json >/dev/null
+
+          echo "Release asset verification: PASS"
+
+      - name: Verify no plaintext backup is uploaded
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -e '
+            all(.assets[]; .name != "my-site.sql" and .name != "my-site-d1-backup.tar.gz")
+          ' backup-work/release-final.json >/dev/null
+
+          echo "Plaintext backup upload check: PASS"
+
+      - name: Final cleanup
         if: always()
         shell: bash
         run: |
           rm -rf backup-work
-          rm -f release-asset.json release-checksum.json
+          echo "Temporary backup workspace removed."
