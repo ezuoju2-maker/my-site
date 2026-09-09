@@ -15,6 +15,7 @@ export const prerender = import.meta.env.GITHUB_PAGES === "true";
 type LoginBody = {
   identifier?: unknown;
   password?: unknown;
+  remember?: unknown;
 };
 
 function json(
@@ -161,6 +162,7 @@ export async function POST({ request }: { request: Request }) {
     const session = await createSession(
       user.id,
       user.username,
+      remember,
     );
 
     return json(

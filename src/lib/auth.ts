@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 
 const SESSION_TTL = 60 * 60 * 24 * 7;
+const REMEMBER_SESSION_TTL = 60 * 60 * 24 * 30;
 
 type SessionData = {
   userId: string;
@@ -89,6 +90,7 @@ export async function verifyPassword(
 export async function createSession(
   userId: string,
   username: string,
+  remember = false,
 ) {
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
   const token = btoa(String.fromCharCode(...tokenBytes))
@@ -105,13 +107,13 @@ export async function createSession(
     `session:${token}`,
     JSON.stringify(session),
     {
-      expirationTtl: SESSION_TTL,
+      expirationTtl: remember ? REMEMBER_SESSION_TTL : SESSION_TTL,
     },
   );
 
   return {
     token,
-    maxAge: SESSION_TTL,
+    maxAge: remember ? REMEMBER_SESSION_TTL : null,
   };
 }
 
@@ -167,15 +169,20 @@ export async function deleteSession(request: Request) {
   await env.SESSION.delete(`session:${session.token}`);
 }
 
-export function sessionCookie(token: string, maxAge: number) {
-  return [
+export function sessionCookie(token: string, maxAge: number | null) {
+  const parts = [
     `session=${token}`,
     "Path=/",
     "HttpOnly",
     "Secure",
     "SameSite=None",
-    `Max-Age=${maxAge}`,
-  ].join("; ");
+  ];
+
+  if (maxAge !== null) {
+    parts.push(`Max-Age=${maxAge}`);
+  }
+
+  return parts.join("; ");
 }
 
 export function clearSessionCookie() {
