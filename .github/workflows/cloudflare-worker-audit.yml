@@ -191,27 +191,42 @@ jobs:
 
           curl -fsS \
             -H "$AUTH_HEADER" \
-            "$API/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${EXPECTED_KV_ID}" \
+            "$API/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces?per_page=100" \
             -o kv.json
 
           jq '{
             success,
-            result: {
-              id,
-              title,
-              jurisdiction,
-              supports_url_encoding
-            }
+            namespaces: [
+              (.result // [])[]
+              | {
+                  id,
+                  title,
+                  jurisdiction,
+                  supports_url_encoding
+                }
+            ],
+            result_info
           }' kv.json
 
-          KV_ID="$(jq -r '.result.id // empty' kv.json)"
+          KV_ID="$(jq -r --arg expected "$EXPECTED_KV_ID" '
+            (.result // [])
+            | map(select(.id == $expected))
+            | if length == 1 then .[0].id else "" end
+          ' kv.json)"
 
           if [ "$KV_ID" != "$EXPECTED_KV_ID" ]; then
-            echo "::error::KV namespace ID mismatch"
+            echo "::error::Expected KV namespace was not found"
             exit 1
           fi
 
-          echo "KV identity check: PASS"
+          KV_TITLE="$(jq -r --arg expected "$EXPECTED_KV_ID" '
+            (.result // [])
+            | map(select(.id == $expected))
+            | .[0].title // "-"
+          ' kv.json)"
+
+          echo "KV namespace identity: PASS"
+          echo "KV title: ${KV_TITLE}"
 
       - name: Audit R2 buckets
         shell: bash
