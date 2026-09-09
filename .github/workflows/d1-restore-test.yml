@@ -286,7 +286,7 @@ jobs:
           cat backup-restore-work/migration-count.json
 
           jq -e '
-            .result[0].results[0].migration_count == 2
+            .[0].results[0].migration_count == 2
           ' backup-restore-work/migration-count.json >/dev/null
 
           echo "Migration count: PASS"
@@ -304,12 +304,12 @@ jobs:
 
           jq -e '
             (
-              [.result[0].results[].name]
+              [.[0].results[].name]
               | index("0001_init.sql") != null
             )
             and
             (
-              [.result[0].results[].name]
+              [.[0].results[].name]
               | index("0002_security_session_version.sql") != null
             )
           ' backup-restore-work/migrations.json >/dev/null
@@ -328,9 +328,9 @@ jobs:
           cat backup-restore-work/user-count.json
 
           jq -e '
-            (.result[0].results[0].user_count | type) == "number"
+            (.[0].results[0].user_count | type) == "number"
             and
-            .result[0].results[0].user_count >= 0
+            .[0].results[0].user_count >= 0
           ' backup-restore-work/user-count.json >/dev/null
 
           echo "User table query: PASS"
@@ -358,7 +358,7 @@ jobs:
           cat backup-restore-work/session-version.json
 
           jq -e '
-            .result[0].results[0].session_version_column_count == 1
+            .[0].results[0].session_version_column_count == 1
           ' backup-restore-work/session-version.json >/dev/null
 
           echo "Session version column: PASS"
@@ -370,41 +370,41 @@ jobs:
 
           jq -e '
             (
-              [.result[0].results[] | select(.name == "users" and .type == "table")]
+              [.[0].results[] | select(.name == "users" and .type == "table")]
               | length
             ) == 1
           ' backup-restore-work/schema.json >/dev/null
 
           jq -e '
             (
-              [.result[0].results[] | select(.name == "d1_migrations" and .type == "table")]
+              [.[0].results[] | select(.name == "d1_migrations" and .type == "table")]
               | length
             ) == 1
           ' backup-restore-work/schema.json >/dev/null
 
           jq -e '
             (
-              [.result[0].results[] | select(.name == "idx_users_email" and .type == "index")]
+              [.[0].results[] | select(.name == "idx_users_email" and .type == "index")]
               | length
             ) == 1
           ' backup-restore-work/schema.json >/dev/null
 
           jq -e '
             (
-              [.result[0].results[] | select(.name == "idx_users_username" and .type == "index")]
+              [.[0].results[] | select(.name == "idx_users_username" and .type == "index")]
               | length
             ) == 1
           ' backup-restore-work/schema.json >/dev/null
 
           jq -e '
             (
-              [.result[0].results[] | select(.name == "idx_users_session_version" and .type == "index")]
+              [.[0].results[] | select(.name == "idx_users_session_version" and .type == "index")]
               | length
             ) == 1
           ' backup-restore-work/schema.json >/dev/null
 
           jq -e '
-            .result[0].results[0].session_version_column_count == 1
+            .[0].results[0].session_version_column_count == 1
           ' backup-restore-work/session-version.json >/dev/null
 
           echo "Required migration/schema checks: PASS"
