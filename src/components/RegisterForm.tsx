@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 import { RefreshIcon } from "./icons/RefreshIcon";
@@ -11,6 +11,7 @@ export default function RegisterForm() {
   const [emailCode, setEmailCode] = useState("");
   const [emailCodeError, setEmailCodeError] = useState("");
   const [emailCodeCooldown, setEmailCodeCooldown] = useState(0);
+  const sendingEmailCodeRef = useRef(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [captcha, setCaptcha] = useState("");
@@ -150,11 +151,15 @@ export default function RegisterForm() {
       return;
     }
 
-    if (emailCodeCooldown > 0) {
+    if (emailCodeCooldown > 0 || sendingEmailCodeRef.current) {
       return;
     }
 
     setEmailCodeError("");
+    sendingEmailCodeRef.current = true;
+
+    // 点击后立即锁定按钮，避免网络延迟导致重复发送。
+    setEmailCodeCooldown(60);
 
     try {
       const response = await fetch(
@@ -174,27 +179,46 @@ export default function RegisterForm() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
+        const retryAfter =
+          typeof data?.retryAfter === "number"
+            ? data.retryAfter
+            : 60;
+
         const message =
           data?.error === "TOO_MANY_REQUESTS"
-            ? `请等待 ${data.retryAfter ?? 60} 秒后再试`
+            ? `请等待 ${retryAfter} 秒后再试`
             : data?.error === "FORBIDDEN_ORIGIN"
               ? "请求来源不被允许"
               : data?.error === "EMAIL_SERVICE_NOT_CONFIGURED"
                 ? "邮箱服务尚未配置"
-                : data?.error === "EMAIL_SEND_FAILED"
+                : data?.error === "EMAIL_PROVIDER_ERROR"
                   ? "验证码发送失败，请稍后重试"
-                  : data?.error === "INVALID_EMAIL"
-                    ? "请输入正确的邮箱地址"
-                    : "验证码发送失败，请稍后重试";
+                  : data?.error === "EMAIL_PROVIDER_UNREACHABLE"
+                    ? "邮箱服务暂时无法连接，请稍后重试"
+                    : data?.error === "INVALID_EMAIL"
+                      ? "请输入正确的邮箱地址"
+                      : data?.error === "EMAIL_SEND_FAILED"
+                        ? "验证码发送失败，请稍后重试"
+                        : "验证码发送失败，请稍后重试";
 
         setEmailCodeError(message);
+
+        if (data?.error === "TOO_MANY_REQUESTS") {
+          setEmailCodeCooldown(retryAfter);
+        } else {
+          setEmailCodeCooldown(0);
+        }
+
         return;
       }
 
       setEmailCodeError("");
-      setEmailCodeCooldown(data?.retryAfter ?? 60);
+      setEmailCodeCooldown(60);
     } catch {
+      setEmailCodeCooldown(0);
       setEmailCodeError("网络连接失败，请检查网络后重试");
+    } finally {
+      sendingEmailCodeRef.current = false;
     }
   }
 
@@ -261,7 +285,7 @@ export default function RegisterForm() {
 
     const nextEmailCodeError = !emailCode.trim()
       ? "请输入邮箱验证码"
-      : !/^\\d{6}$/.test(emailCode)
+      : !/^\d{6}$/.test(emailCode)
         ? "请输入 6 位数字邮箱验证码"
         : "";
 
