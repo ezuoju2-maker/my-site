@@ -1,0 +1,141 @@
+name: D1 Readonly Capability Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Cloudflare token without exposing it
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+          echo "Cloudflare token: present"
+          echo "Account ID: present"
+
+          HTTP_CODE="$(
+            curl -sS -o token-verify.json -w '%{http_code}' \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/user/tokens/verify"
+          )"
+
+          echo "Token verify HTTP status: $HTTP_CODE"
+
+          jq '{
+            success,
+            result: (
+              .result
+              | {
+                  id,
+                  status,
+                  not_before,
+                  expires_on
+                }
+            ),
+            errors,
+            messages
+          }' token-verify.json
+
+          test "$HTTP_CODE" = "200"
+          jq -e '.success == true' token-verify.json >/dev/null
+
+      - name: Show Wrangler version
+        run: npx wrangler --version
+
+      - name: Show D1 command help
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "========================================"
+          echo "D1 help"
+          echo "========================================"
+          npx wrangler d1 --help
+
+          echo
+          echo "========================================"
+          echo "D1 create help"
+          echo "========================================"
+          npx wrangler d1 create --help
+
+          echo
+          echo "========================================"
+          echo "D1 delete help"
+          echo "========================================"
+          npx wrangler d1 delete --help
+
+          echo
+          echo "========================================"
+          echo "D1 execute help"
+          echo "========================================"
+          npx wrangler d1 execute --help
+
+          echo
+          echo "========================================"
+          echo "D1 export help"
+          echo "========================================"
+          npx wrangler d1 export --help
+
+      - name: Readonly D1 list
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          HTTP_CODE="$(
+            curl -sS -o d1-list.json -w '%{http_code}' \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database?per_page=100"
+          )"
+
+          echo "D1 list HTTP status: $HTTP_CODE"
+
+          jq '{
+            success,
+            databases: [
+              (.result // [])[]
+              | {
+                  uuid,
+                  name,
+                  version,
+                  created_at,
+                  modified_at,
+                  jurisdiction
+                }
+            ],
+            result_info,
+            errors,
+            messages
+          }' d1-list.json
+
+          test "$HTTP_CODE" = "200"
+          jq -e '.success == true' d1-list.json >/dev/null
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f token-verify.json d1-list.json
