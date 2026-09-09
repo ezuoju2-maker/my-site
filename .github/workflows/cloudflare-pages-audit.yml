@@ -33,4 +33,4 @@ jobs:
 
           echo
           echo "=== CLOUDFLARE WORKERS ==="
-          npx wrangler deployments list
+          npx wrangler pages deployment list --project-name my-site
