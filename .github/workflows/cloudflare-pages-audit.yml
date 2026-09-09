@@ -24,42 +24,60 @@ jobs:
       - name: Install Wrangler
         run: npm install --global wrangler@4.130.0
 
-      - name: Audit Cloudflare Pages projects
+      - name: Audit Cloudflare Pages project configuration
         run: |
           set -eu
 
-        echo "=== CLOUDFLARE PAGES PROJECT CONFIG ==="
-        node - <<'NODE'
-const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/pages/projects/my-site`, {
-  headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}` },
-});
-if (!response.ok) {
-  throw new Error(`Cloudflare API returned ${response.status}`);
-}
-const payload = await response.json();
-if (!payload.success) {
-  throw new Error(JSON.stringify(payload.errors));
-}
-const p = payload.result;
-console.log(JSON.stringify({
-  id: p.id,
-  name: p.name,
-  production_branch: p.production_branch,
-  production_script_name: p.production_script_name,
-  preview_script_name: p.preview_script_name,
-  uses_functions: p.uses_functions,
-  build_config: p.build_config,
-  source: p.source,
-  services: p.services,
-  d1_databases: p.d1_databases,
-  kv_namespaces: p.kv_namespaces,
-  r2_buckets: p.r2_buckets
-}, null, 2));
-NODE
-        echo
+          echo "=== CLOUDFLARE PAGES PROJECT CONFIG ==="
+
+          node - <<'NODE'
+          const response = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/pages/projects/my-site`,
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+              },
+            },
+          );
+
+          if (!response.ok) {
+            throw new Error(`Cloudflare API returned ${response.status}`);
+          }
+
+          const payload = await response.json();
+
+          if (!payload.success) {
+            throw new Error(JSON.stringify(payload.errors));
+          }
+
+          const p = payload.result;
+
+          console.log(
+            JSON.stringify(
+              {
+                id: p.id,
+                name: p.name,
+                production_branch: p.production_branch,
+                production_script_name: p.production_script_name,
+                preview_script_name: p.preview_script_name,
+                uses_functions: p.uses_functions,
+                build_config: p.build_config,
+                source: p.source,
+                services: p.services,
+                d1_databases: p.d1_databases,
+                kv_namespaces: p.kv_namespaces,
+                r2_buckets: p.r2_buckets,
+              },
+              null,
+              2,
+            ),
+          );
+          NODE
+
+          echo
           echo "=== CLOUDFLARE PAGES PROJECTS ==="
           npx wrangler pages project list
 
           echo
-          echo "=== CLOUDFLARE WORKERS ==="
+          echo "=== CLOUDFLARE PAGES DEPLOYMENTS ==="
           npx wrangler pages deployment list --project-name my-site
