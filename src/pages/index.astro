@@ -3,11 +3,14 @@ import Layout from "../layouts/Layout.astro";
 import LoadingScreen from "../components/LoadingScreen";
 import LoginForm from "../components/LoginForm";
 import LoginBrand from "../components/LoginBrand";
+import AutoLoginRedirect from "../components/AutoLoginRedirect";
 ---
 
 <div id="loading-screen">
   <LoadingScreen client:load />
 </div>
+
+<AutoLoginRedirect client:load />
 
 <div id="login-page" hidden>
   <Layout title="登录">

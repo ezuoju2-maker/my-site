@@ -293,6 +293,7 @@ export default function LoginForm() {
           body: JSON.stringify({
             identifier: username.trim(),
             password,
+            remember,
           }),
         },
       );
@@ -310,12 +311,6 @@ export default function LoginForm() {
         setPasswordError(message);
         refreshCaptcha();
         return;
-      }
-
-      if (remember) {
-        localStorage.setItem("rememberLogin", "true");
-      } else {
-        localStorage.removeItem("rememberLogin");
       }
 
       window.location.href = `${import.meta.env.BASE_URL}developing/`;
