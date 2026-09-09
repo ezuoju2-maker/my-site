@@ -167,7 +167,7 @@ export default function RegisterForm() {
 
     try {
       const response = await fetch(
-        "https://my-site-n7j.pages.dev/api/auth/send-code",
+        "/api/auth/send-code",
         {
           method: "POST",
           credentials: "include",
@@ -362,7 +362,7 @@ export default function RegisterForm() {
 
     try {
       const response = await fetch(
-        "https://my-site-n7j.pages.dev/api/auth/register",
+        "/api/auth/register",
         {
           method: "POST",
           credentials: "include",

@@ -3,7 +3,7 @@ import type { FormEvent, RefObject } from "react";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
-const API_BASE_URL = "https://my-site-n7j.pages.dev";
+const API_BASE_URL = "";
 
 function getErrorMessage(error: string, attemptsRemaining?: number) {
   switch (error) {

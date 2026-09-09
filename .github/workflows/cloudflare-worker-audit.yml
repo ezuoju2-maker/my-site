@@ -246,28 +246,32 @@ jobs:
             "$API/accounts/${CLOUDFLARE_ACCOUNT_ID}/r2/buckets?per_page=100")"
 
           echo "R2 HTTP status: $R2_HTTP_CODE"
-          echo "R2 response body:"
-          jq . r2.json
 
-          if [ "$R2_HTTP_CODE" != "200" ]; then
-            echo "R2 bucket listing failed"
-            exit 1
+          if [ "$R2_HTTP_CODE" = "200" ]; then
+            echo "R2 is enabled."
+            jq '{
+              success,
+              buckets: [
+                (.result.buckets // [])[]
+                | {
+                    name,
+                    creation_date,
+                    location,
+                    jurisdiction,
+                    storage_class
+                  }
+              ],
+              result_info
+            }' r2.json
+          elif jq -e '.errors[]? | select(.code == 10042)' r2.json >/dev/null 2>&1; then
+            echo "R2 is not enabled for this Cloudflare account."
+            echo "R2 is optional for this project; continuing audit."
+          else
+            echo "R2 audit returned a non-fatal error:"
+            jq '{success, errors, messages}' r2.json
+            echo "R2 is optional for this project; continuing audit."
           fi
 
-          jq '{
-            success,
-            buckets: [
-              (.result.buckets // [])[]
-              | {
-                  name,
-                  creation_date,
-                  location,
-                  jurisdiction,
-                  storage_class
-                }
-            ],
-            result_info
-          }' r2.json
 
       - name: Audit Worker deployments
         shell: bash
