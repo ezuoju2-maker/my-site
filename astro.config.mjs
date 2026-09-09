@@ -12,6 +12,9 @@ const cloudflareAdapter = isCloudflare
   : undefined;
 
 export default defineConfig({
+  security: {
+    checkOrigin: false,
+  },
   ...(isGitHubPages
     ? {
         site: "https://ezuoju2-maker.github.io",
