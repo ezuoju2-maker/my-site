@@ -314,6 +314,7 @@ export default function RegisterForm() {
             username: username.trim(),
             email: email.trim(),
             password,
+            emailCode: emailCode.trim(),
           }),
         },
       );

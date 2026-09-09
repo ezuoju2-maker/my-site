@@ -31,7 +31,9 @@ function isValidEmail(email: string) {
 }
 
 function randomCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  const bytes = new Uint32Array(1);
+  crypto.getRandomValues(bytes);
+  return String(100000 + (bytes[0] % 900000));
 }
 
 function getClientKey(request: Request, email: string) {
@@ -118,6 +120,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const clientKey = getClientKey(request, email);
   const cooldownKey = `email-code-cooldown:${clientKey}`;
   const codeKey = `email-code:${email}`;
+  const attemptsKey = `email-code-attempts:${email}`;
 
   const cooldown = await kv.get(cooldownKey);
 
@@ -189,6 +192,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   await kv.put(codeKey, code, {
     expirationTtl: CODE_TTL_SECONDS,
   });
+
+  await kv.delete(attemptsKey);
 
   await kv.put(cooldownKey, "1", {
     expirationTtl: RESEND_COOLDOWN_SECONDS,
