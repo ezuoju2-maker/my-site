@@ -503,7 +503,7 @@ export default function LoginForm() {
         </label>
 
         <a
-          href="#"
+          href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/forgot-password/`}
           className="py-2 text-neutral-600 underline-offset-4"
         >
           忘记密码？
