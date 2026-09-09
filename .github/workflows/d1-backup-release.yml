@@ -141,7 +141,7 @@ jobs:
                   body: "Automated encrypted D1 disaster-recovery backup.",
                   draft: false,
                   prerelease: true,
-                  make_latest: false,
+                  make_latest: "false",
                   generate_release_notes: false
                 }')"
           )"
