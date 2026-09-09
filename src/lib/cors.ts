@@ -1,5 +1,6 @@
 const ALLOWED_ORIGINS = new Set([
   "https://ezuoju2-maker.github.io",
+  "https://my-site-n7j.pages.dev",
 ]);
 
 export function getAllowedOrigin(request: Request) {
