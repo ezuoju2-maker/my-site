@@ -16,7 +16,7 @@ jobs:
       WORKER_NAME: my-site
       EXPECTED_DB_NAME: my-site-db
       EXPECTED_DB_ID: 8495798c-ee01-40d2-95fd-70f58a6e1613
-      EXPECTED_KV_ID: e38baa95fa0640498a127ba6d1546713d
+      EXPECTED_KV_ID: e38baa95fa0640498a127ba6d154671d
 
     steps:
       - name: Checkout
