@@ -19,7 +19,7 @@ export default function AutoLoginRedirect() {
 
         if (!cancelled && response.ok) {
           window.location.replace(
-            `${import.meta.env.BASE_URL}developing/`,
+            `${import.meta.env.BASE_URL.replace(/\/$/, "")}/developing/`,
           );
         }
       } catch {
