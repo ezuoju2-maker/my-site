@@ -28,56 +28,175 @@ jobs:
         run: |
           set -eu
 
-          echo "=== CLOUDFLARE PAGES PROJECT CONFIG ==="
+          echo "=== CLOUDFLARE PAGES PROJECT ==="
 
           node - <<'NODE'
-          const response = await fetch(
-            `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/pages/projects/my-site`,
-            {
-              headers: {
-                Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-              },
-            },
-          );
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
 
-          if (!response.ok) {
-            throw new Error(`Cloudflare API returned ${response.status}`);
+          if (!accountId || !token) {
+            throw new Error("Required Cloudflare environment variables are missing");
           }
+
+          const url =
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}` +
+            `/pages/projects/my-site`;
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const payload = await response.json();
 
-          if (!payload.success) {
-            throw new Error(JSON.stringify(payload.errors));
+          if (!response.ok || !payload.success) {
+            throw new Error(JSON.stringify(payload.errors ?? payload));
           }
 
-          const p = payload.result;
+          const p = payload.result ?? {};
+          const production = p.deployment_configs?.production ?? {};
+          const preview = p.deployment_configs?.preview ?? {};
 
-          console.log(
-            JSON.stringify(
-              {
-                id: p.id,
-                name: p.name,
-                production_branch: p.production_branch,
-                production_script_name: p.production_script_name,
-                preview_script_name: p.preview_script_name,
-                uses_functions: p.uses_functions,
-                build_config: p.build_config,
-                source: p.source,
-                services: p.services,
-                d1_databases: p.d1_databases,
-                kv_namespaces: p.kv_namespaces,
-                r2_buckets: p.r2_buckets,
-              },
+          function keys(value) {
+            if (!value || typeof value !== "object") {
+              return [];
+            }
+
+            return Object.keys(value).sort();
+          }
+
+          function services(value) {
+            if (!value || typeof value !== "object") {
+              return {};
+            }
+
+            return Object.fromEntries(
+              Object.entries(value)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([name, config]) => [
+                  name,
+                  {
+                    service:
+                      config && typeof config === "object"
+                        ? config.service ?? null
+                        : null,
+                    environment:
+                      config && typeof config === "object"
+                        ? config.environment ?? null
+                        : null,
+                    entrypoint:
+                      config && typeof config === "object"
+                        ? config.entrypoint ?? null
+                        : null,
+                  },
+                ]),
+            );
+          }
+
+          function envVarTypes(value) {
+            if (!value || typeof value !== "object") {
+              return {};
+            }
+
+            return Object.fromEntries(
+              Object.entries(value)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([name, config]) => [
+                  name,
+                  {
+                    type:
+                      config && typeof config === "object"
+                        ? config.type ?? "unknown"
+                        : "unknown",
+                  },
+                ]),
+            );
+          }
+
+          function summarize(config) {
+            return {
+              compatibility_date: config.compatibility_date ?? null,
+              compatibility_flags: config.compatibility_flags ?? [],
+
+              env_vars: envVarTypes(config.env_vars),
+
+              d1_databases: keys(config.d1_databases),
+              kv_namespaces: keys(config.kv_namespaces),
+              r2_buckets: keys(config.r2_buckets),
+
+              services: services(config.services),
+
+              durable_object_namespaces:
+                keys(config.durable_object_namespaces),
+
+              queue_producers:
+                keys(config.queue_producers),
+
+              vectorize_bindings:
+                keys(config.vectorize_bindings),
+
+              ai_bindings:
+                keys(config.ai_bindings),
+
+              analytics_engine_datasets:
+                keys(config.analytics_engine_datasets),
+
+              hyperdrive:
+                keys(config.hyperdrive),
+
+              placement: config.placement ?? null,
+              usage_model: config.usage_model ?? null,
+            };
+          }
+
+          console.log(JSON.stringify({
+            id: p.id ?? null,
+            name: p.name ?? null,
+            production_branch: p.production_branch ?? null,
+            production_script_name: p.production_script_name ?? null,
+            preview_script_name: p.preview_script_name ?? null,
+            uses_functions: p.uses_functions ?? null,
+            build_config: p.build_config ?? null,
+          }, null, 2));
+
+          console.log("");
+          console.log("=== PRODUCTION DEPLOYMENT CONFIG ===");
+          console.log(JSON.stringify(summarize(production), null, 2));
+
+          console.log("");
+          console.log("=== PREVIEW DEPLOYMENT CONFIG ===");
+          console.log(JSON.stringify(summarize(preview), null, 2));
+
+          console.log("");
+          console.log("=== RAW SERVICE BINDING CHECK ===");
+
+          const productionServices = production.services ?? {};
+
+          if (Object.keys(productionServices).length === 0) {
+            console.log("NO PRODUCTION SERVICE BINDINGS FOUND");
+          } else {
+            console.log(JSON.stringify(
+              services(productionServices),
               null,
               2,
-            ),
+            ));
+          }
+
+          console.log("");
+          console.log("=== SECURITY NOTE ===");
+          console.log(
+            "Secret values are intentionally not printed."
           );
           NODE
 
-          echo
+      - name: Audit Cloudflare Pages projects
+        run: |
           echo "=== CLOUDFLARE PAGES PROJECTS ==="
           npx wrangler pages project list
 
-          echo
+      - name: Audit Cloudflare Pages deployments
+        run: |
           echo "=== CLOUDFLARE PAGES DEPLOYMENTS ==="
-          npx wrangler pages deployment list --project-name my-site
+          npx wrangler pages deployment list \
+            --project-name my-site
