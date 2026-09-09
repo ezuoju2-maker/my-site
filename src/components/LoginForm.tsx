@@ -321,7 +321,7 @@ export default function LoginForm() {
         return;
       }
 
-      window.location.href = `${import.meta.env.BASE_URL}developing/`;
+      window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/developing/`;
     } catch {
       setPasswordError("网络连接失败，请检查网络后重试");
       refreshCaptcha();
