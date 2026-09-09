@@ -241,10 +241,18 @@ jobs:
           echo "6. R2 buckets"
           echo "========================================"
 
-          curl -fsS \
+          R2_HTTP_CODE="$(curl -sS -o r2.json -w '%{http_code}' \
             -H "$AUTH_HEADER" \
-            "$API/accounts/${CLOUDFLARE_ACCOUNT_ID}/r2/buckets?per_page=100" \
-            -o r2.json
+            "$API/accounts/${CLOUDFLARE_ACCOUNT_ID}/r2/buckets?per_page=100")"
+
+          echo "R2 HTTP status: $R2_HTTP_CODE"
+          echo "R2 response body:"
+          jq . r2.json
+
+          if [ "$R2_HTTP_CODE" != "200" ]; then
+            echo "R2 bucket listing failed"
+            exit 1
+          fi
 
           jq '{
             success,
