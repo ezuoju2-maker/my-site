@@ -102,6 +102,8 @@ export async function POST({ request }: { request: Request }) {
       ? body.password
       : "";
 
+  const remember = body.remember === true;
+
   if (!identifier || !password) {
     return json(
       {

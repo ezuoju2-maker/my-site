@@ -306,7 +306,15 @@ export default function LoginForm() {
             ? "用户名或密码错误"
             : data?.error === "FORBIDDEN_ORIGIN"
               ? "请求来源不被允许"
-              : data?.error || "登录失败，请稍后重试";
+              : data?.error === "INVALID_REQUEST"
+                ? "请求格式错误，请重新提交"
+                : data?.error === "UNAUTHENTICATED"
+                  ? "登录状态已失效，请重新登录"
+                  : data?.error === "SESSION_SERVICE_NOT_CONFIGURED"
+                    ? "登录服务暂时不可用，请稍后重试"
+                    : data?.error === "INTERNAL_ERROR"
+                      ? "服务器内部错误，请稍后重试"
+                      : "登录失败，请稍后重试";
 
         setPasswordError(message);
         refreshCaptcha();
