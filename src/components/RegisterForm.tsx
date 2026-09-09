@@ -27,6 +27,10 @@ export default function RegisterForm() {
 
   const [usernameError, setUsernameError] = useState("");
   const [emailError, setEmailError] = useState("");
+
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const emailCodeInputRef = useRef<HTMLInputElement>(null);
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [captchaError, setCaptchaError] = useState("");
@@ -243,6 +247,29 @@ export default function RegisterForm() {
     };
   }, [emailCodeCooldown]);
 
+  function scrollToRegisterError(
+    field: "username" | "email" | "emailCode",
+  ) {
+    const element =
+      field === "username"
+        ? usernameInputRef.current
+        : field === "email"
+          ? emailInputRef.current
+          : emailCodeInputRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      element.focus();
+    });
+  }
+
   function handlePasswordChange(value: string) {
     setPassword(value);
     setPasswordError("");
@@ -314,6 +341,14 @@ export default function RegisterForm() {
       nextCaptchaError ||
       nextAgreementError
     ) {
+      if (usernameValidation) {
+        scrollToRegisterError("username");
+      } else if (emailValidation) {
+        scrollToRegisterError("email");
+      } else if (nextEmailCodeError) {
+        scrollToRegisterError("emailCode");
+      }
+
       return;
     }
 
@@ -346,21 +381,64 @@ export default function RegisterForm() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const message =
-          data?.error === "USERNAME_EXISTS"
-            ? "用户名已存在"
-            : data?.error === "EMAIL_EXISTS"
-              ? "邮箱已注册"
-              : data?.error === "FORBIDDEN_ORIGIN"
-                ? "请求来源不被允许"
-                : data?.error || "注册失败，请稍后重试";
+        const error = data?.error;
 
-        setUsernameError(message);
+        if (error === "USERNAME_EXISTS") {
+          setUsernameError("用户名已存在");
+          setEmailError("");
+          setEmailCodeError("");
+          scrollToRegisterError("username");
+        } else if (error === "EMAIL_EXISTS") {
+          setUsernameError("");
+          setEmailError("该邮箱已被注册");
+          setEmailCodeError("");
+          scrollToRegisterError("email");
+        } else if (error === "EMAIL_CODE_EXPIRED") {
+          setUsernameError("");
+          setEmailError("");
+          setEmailCodeError("邮箱验证码已过期，请重新获取验证码");
+          scrollToRegisterError("emailCode");
+        } else if (error === "INVALID_EMAIL_CODE") {
+          setUsernameError("");
+          setEmailError("");
+          setEmailCodeError(
+            data?.attemptsRemaining
+              ? `邮箱验证码错误，还可尝试 ${data.attemptsRemaining} 次`
+              : "邮箱验证码错误",
+          );
+          scrollToRegisterError("emailCode");
+        } else if (error === "EMAIL_CODE_TOO_MANY_ATTEMPTS") {
+          setUsernameError("");
+          setEmailError("");
+          setEmailCodeError("邮箱验证码错误次数过多，请重新获取验证码");
+          scrollToRegisterError("emailCode");
+        } else if (error === "FORBIDDEN_ORIGIN") {
+          setUsernameError("请求来源不被允许");
+          setEmailError("");
+          setEmailCodeError("");
+          scrollToRegisterError("username");
+        } else if (error === "SESSION_SERVICE_NOT_CONFIGURED") {
+          setUsernameError("注册服务暂时不可用，请稍后重试");
+          setEmailError("");
+          setEmailCodeError("");
+          scrollToRegisterError("username");
+        } else if (error === "REGISTRATION_FAILED") {
+          setUsernameError("注册失败，请稍后重试");
+          setEmailError("");
+          setEmailCodeError("");
+          scrollToRegisterError("username");
+        } else {
+          setUsernameError("注册失败，请稍后重试");
+          setEmailError("");
+          setEmailCodeError("");
+          scrollToRegisterError("username");
+        }
+
         refreshCaptcha();
         return;
       }
 
-      window.location.href = `${import.meta.env.BASE_URL}register-success/?username=${encodeURIComponent(username.trim())}`;
+      window.location.href = `${import.meta.env.BASE_URL}register-success/`;
     } catch {
       setUsernameError("网络连接失败，请检查网络后重试");
       refreshCaptcha();
@@ -381,6 +459,7 @@ export default function RegisterForm() {
         <div className="relative">
           <input
             id="register-username"
+            ref={usernameInputRef}
             name="username"
             value={username}
             onChange={(event) =>
@@ -438,6 +517,7 @@ export default function RegisterForm() {
         <div className="relative">
           <input
             id="register-email"
+            ref={emailInputRef}
             name="email"
             value={email}
             onChange={(event) =>
@@ -693,6 +773,7 @@ export default function RegisterForm() {
         <div className="flex h-12 w-full gap-2">
           <input
             id="register-email-code"
+            ref={emailCodeInputRef}
             name="emailCode"
             value={emailCode}
             onChange={(event) =>

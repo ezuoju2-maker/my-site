@@ -195,14 +195,7 @@ function CaptchaImage({
 }
 
 export default function LoginForm() {
-  const [username, setUsername] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    return params.get("username")?.trim() ?? "";
-  });
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [captcha, setCaptcha] = useState("");
 
