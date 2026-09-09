@@ -115,7 +115,7 @@ jobs:
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
                 -H "Content-Type: application/json" \
                 --data "$(jq -nc --arg bookmark "$BOOKMARK" \
-                  '{current_bookmark:$bookmark}')"
+                  '{output_format:"polling",current_bookmark:$bookmark}')"
             )"
 
             if ! echo "$POLL_RESPONSE" | jq -e '.success == true' >/dev/null; then
