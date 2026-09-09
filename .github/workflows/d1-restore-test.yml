@@ -103,7 +103,7 @@ jobs:
 
           (
             cd backup-restore-work
-            sha256sum -c my-site-d1-backup.tar.gz.enc.sha256
+            echo "$(awk '{print $1}' my-site-d1-backup.tar.gz.enc.sha256)  my-site-d1-backup.tar.gz.enc" | sha256sum -c -
           )
 
           echo "Encrypted backup integrity: PASS"
