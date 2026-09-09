@@ -92,14 +92,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const runtime = (locals as any).runtime;
   const env = runtime?.env as {
-    BREVO_API_KEY?: string;
+    RESEND_API_KEY?: string;
     SESSION?: KVNamespace;
   } | undefined;
 
-  const brevoApiKey = env?.BREVO_API_KEY;
+  const resendApiKey = env?.RESEND_API_KEY;
 
-  if (!brevoApiKey) {
-    console.error("BREVO_API_KEY is not configured");
+  if (!resendApiKey) {
+    console.error("RESEND_API_KEY is not configured");
     return json(
       { ok: false, error: "EMAIL_SERVICE_NOT_CONFIGURED" },
       500,
@@ -146,38 +146,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let response: Response;
 
   try {
-    response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "api-key": brevoApiKey,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: {
-        name: "my-site",
-        email: "ezuoju2@gmail.com",
+    response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${resendApiKey}`,
+        "content-type": "application/json",
       },
-      to: [
-        {
-          email,
-        },
-      ],
-      subject: "my-site 注册验证码",
-      textContent: `你的 my-site 注册验证码是：${code}\n\n验证码 10 分钟内有效。如果不是你本人操作，请忽略此邮件。`,
-      htmlContent: `
-        <div style="font-family:Arial,sans-serif;line-height:1.7">
-          <h2>my-site 注册验证码</h2>
-          <p>你的验证码是：</p>
-          <p style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</p>
-          <p>验证码 10 分钟内有效。</p>
-          <p>如果不是你本人操作，请忽略此邮件。</p>
-        </div>
-      `,
-    }),
+      body: JSON.stringify({
+        from: "my-site <noreply@ezuoju.dynv6.net>",
+        to: [email],
+        subject: "my-site 注册验证码",
+        html: `<p>您的 my-site 注册验证码是：</p><p style="font-size:24px;font-weight:bold;">${code}</p><p>验证码 10 分钟内有效。</p>`,
+        text: `您的 my-site 注册验证码是：${code}，10 分钟内有效。`,
+      }),
     });
   } catch (error) {
-    console.error("Brevo fetch exception", error);
+    console.error("Resend fetch exception", error);
 
     return json(
       { ok: false, error: "EMAIL_PROVIDER_UNREACHABLE" },
@@ -188,12 +173,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   if (!response.ok) {
-    const errorText = await response.text();
+    let providerBody = "";
 
-    console.error("Brevo send failed", response.status, errorText);
+    try {
+      providerBody = await response.text();
+    } catch (error) {
+      console.error("Failed to read Resend error response", error);
+    }
+
+    console.error("Resend API error", response.status, providerBody);
 
     return json(
-      { ok: false, error: "EMAIL_SEND_FAILED" },
+      { ok: false, error: "EMAIL_PROVIDER_ERROR" },
       502,
       {},
       origin,
