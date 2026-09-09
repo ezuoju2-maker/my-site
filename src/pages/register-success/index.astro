@@ -1,0 +1,39 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+const username = Astro.url.searchParams.get("username")?.trim() ?? "";
+const loginUrl = username
+  ? `/?username=${encodeURIComponent(username)}`
+  : "/";
+---
+
+<Layout title="注册成功">
+  <main class="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
+    <section class="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
+      <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+        ✓
+      </div>
+
+      <h1 class="text-2xl font-semibold text-neutral-900">
+        注册成功
+      </h1>
+
+      <p class="mt-3 text-sm leading-6 text-neutral-500">
+        您的账号已经注册成功。
+      </p>
+
+      {username && (
+        <p class="mt-2 text-sm text-neutral-600">
+          用户名：<span class="font-medium text-neutral-900">{username}</span>
+        </p>
+      )}
+
+      <a
+        href={loginUrl}
+        class="mt-7 flex h-12 w-full items-center justify-center rounded-lg bg-neutral-900 px-4 text-base font-medium text-white"
+      >
+        立即登录
+      </a>
+    </section>
+  </main>
+</Layout>

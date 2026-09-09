@@ -195,7 +195,14 @@ function CaptchaImage({
 }
 
 export default function LoginForm() {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    return params.get("username")?.trim() ?? "";
+  });
   const [password, setPassword] = useState("");
   const [captcha, setCaptcha] = useState("");
 
@@ -318,7 +325,7 @@ export default function LoginForm() {
         localStorage.removeItem("rememberLogin");
       }
 
-      window.location.href = "/";
+      window.location.href = `${import.meta.env.BASE_URL}developing/`;
     } catch {
       setPasswordError("网络连接失败，请检查网络后重试");
       refreshCaptcha();
