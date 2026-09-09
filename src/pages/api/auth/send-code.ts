@@ -124,7 +124,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const cooldownKey = `email-code-cooldown:${clientKey}`;
   const codeKey = `email-code:${email}`;
 
-  const cooldown = await kv.get(cooldownKey);
+  let cooldown: string | null;
+
+  try {
+    cooldown = await kv.get(cooldownKey);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("SESSION KV get failed", detail);
+
+    return json(
+      {
+        ok: false,
+        error: "SESSION_KV_GET_FAILED",
+        detail,
+      },
+      500,
+      {},
+      origin,
+    );
+  }
 
   if (cooldown) {
     return json(
