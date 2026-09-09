@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const API_BASE_URL = "https://my-site-n7j.pages.dev";
+const API_BASE_URL = "";
 
 export default function AutoLoginRedirect() {
   useEffect(() => {

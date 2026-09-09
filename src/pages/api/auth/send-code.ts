@@ -1,9 +1,18 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
-import { corsHeaders, getAllowedOrigin, rejectCrossSiteRequest } from "../../../lib/cors";
+import {
+  createOtpDigest,
+  generateOtp,
+  OTP_TTL_SECONDS,
+} from "../../../lib/otp";
+import {
+  corsHeaders,
+  getAllowedOrigin,
+  rejectCrossSiteRequest,
+} from "../../../lib/cors";
 
-const CODE_TTL_SECONDS = 10 * 60;
 const RESEND_COOLDOWN_SECONDS = 60;
+const OTP_PURPOSE = "email-verification";
 
 function json(
   data: unknown,
@@ -30,18 +39,9 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function randomCode() {
-  const bytes = new Uint32Array(1);
-  crypto.getRandomValues(bytes);
-  return String(100000 + (bytes[0] % 900000));
-}
-
 function getClientKey(request: Request, email: string) {
-  const forwarded = request.headers.get("CF-Connecting-IP")
-    || request.headers.get("X-Forwarded-For")
-    || "unknown";
-
-  return `${forwarded}:${email}`;
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  return `${ip}:${email}`;
 }
 
 export const OPTIONS: APIRoute = async ({ request }) => {
@@ -61,10 +61,10 @@ export const OPTIONS: APIRoute = async ({ request }) => {
   });
 };
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
-
   const rejected = rejectCrossSiteRequest(request);
+
   if (rejected) {
     return rejected;
   }
@@ -97,6 +97,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (!resendApiKey) {
     console.error("RESEND_API_KEY is not configured");
+
     return json(
       { ok: false, error: "EMAIL_SERVICE_NOT_CONFIGURED" },
       500,
@@ -109,6 +110,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (!kv) {
     console.error("SESSION KV binding is not configured");
+
     return json(
       { ok: false, error: "SESSION_SERVICE_NOT_CONFIGURED" },
       500,
@@ -139,7 +141,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  const code = randomCode();
+  const code = generateOtp();
+
+  let digest: string;
+
+  try {
+    digest = await createOtpDigest(
+      OTP_PURPOSE,
+      email,
+      code,
+    );
+  } catch (error) {
+    console.error("OTP digest creation failed", error);
+
+    return json(
+      { ok: false, error: "OTP_SERVICE_ERROR" },
+      500,
+      {},
+      origin,
+    );
+  }
 
   let response: Response;
 
@@ -171,15 +192,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   if (!response.ok) {
-    let providerBody = "";
-
-    try {
-      providerBody = await response.text();
-    } catch (error) {
-      console.error("Failed to read Resend error response", error);
-    }
-
-    console.error("Resend API error", response.status, providerBody);
+    console.error("Resend API error", response.status);
 
     return json(
       { ok: false, error: "EMAIL_PROVIDER_ERROR" },
@@ -189,20 +202,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  await kv.put(codeKey, code, {
-    expirationTtl: CODE_TTL_SECONDS,
-  });
+  try {
+    await kv.put(codeKey, digest, {
+      expirationTtl: OTP_TTL_SECONDS,
+    });
 
-  await kv.delete(attemptsKey);
+    await kv.delete(attemptsKey);
 
-  await kv.put(cooldownKey, "1", {
-    expirationTtl: RESEND_COOLDOWN_SECONDS,
-  });
+    await kv.put(cooldownKey, "1", {
+      expirationTtl: RESEND_COOLDOWN_SECONDS,
+    });
+  } catch (error) {
+    console.error("OTP KV storage error", error);
+
+    return json(
+      { ok: false, error: "OTP_SERVICE_ERROR" },
+      500,
+      {},
+      origin,
+    );
+  }
 
   return json(
     {
       ok: true,
-      expiresIn: CODE_TTL_SECONDS,
+      expiresIn: OTP_TTL_SECONDS,
       retryAfter: RESEND_COOLDOWN_SECONDS,
     },
     200,

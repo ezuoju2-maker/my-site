@@ -1,11 +1,19 @@
 import { env } from "cloudflare:workers";
 
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 128;
+
+const PASSWORD_ITERATIONS = 100_000;
+const PASSWORD_SALT_BYTES = 16;
+const PASSWORD_HASH_BYTES = 32;
+
 const SESSION_TTL = 60 * 60 * 24 * 7;
 const REMEMBER_SESSION_TTL = 60 * 60 * 24 * 30;
 
-type SessionData = {
+export type SessionData = {
   userId: string;
   username: string;
+  sessionVersion: number;
 };
 
 type StoredPassword = {
@@ -14,8 +22,24 @@ type StoredPassword = {
   hash: Uint8Array;
 };
 
-function base64ToBytes(value: string) {
-  const binary = atob(value);
+function bytesToBase64Url(bytes: Uint8Array) {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function base64UrlToBytes(value: string) {
+  const normalized = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const padding = normalized.length % 4;
+  const padded = padding === 0
+    ? normalized
+    : normalized + "=".repeat(4 - padding);
+
+  const binary = atob(padded);
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
@@ -28,30 +52,59 @@ function parsePasswordHash(value: string): StoredPassword | null {
 
   const iterations = Number(parts[1]);
 
-  if (!Number.isInteger(iterations) || iterations <= 0) {
+  if (
+    !Number.isInteger(iterations) ||
+    iterations < 100_000 ||
+    iterations > 10_000_000
+  ) {
     return null;
   }
 
   try {
+    const salt = base64UrlToBytes(parts[2]);
+    const hash = base64UrlToBytes(parts[3]);
+
+    if (
+      salt.length < PASSWORD_SALT_BYTES ||
+      hash.length !== PASSWORD_HASH_BYTES
+    ) {
+      return null;
+    }
+
     return {
       iterations,
-      salt: base64ToBytes(parts[2]),
-      hash: base64ToBytes(parts[3]),
+      salt,
+      hash,
     };
   } catch {
     return null;
   }
 }
 
-export async function verifyPassword(
-  password: string,
-  storedHash: string,
-) {
-  const parsed = parsePasswordHash(storedHash);
-
-  if (!parsed) {
+function constantTimeEqual(a: Uint8Array, b: Uint8Array) {
+  if (a.length !== b.length) {
     return false;
   }
+
+  let difference = 0;
+
+  for (let i = 0; i < a.length; i += 1) {
+    difference |= a[i] ^ b[i];
+  }
+
+  return difference === 0;
+}
+
+export async function hashPassword(password: string) {
+  if (
+    password.length < PASSWORD_MIN_LENGTH ||
+    password.length > PASSWORD_MAX_LENGTH
+  ) {
+    throw new Error("INVALID_PASSWORD_LENGTH");
+  }
+
+  const salt = new Uint8Array(PASSWORD_SALT_BYTES);
+  crypto.getRandomValues(salt);
 
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
@@ -64,62 +117,103 @@ export async function verifyPassword(
   const bits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
-      salt: parsed.salt,
-      iterations: parsed.iterations,
+      salt,
+      iterations: PASSWORD_ITERATIONS,
       hash: "SHA-256",
     },
     keyMaterial,
-    parsed.hash.length * 8,
+    PASSWORD_HASH_BYTES * 8,
   );
 
-  const actual = new Uint8Array(bits);
+  return [
+    "pbkdf2-sha256",
+    PASSWORD_ITERATIONS,
+    bytesToBase64Url(salt),
+    bytesToBase64Url(new Uint8Array(bits)),
+  ].join("$");
+}
 
-  if (actual.length !== parsed.hash.length) {
+export async function verifyPassword(
+  password: string,
+  storedHash: string,
+) {
+  if (
+    password.length < PASSWORD_MIN_LENGTH ||
+    password.length > PASSWORD_MAX_LENGTH
+  ) {
     return false;
   }
 
-  let difference = 0;
+  const parsed = parsePasswordHash(storedHash);
 
-  for (let i = 0; i < actual.length; i++) {
-    difference |= actual[i] ^ parsed.hash[i];
+  if (!parsed) {
+    return false;
   }
 
-  return difference === 0;
+  try {
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(password),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    );
+
+    const bits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt: parsed.salt,
+        iterations: parsed.iterations,
+        hash: "SHA-256",
+      },
+      keyMaterial,
+      parsed.hash.length * 8,
+    );
+
+    return constantTimeEqual(
+      new Uint8Array(bits),
+      parsed.hash,
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function createSession(
   userId: string,
   username: string,
   remember = false,
+  sessionVersion = 1,
 ) {
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
-  const token = btoa(String.fromCharCode(...tokenBytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  const token = bytesToBase64Url(tokenBytes);
 
   const session: SessionData = {
     userId,
     username,
+    sessionVersion,
   };
 
   await env.SESSION.put(
     `session:${token}`,
     JSON.stringify(session),
     {
-      expirationTtl: remember ? REMEMBER_SESSION_TTL : SESSION_TTL,
+      expirationTtl: remember
+        ? REMEMBER_SESSION_TTL
+        : SESSION_TTL,
     },
   );
 
   return {
     token,
-    maxAge: remember ? REMEMBER_SESSION_TTL : null,
+    maxAge: remember
+      ? REMEMBER_SESSION_TTL
+      : null,
   };
 }
 
 export async function getSession(request: Request) {
   const cookie = request.headers.get("Cookie") ?? "";
-
   const match = cookie.match(
     /(?:^|;\s*)session=([^;]+)/,
   );
@@ -130,29 +224,50 @@ export async function getSession(request: Request) {
 
   const token = match[1];
 
-  if (!token || token.length > 128) {
-    return null;
-  }
-
-  const value = await env.SESSION.get(`session:${token}`);
-
-  if (!value) {
+  if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
     return null;
   }
 
   try {
-    const session = JSON.parse(value) as SessionData;
+    const value = await env.SESSION.get(
+      `session:${token}`,
+    );
+
+    if (!value) {
+      return null;
+    }
+
+    const session = JSON.parse(value) as Partial<SessionData>;
 
     if (
       typeof session.userId !== "string" ||
-      typeof session.username !== "string"
+      typeof session.username !== "string" ||
+      !Number.isInteger(session.sessionVersion) ||
+      session.sessionVersion < 1
     ) {
+      await env.SESSION.delete(`session:${token}`);
+      return null;
+    }
+
+    const user = await env.DB.prepare(
+      "SELECT session_version FROM users WHERE id = ?1 LIMIT 1",
+    )
+      .bind(session.userId)
+      .first<{ session_version: number }>();
+
+    if (
+      !user ||
+      user.session_version !== session.sessionVersion
+    ) {
+      await env.SESSION.delete(`session:${token}`);
       return null;
     }
 
     return {
       token,
-      ...session,
+      userId: session.userId,
+      username: session.username,
+      sessionVersion: session.sessionVersion,
     };
   } catch {
     return null;
@@ -166,10 +281,15 @@ export async function deleteSession(request: Request) {
     return;
   }
 
-  await env.SESSION.delete(`session:${session.token}`);
+  await env.SESSION.delete(
+    `session:${session.token}`,
+  );
 }
 
-export function sessionCookie(token: string, maxAge: number | null) {
+export function sessionCookie(
+  token: string,
+  maxAge: number | null,
+) {
   const parts = [
     `session=${token}`,
     "Path=/",

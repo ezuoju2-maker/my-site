@@ -1,7 +1,14 @@
 import type { APIRoute } from "astro";
-
-export const prerender = import.meta.env.GITHUB_PAGES === "true";
 import { env } from "cloudflare:workers";
+import {
+  hashPassword,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "../../../lib/auth";
+import {
+  OTP_TTL_SECONDS,
+  verifyOtpDigest,
+} from "../../../lib/otp";
 import {
   corsHeaders,
   getAllowedOrigin,
@@ -9,6 +16,7 @@ import {
 } from "../../../lib/cors";
 
 const MAX_ATTEMPTS = 5;
+const OTP_PURPOSE = "password-reset";
 
 function json(
   data: unknown,
@@ -28,7 +36,9 @@ function json(
 }
 
 function normalizeEmail(value: unknown) {
-  return typeof value === "string" ? value.trim().toLowerCase() : "";
+  return typeof value === "string"
+    ? value.trim().toLowerCase()
+    : "";
 }
 
 function isValidEmail(email: string) {
@@ -36,32 +46,10 @@ function isValidEmail(email: string) {
 }
 
 function isValidPassword(password: string) {
-  return password.length >= 8 && password.length <= 128;
-}
-
-function constantTimeEqual(a: string, b: string) {
-  const encoder = new TextEncoder();
-  const aBytes = encoder.encode(a);
-  const bBytes = encoder.encode(b);
-
-  if (aBytes.length !== bBytes.length) {
-    return false;
-  }
-
-  let difference = 0;
-
-  for (let i = 0; i < aBytes.length; i += 1) {
-    difference |= aBytes[i] ^ bBytes[i];
-  }
-
-  return difference === 0;
-}
-
-function toBase64Url(bytes: Uint8Array) {
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return (
+    password.length >= PASSWORD_MIN_LENGTH &&
+    password.length <= PASSWORD_MAX_LENGTH
+  );
 }
 
 export const OPTIONS: APIRoute = async ({ request }) => {
@@ -83,7 +71,6 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
-
   const rejected = rejectCrossSiteRequest(request);
 
   if (rejected) {
@@ -147,23 +134,26 @@ export const POST: APIRoute = async ({ request }) => {
   const kv = env.SESSION;
 
   if (!kv) {
-    console.error("SESSION KV binding is not configured");
-
     return json(
-      { ok: false, error: "SESSION_SERVICE_NOT_CONFIGURED" },
+      {
+        ok: false,
+        error: "SESSION_SERVICE_NOT_CONFIGURED",
+      },
       500,
       {},
       origin,
     );
   }
 
-  const codeKey = `password-reset-code:${email}`;
-  const attemptsKey = `password-reset-attempts:${email}`;
+  const codeKey =
+    `password-reset-code:${email}`;
+  const attemptsKey =
+    `password-reset-attempts:${email}`;
 
   try {
-    const storedCode = await kv.get(codeKey);
+    const storedDigest = await kv.get(codeKey);
 
-    if (!storedCode) {
+    if (!storedDigest) {
       return json(
         { ok: false, error: "EMAIL_CODE_EXPIRED" },
         400,
@@ -172,9 +162,11 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const attemptsValue = await kv.get(attemptsKey);
     const attempts =
-      Number.parseInt(attemptsValue ?? "0", 10) || 0;
+      Number.parseInt(
+        (await kv.get(attemptsKey)) ?? "0",
+        10,
+      ) || 0;
 
     if (attempts >= MAX_ATTEMPTS) {
       await kv.delete(codeKey);
@@ -187,20 +179,32 @@ export const POST: APIRoute = async ({ request }) => {
         },
         429,
         {
-          "Retry-After": "600",
+          "Retry-After":
+            String(OTP_TTL_SECONDS),
         },
         origin,
       );
     }
 
-    if (!constantTimeEqual(storedCode, emailCode)) {
-      const nextAttempts = attempts + 1;
+    const valid = await verifyOtpDigest(
+      storedDigest,
+      OTP_PURPOSE,
+      email,
+      emailCode,
+    );
 
-      await kv.put(attemptsKey, String(nextAttempts), {
-        expirationTtl: 10 * 60,
-      });
+    if (!valid) {
+      const next = attempts + 1;
 
-      if (nextAttempts >= MAX_ATTEMPTS) {
+      await kv.put(
+        attemptsKey,
+        String(next),
+        {
+          expirationTtl: OTP_TTL_SECONDS,
+        },
+      );
+
+      if (next >= MAX_ATTEMPTS) {
         await kv.delete(codeKey);
         await kv.delete(attemptsKey);
 
@@ -211,7 +215,8 @@ export const POST: APIRoute = async ({ request }) => {
           },
           429,
           {
-            "Retry-After": "600",
+            "Retry-After":
+              String(OTP_TTL_SECONDS),
           },
           origin,
         );
@@ -221,23 +226,25 @@ export const POST: APIRoute = async ({ request }) => {
         {
           ok: false,
           error: "INVALID_EMAIL_CODE",
-          attemptsRemaining: MAX_ATTEMPTS - nextAttempts,
+          attemptsRemaining:
+            MAX_ATTEMPTS - next,
         },
         400,
         {},
         origin,
       );
     }
-
-    await kv.delete(codeKey);
-    await kv.delete(attemptsKey);
   } catch (error) {
-    console.error("Password reset verification KV error", error);
+    console.error(
+      "Password reset verification error",
+      error,
+    );
 
     return json(
       {
         ok: false,
-        error: "EMAIL_VERIFICATION_SERVICE_ERROR",
+        error:
+          "EMAIL_VERIFICATION_SERVICE_ERROR",
       },
       500,
       {},
@@ -247,112 +254,60 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const user = await env.DB.prepare(
-      "SELECT id, email FROM users WHERE lower(email) = ?1 LIMIT 1",
+      "SELECT id FROM users WHERE lower(email) = ?1 LIMIT 1",
     )
       .bind(email)
-      .first<{
-        id: string;
-        email: string;
-      }>();
+      .first<{ id: string }>();
 
-    /*
-     * The send-code endpoint deliberately hides whether an account
-     * exists. If the account disappeared between code delivery and
-     * reset, return a generic failure.
-     */
     if (!user) {
       return json(
-        { ok: false, error: "PASSWORD_RESET_FAILED" },
+        {
+          ok: false,
+          error: "PASSWORD_RESET_FAILED",
+        },
         400,
         {},
         origin,
       );
     }
 
-    const salt = new Uint8Array(16);
-    crypto.getRandomValues(salt);
-
-    const passwordKey = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(newPassword),
-      "PBKDF2",
-      false,
-      ["deriveBits"],
-    );
-
-    const derivedBits = await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        salt,
-        iterations: 100_000,
-        hash: "SHA-256",
-      },
-      passwordKey,
-      256,
-    );
-
     const passwordHash =
-      `pbkdf2-sha256$100000$${toBase64Url(salt)}$${toBase64Url(
-        new Uint8Array(derivedBits),
-      )}`;
+      await hashPassword(newPassword);
 
-    await env.DB.prepare(
+    const result = await env.DB.prepare(
       `UPDATE users
        SET password_hash = ?1,
+           session_version = session_version + 1,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?2`,
     )
       .bind(passwordHash, user.id)
       .run();
 
+    if (!result.success) {
+      throw new Error(
+        "Password reset update failed",
+      );
+    }
+
     /*
-     * Invalidate every existing session for this user.
-     * Existing sessions are stored under session:<token>, so list
-     * the user's session records and remove the matching ones.
+     * Consume the OTP only after the password and
+     * session-version update succeeds.
      */
-    let cursor: string | undefined;
-
-    do {
-      const sessionList = await kv.list({
-        prefix: "session:",
-        ...(cursor ? { cursor } : {}),
-      });
-
-      for (const key of sessionList.keys) {
-        const value = await kv.get(key.name);
-
-        if (!value) {
-          continue;
-        }
-
-        try {
-          const session = JSON.parse(value) as {
-            userId?: unknown;
-          };
-
-          if (session.userId === user.id) {
-            await kv.delete(key.name);
-          }
-        } catch {
-          // Ignore malformed unrelated session records.
-        }
-      }
-
-      cursor = sessionList.list_complete
-        ? undefined
-        : sessionList.cursor;
-    } while (cursor);
+    await kv.delete(codeKey);
+    await kv.delete(attemptsKey);
 
     return json(
-      {
-        ok: true,
-      },
+      { ok: true },
       200,
       {},
       origin,
     );
   } catch (error) {
-    console.error("Password reset database error", error);
+    console.error(
+      "Password reset database error",
+      error,
+    );
 
     return json(
       {

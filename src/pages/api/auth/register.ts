@@ -1,13 +1,23 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import {
+  hashPassword,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "../../../lib/auth";
+import {
+  createOtpDigest,
+  OTP_TTL_SECONDS,
+  verifyOtpDigest,
+} from "../../../lib/otp";
+import {
   corsHeaders,
   getAllowedOrigin,
   rejectCrossSiteRequest,
 } from "../../../lib/cors";
 
-const EMAIL_CODE_TTL_SECONDS = 10 * 60;
 const EMAIL_CODE_MAX_ATTEMPTS = 5;
+const OTP_PURPOSE = "email-verification";
 
 function json(
   data: unknown,
@@ -43,25 +53,10 @@ function isValidUsername(username: string) {
 }
 
 function isValidPassword(password: string) {
-  return password.length >= 8 && password.length <= 128;
-}
-
-function constantTimeEqual(a: string, b: string) {
-  const encoder = new TextEncoder();
-  const aBytes = encoder.encode(a);
-  const bBytes = encoder.encode(b);
-
-  if (aBytes.length !== bBytes.length) {
-    return false;
-  }
-
-  let difference = 0;
-
-  for (let i = 0; i < aBytes.length; i += 1) {
-    difference |= aBytes[i] ^ bBytes[i];
-  }
-
-  return difference === 0;
+  return (
+    password.length >= PASSWORD_MIN_LENGTH &&
+    password.length <= PASSWORD_MAX_LENGTH
+  );
 }
 
 export const OPTIONS: APIRoute = async ({ request }) => {
@@ -83,8 +78,8 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
-
   const rejected = rejectCrossSiteRequest(request);
+
   if (rejected) {
     return rejected;
   }
@@ -169,9 +164,9 @@ export const POST: APIRoute = async ({ request }) => {
   const attemptsKey = `email-code-attempts:${email}`;
 
   try {
-    const storedCode = await kv.get(codeKey);
+    const storedDigest = await kv.get(codeKey);
 
-    if (!storedCode) {
+    if (!storedDigest) {
       return json(
         { ok: false, error: "EMAIL_CODE_EXPIRED" },
         400,
@@ -181,7 +176,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const attemptsValue = await kv.get(attemptsKey);
-    const attempts = Number.parseInt(attemptsValue ?? "0", 10) || 0;
+    const attempts =
+      Number.parseInt(attemptsValue ?? "0", 10) || 0;
 
     if (attempts >= EMAIL_CODE_MAX_ATTEMPTS) {
       await kv.delete(codeKey);
@@ -194,18 +190,29 @@ export const POST: APIRoute = async ({ request }) => {
         },
         429,
         {
-          "Retry-After": String(EMAIL_CODE_TTL_SECONDS),
+          "Retry-After": String(OTP_TTL_SECONDS),
         },
         origin,
       );
     }
 
-    if (!constantTimeEqual(storedCode, emailCode)) {
+    const valid = await verifyOtpDigest(
+      storedDigest,
+      OTP_PURPOSE,
+      email,
+      emailCode,
+    );
+
+    if (!valid) {
       const nextAttempts = attempts + 1;
 
-      await kv.put(attemptsKey, String(nextAttempts), {
-        expirationTtl: EMAIL_CODE_TTL_SECONDS,
-      });
+      await kv.put(
+        attemptsKey,
+        String(nextAttempts),
+        {
+          expirationTtl: OTP_TTL_SECONDS,
+        },
+      );
 
       if (nextAttempts >= EMAIL_CODE_MAX_ATTEMPTS) {
         await kv.delete(codeKey);
@@ -218,7 +225,7 @@ export const POST: APIRoute = async ({ request }) => {
           },
           429,
           {
-            "Retry-After": String(EMAIL_CODE_TTL_SECONDS),
+            "Retry-After": String(OTP_TTL_SECONDS),
           },
           origin,
         );
@@ -228,21 +235,22 @@ export const POST: APIRoute = async ({ request }) => {
         {
           ok: false,
           error: "INVALID_EMAIL_CODE",
-          attemptsRemaining: EMAIL_CODE_MAX_ATTEMPTS - nextAttempts,
+          attemptsRemaining:
+            EMAIL_CODE_MAX_ATTEMPTS - nextAttempts,
         },
         400,
         {},
         origin,
       );
     }
-
-    await kv.delete(codeKey);
-    await kv.delete(attemptsKey);
   } catch (error) {
     console.error("Email verification KV error", error);
 
     return json(
-      { ok: false, error: "EMAIL_VERIFICATION_SERVICE_ERROR" },
+      {
+        ok: false,
+        error: "EMAIL_VERIFICATION_SERVICE_ERROR",
+      },
       500,
       {},
       origin,
@@ -278,39 +286,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const salt = new Uint8Array(16);
-    crypto.getRandomValues(salt);
-
-    const passwordKey = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(password),
-      "PBKDF2",
-      false,
-      ["deriveBits"],
-    );
-
-    const derivedBits = await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        salt,
-        iterations: 100_000,
-        hash: "SHA-256",
-      },
-      passwordKey,
-      256,
-    );
-
-    const toBase64Url = (bytes: Uint8Array) =>
-      btoa(String.fromCharCode(...bytes))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/g, "");
-
-    const passwordHash =
-      `pbkdf2-sha256$100000$${toBase64Url(salt)}$${toBase64Url(
-        new Uint8Array(derivedBits),
-      )}`;
-
+    const passwordHash = await hashPassword(password);
     const userId = crypto.randomUUID();
 
     await env.DB.prepare(
@@ -323,6 +299,9 @@ export const POST: APIRoute = async ({ request }) => {
     )
       .bind(userId, username, email, passwordHash)
       .run();
+
+    await kv.delete(codeKey);
+    await kv.delete(attemptsKey);
 
     return json(
       {

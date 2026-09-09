@@ -1,15 +1,20 @@
 import type { APIRoute } from "astro";
-
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
+
 import { env } from "cloudflare:workers";
+import {
+  createOtpDigest,
+  generateOtp,
+  OTP_TTL_SECONDS,
+} from "../../../lib/otp";
 import {
   corsHeaders,
   getAllowedOrigin,
   rejectCrossSiteRequest,
 } from "../../../lib/cors";
 
-const CODE_TTL_SECONDS = 10 * 60;
 const RESEND_COOLDOWN_SECONDS = 60;
+const OTP_PURPOSE = "password-reset";
 
 function json(
   data: unknown,
@@ -36,18 +41,8 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function randomCode() {
-  const bytes = new Uint32Array(1);
-  crypto.getRandomValues(bytes);
-  return String(100000 + (bytes[0] % 900000));
-}
-
 function getClientKey(request: Request, email: string) {
-  const ip =
-    request.headers.get("CF-Connecting-IP") ||
-    request.headers.get("X-Forwarded-For") ||
-    "unknown";
-
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   return `${ip}:${email}`;
 }
 
@@ -70,7 +65,6 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
-
   const rejected = rejectCrossSiteRequest(request);
 
   if (rejected) {
@@ -128,9 +122,12 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const clientKey = getClientKey(request, email);
-  const cooldownKey = `password-reset-cooldown:${clientKey}`;
-  const codeKey = `password-reset-code:${email}`;
-  const attemptsKey = `password-reset-attempts:${email}`;
+  const cooldownKey =
+    `password-reset-cooldown:${clientKey}`;
+  const codeKey =
+    `password-reset-code:${email}`;
+  const attemptsKey =
+    `password-reset-attempts:${email}`;
 
   const cooldown = await kv.get(cooldownKey);
 
@@ -143,7 +140,8 @@ export const POST: APIRoute = async ({ request }) => {
       },
       429,
       {
-        "Retry-After": String(RESEND_COOLDOWN_SECONDS),
+        "Retry-After":
+          String(RESEND_COOLDOWN_SECONDS),
       },
       origin,
     );
@@ -168,7 +166,7 @@ export const POST: APIRoute = async ({ request }) => {
       return json(
         {
           ok: true,
-          expiresIn: CODE_TTL_SECONDS,
+          expiresIn: OTP_TTL_SECONDS,
           retryAfter: RESEND_COOLDOWN_SECONDS,
         },
         200,
@@ -177,49 +175,60 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const code = randomCode();
+    const code = generateOtp();
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${resendApiKey}`,
-        "content-type": "application/json",
+    const digest = await createOtpDigest(
+      OTP_PURPOSE,
+      email,
+      code,
+    );
+
+    const response = await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          authorization: `Bearer ${resendApiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          from:
+            "my-site <noreply@ezuoju.dynv6.net>",
+          to: [email],
+          subject: "my-site 密码重置验证码",
+          html:
+            `<p>您的 my-site 密码重置验证码是：</p>` +
+            `<p style="font-size:24px;font-weight:bold;">` +
+            `${code}` +
+            `</p>` +
+            `<p>验证码 10 分钟内有效。</p>`,
+          text:
+            `您的 my-site 密码重置验证码是：${code}，` +
+            `10 分钟内有效。`,
+        }),
       },
-      body: JSON.stringify({
-        from: "my-site <noreply@ezuoju.dynv6.net>",
-        to: [email],
-        subject: "my-site 密码重置验证码",
-        html: `<p>您的 my-site 密码重置验证码是：</p><p style="font-size:24px;font-weight:bold;">${code}</p><p>验证码 10 分钟内有效。</p>`,
-        text: `您的 my-site 密码重置验证码是：${code}，10 分钟内有效。`,
-      }),
-    });
+    );
 
     if (!response.ok) {
-      let providerBody = "";
-
-      try {
-        providerBody = await response.text();
-      } catch (error) {
-        console.error("Failed to read Resend error response", error);
-      }
-
       console.error(
         "Resend password reset error",
         response.status,
-        providerBody,
       );
 
       return json(
-        { ok: false, error: "EMAIL_PROVIDER_ERROR" },
+        {
+          ok: false,
+          error: "EMAIL_PROVIDER_ERROR",
+        },
         502,
         {},
         origin,
       );
     }
 
-    await kv.put(codeKey, code, {
-      expirationTtl: CODE_TTL_SECONDS,
+    await kv.put(codeKey, digest, {
+      expirationTtl: OTP_TTL_SECONDS,
     });
 
     await kv.delete(attemptsKey);
@@ -231,7 +240,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json(
       {
         ok: true,
-        expiresIn: CODE_TTL_SECONDS,
+        expiresIn: OTP_TTL_SECONDS,
         retryAfter: RESEND_COOLDOWN_SECONDS,
       },
       200,
@@ -239,7 +248,10 @@ export const POST: APIRoute = async ({ request }) => {
       origin,
     );
   } catch (error) {
-    console.error("Password reset request failed", error);
+    console.error(
+      "Password reset request failed",
+      error,
+    );
 
     return json(
       { ok: false, error: "INTERNAL_ERROR" },
