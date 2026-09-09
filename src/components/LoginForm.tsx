@@ -283,7 +283,7 @@ export default function LoginForm() {
 
     try {
       const response = await fetch(
-        "https://my-site.ezuoju2.workers.dev/api/auth/login",
+        "https://my-site-n7j.pages.dev/api/auth/login",
         {
           method: "POST",
           credentials: "include",
