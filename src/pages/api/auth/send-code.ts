@@ -143,7 +143,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const code = randomCode();
 
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+  let response: Response;
+
+  try {
+    response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -172,7 +175,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
         </div>
       `,
     }),
-  });
+    });
+  } catch (error) {
+    console.error("Brevo fetch exception", error);
+
+    return json(
+      { ok: false, error: "EMAIL_PROVIDER_UNREACHABLE" },
+      502,
+      {},
+      origin,
+    );
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
