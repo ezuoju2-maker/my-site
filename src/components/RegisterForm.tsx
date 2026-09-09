@@ -158,7 +158,7 @@ export default function RegisterForm() {
 
     try {
       const response = await fetch(
-        "https://my-site.ezuoju2.workers.dev/api/auth/send-code",
+        "https://my-site-n7j.pages.dev/api/auth/send-code",
         {
           method: "POST",
           credentials: "include",
@@ -303,7 +303,7 @@ export default function RegisterForm() {
 
     try {
       const response = await fetch(
-        "https://my-site.ezuoju2.workers.dev/api/auth/register",
+        "https://my-site-n7j.pages.dev/api/auth/register",
         {
           method: "POST",
           credentials: "include",
