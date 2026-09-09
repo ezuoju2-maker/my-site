@@ -152,31 +152,34 @@ jobs:
         run: |
           set -euo pipefail
 
-          jq -e \
-            --arg db "$DB_NAME" \
-            --arg repo "$GITHUB_REPOSITORY" \
-            '
-              .format == "my-site-d1-backup-v1"
-              and .database == $db
-              and .repository == $repo
-              and (.commit | type == "string")
-              and (.created_at | type == "string")
-              and (.sql_sha256 | type == "string")
-              and (.sql_sha256 | test("^[0-9a-fA-F]{64}$"))
-            ' \
-            backup-restore-work/extracted/manifest.json \
-            >/dev/null
+          MANIFEST="backup-restore-work/extracted/manifest.json"
+          SQL_FILE="backup-restore-work/extracted/my-site.sql"
 
-          EXPECTED_SQL_SHA256="$(
-            jq -r '.sql_sha256' \
-              backup-restore-work/extracted/manifest.json
-          )"
+          FORMAT="$(jq -r ".format // empty" "$MANIFEST")"
+          DATABASE="$(jq -r ".database // empty" "$MANIFEST")"
+          REPOSITORY="$(jq -r ".repository // empty" "$MANIFEST")"
+          COMMIT_TYPE="$(jq -r ".commit | type" "$MANIFEST")"
+          CREATED_AT_TYPE="$(jq -r ".created_at | type" "$MANIFEST")"
+          SQL_SHA256_TYPE="$(jq -r ".sql_sha256 | type" "$MANIFEST")"
+          EXPECTED_SQL_SHA256="$(jq -r ".sql_sha256 // empty" "$MANIFEST")"
+          ACTUAL_SQL_SHA256="$(sha256sum "$SQL_FILE" | awk '{print $1}')"
 
-          ACTUAL_SQL_SHA256="$(
-            sha256sum backup-restore-work/extracted/my-site.sql \
-            | awk '{print $1}'
-          )"
+          echo "Manifest format: $FORMAT"
+          echo "Manifest database: $DATABASE"
+          echo "Manifest repository: $REPOSITORY"
+          echo "Manifest commit type: $COMMIT_TYPE"
+          echo "Manifest created_at type: $CREATED_AT_TYPE"
+          echo "Manifest sql_sha256 type: $SQL_SHA256_TYPE"
+          echo "Expected SQL SHA-256: $EXPECTED_SQL_SHA256"
+          echo "Actual SQL SHA-256:   $ACTUAL_SQL_SHA256"
 
+          test "$FORMAT" = "my-site-d1-backup-v1"
+          test "$DATABASE" = "$DB_NAME"
+          test "$REPOSITORY" = "$GITHUB_REPOSITORY"
+          test "$COMMIT_TYPE" = "string"
+          test "$CREATED_AT_TYPE" = "string"
+          test "$SQL_SHA256_TYPE" = "string"
+          [[ "$EXPECTED_SQL_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]
           test "$EXPECTED_SQL_SHA256" = "$ACTUAL_SQL_SHA256"
 
           echo "Backup manifest validation: PASS"
