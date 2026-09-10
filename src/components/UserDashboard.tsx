@@ -71,6 +71,13 @@ export default function UserDashboard() {
   const [toast, setToast] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
 
+  // 未读通知数量。当前为 0，接入通知 API 后改为真实数据。
+  // 红点仅在有未读通知时显示。
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  // 预留 setter，避免未使用警告（接入通知 API 时可直接调用）
+  void setNotificationCount;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -176,7 +183,11 @@ export default function UserDashboard() {
               aria-label="通知"
             >
               <IconBell className="h-5 w-5" />
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500" />
+              {notificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium leading-none text-white">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
