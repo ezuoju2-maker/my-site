@@ -363,7 +363,7 @@ export default function LoginForm() {
           href={withBase("register/")}
           className="font-medium text-neutral-800 underline underline-offset-4"
         >
-          注册
+          {t("login.register")}
         </a>
       </p>
     </form>
