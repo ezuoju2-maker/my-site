@@ -154,7 +154,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const user = await env.DB.prepare(
-      `SELECT id, username, email, password_hash, session_version
+      `SELECT id, username, email, password_hash, session_version, role
        FROM users
        WHERE lower(username) = ?1 OR lower(email) = ?1
        LIMIT 1`,
@@ -166,6 +166,7 @@ export const POST: APIRoute = async ({ request }) => {
         email: string;
         password_hash: string;
         session_version: number;
+        role: string;
       }>();
 
     if (!user || !(await verifyPassword(password, user.password_hash))) {
@@ -194,6 +195,7 @@ export const POST: APIRoute = async ({ request }) => {
           id: user.id,
           username: user.username,
           email: user.email,
+          role: user.role || "user",
         },
       },
       200,
