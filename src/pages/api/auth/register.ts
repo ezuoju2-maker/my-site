@@ -15,10 +15,6 @@ import {
   getAllowedOrigin,
   rejectCrossSiteRequest,
 } from "../../../lib/cors";
-import {
-  extractCaptchaToken,
-  verifyCaptcha,
-} from "../../../lib/captcha";
 
 const EMAIL_CODE_MAX_ATTEMPTS = 5;
 const OTP_PURPOSE = "email-verification";
@@ -105,17 +101,6 @@ export const POST: APIRoute = async ({ request }) => {
     return json(
       { ok: false, error: "INVALID_JSON" },
       400,
-      {},
-      origin,
-    );
-  }
-
-  const captchaToken = extractCaptchaToken(body);
-  const captchaOk = await verifyCaptcha(captchaToken);
-  if (!captchaOk) {
-    return json(
-      { ok: false, error: "CAPTCHA_FAILED" },
-      403,
       {},
       origin,
     );
