@@ -3,6 +3,8 @@ import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { IconChevronRight } from "./icons/dashboard-icons";
+import { EyeIcon } from "./icons/EyeIcon";
+import { ClearIcon } from "./icons/ClearIcon";
 
 type Profile = {
   id: string;
@@ -86,6 +88,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -695,30 +700,99 @@ export default function ProfilePage() {
 
           {showPasswordForm && (
             <div className="space-y-3 border-t border-neutral-100 p-4">
-              <input
-                type="password"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-                placeholder="当前密码"
-                autoComplete="current-password"
-                className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400"
-              />
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="新密码（8-128 字符，含大小写、数字、特殊符号）"
-                autoComplete="new-password"
-                className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400"
-              />
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="确认新密码"
-                autoComplete="new-password"
-                className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400"
-              />
+              <div className="relative">
+                <input
+                  type={showOldPassword ? "text" : "password"}
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="当前密码"
+                  autoComplete="current-password"
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 pr-20 text-base outline-none focus:border-neutral-400"
+                />
+                <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
+                  <button
+                    type="button"
+                    onClick={() => setOldPassword("")}
+                    disabled={!oldPassword}
+                    className={`flex h-9 w-9 items-center justify-center ${
+                      oldPassword ? "text-neutral-500" : "pointer-events-none text-transparent"
+                    }`}
+                    aria-label="清空当前密码"
+                  >
+                    <ClearIcon />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword((v) => !v)}
+                    className="flex h-9 w-9 items-center justify-center text-neutral-500"
+                    aria-label={showOldPassword ? "隐藏密码" : "显示密码"}
+                  >
+                    <EyeIcon hidden={!showOldPassword} />
+                  </button>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="新密码（8-128 字符，含大小写、数字、特殊符号）"
+                  autoComplete="new-password"
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 pr-20 text-base outline-none focus:border-neutral-400"
+                />
+                <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
+                  <button
+                    type="button"
+                    onClick={() => setNewPassword("")}
+                    disabled={!newPassword}
+                    className={`flex h-9 w-9 items-center justify-center ${
+                      newPassword ? "text-neutral-500" : "pointer-events-none text-transparent"
+                    }`}
+                    aria-label="清空新密码"
+                  >
+                    <ClearIcon />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((v) => !v)}
+                    className="flex h-9 w-9 items-center justify-center text-neutral-500"
+                    aria-label={showNewPassword ? "隐藏密码" : "显示密码"}
+                  >
+                    <EyeIcon hidden={!showNewPassword} />
+                  </button>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="确认新密码"
+                  autoComplete="new-password"
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 pr-20 text-base outline-none focus:border-neutral-400"
+                />
+                <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmPassword("")}
+                    disabled={!confirmPassword}
+                    className={`flex h-9 w-9 items-center justify-center ${
+                      confirmPassword ? "text-neutral-500" : "pointer-events-none text-transparent"
+                    }`}
+                    aria-label="清空确认密码"
+                  >
+                    <ClearIcon />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    className="flex h-9 w-9 items-center justify-center text-neutral-500"
+                    aria-label={showConfirmPassword ? "隐藏密码" : "显示密码"}
+                  >
+                    <EyeIcon hidden={!showConfirmPassword} />
+                  </button>
+                </div>
+              </div>
 
               {passwordError && (
                 <p className="text-sm text-red-500">{passwordError}</p>
