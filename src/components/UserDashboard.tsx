@@ -144,6 +144,12 @@ export default function UserDashboard() {
     window.location.replace(getBase());
   }
 
+  // 头像首字母：优先用昵称的首字，无昵称则用用户名首字
+  // 英文自动大写，中文直接显示首个汉字
+  const initial = (user.displayName || user.username)
+    .charAt(0)
+    .toUpperCase();
+
   if (status === "loading" || !user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-neutral-50">
@@ -211,8 +217,8 @@ export default function UserDashboard() {
           }}
           className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
         >
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-200">
-            <IconUser className="h-7 w-7 text-neutral-500" />
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-lg font-semibold text-white">
+            {initial}
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-semibold text-neutral-900">
