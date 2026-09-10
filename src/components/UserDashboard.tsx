@@ -144,12 +144,6 @@ export default function UserDashboard() {
     window.location.replace(getBase());
   }
 
-  // 头像首字母：优先用昵称的首字，无昵称则用用户名首字
-  // 英文自动大写，中文直接显示首个汉字
-  const initial = (user.displayName || user.username)
-    .charAt(0)
-    .toUpperCase();
-
   if (status === "loading" || !user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-neutral-50">
@@ -160,6 +154,12 @@ export default function UserDashboard() {
       </main>
     );
   }
+
+  // 头像首字母：优先用昵称的首字，无昵称则用用户名首字
+  // 英文自动大写，中文直接显示首个汉字
+  const initial = (user.displayName || user.username)
+    .charAt(0)
+    .toUpperCase();
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-24">
