@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const MIN_LOADING_TIME = 900;
+const HARD_TIMEOUT_MS = 3000;
 
 function getNetworkSpeed() {
   const connection =
@@ -50,6 +51,16 @@ export default function LoadingScreen() {
       return 20;
     };
 
+    const finishUI = () => {
+      const loadingScreen = document.getElementById("loading-screen");
+      const loginPage = document.getElementById("login-page");
+
+      loadingScreen?.removeAttribute("aria-busy");
+      loadingScreen?.remove();
+
+      loginPage?.removeAttribute("hidden");
+    };
+
     const finish = () => {
       if (completed) {
         return;
@@ -66,20 +77,17 @@ export default function LoadingScreen() {
         completed = true;
         setProgress(100);
 
-        window.setTimeout(() => {
-          const loadingScreen =
-            document.getElementById("loading-screen");
-
-          const loginPage =
-            document.getElementById("login-page");
-
-          loadingScreen?.removeAttribute("aria-busy");
-          loadingScreen?.remove();
-
-          loginPage?.removeAttribute("hidden");
-        }, 120);
+        window.setTimeout(finishUI, 120);
       }, remaining);
     };
+
+    // 硬超时：无论 document 状态如何，3 秒后强制完成
+    const hardTimeout = window.setTimeout(() => {
+      if (completed) return;
+      completed = true;
+      setProgress(100);
+      window.setTimeout(finishUI, 120);
+    }, HARD_TIMEOUT_MS);
 
     const update = () => {
       if (completed) {
@@ -113,6 +121,7 @@ export default function LoadingScreen() {
 
     return () => {
       window.clearInterval(interval);
+      window.clearTimeout(hardTimeout);
       window.removeEventListener("load", update);
     };
   }, []);
