@@ -45,25 +45,42 @@ function loadCapScript(): Promise<void> {
 }
 
 /**
- * 把 cap-widget 内部的英文/中文替换为当前语言。
- * Cap 组件的 DOM 在外部 iframe/shadow DOM 外渲染，文本是普通节点。
+ * 递归遍历 light DOM + shadow DOM 的所有文本节点。
+ * Cap 组件用 Shadow DOM，必须递归进去才能改文本。
  */
-function translateCapWidget(root: HTMLElement, labels: Record<string, string>) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
-  let node: Node | null;
-  while ((node = walker.nextNode())) {
-    nodes.push(node as Text);
+function walkAllText(root: Node, callback: (textNode: Text) => void) {
+  if (root.nodeType === Node.TEXT_NODE) {
+    callback(root as Text);
+    return;
   }
-  for (const textNode of nodes) {
+  if (
+    root.nodeType !== Node.ELEMENT_NODE &&
+    root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE
+  ) {
+    return;
+  }
+  const el = root as Element;
+  if (el.shadowRoot) {
+    walkAllText(el.shadowRoot, callback);
+  }
+  const children = root.childNodes;
+  for (let i = 0; i < children.length; i += 1) {
+    walkAllText(children[i], callback);
+  }
+}
+
+function translateCapWidget(root: Element, labels: Record<string, string>) {
+  walkAllText(root, (textNode) => {
     const text = textNode.nodeValue ?? "";
+    if (!text) return;
     for (const [key, value] of Object.entries(labels)) {
+      if (!key) continue;
       if (text.includes(key)) {
         textNode.nodeValue = text.split(key).join(value);
         break;
       }
     }
-  }
+  });
 }
 
 export default function CapWidget({ onSolve, onReset }: Props) {
@@ -74,18 +91,18 @@ export default function CapWidget({ onSolve, onReset }: Props) {
   onResetRef.current = onReset;
 
   const { t } = useTranslation();
-
-  // 当前语言的 Cap 文案映射
-  const labels: Record<string, string> = {
+  const labelsRef = useRef<Record<string, string>>({});
+  labelsRef.current = {
     "Verify to continue": t("cap.verify"),
-    "Verified": t("cap.verified"),
-    "Verifying": t("cap.verifying"),
+    Verified: t("cap.verified"),
+    Verifying: t("cap.verifying"),
     "点击进行人机验证": t("cap.verify"),
-    "已验证": t("cap.verified"),
-    "验证中": t("cap.verifying"),
+    已验证: t("cap.verified"),
+    验证中: t("cap.verifying"),
     "Cap-Worker": "",
   };
 
+  // 挂载 widget（只跑一次）
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -93,12 +110,24 @@ export default function CapWidget({ onSolve, onReset }: Props) {
     let cancelled = false;
     let widget: HTMLElement | null = null;
     let observer: MutationObserver | null = null;
+    let intervalId: number | null = null;
+
+    const translate = () => {
+      if (!widget) return;
+      translateCapWidget(widget, labelsRef.current);
+    };
 
     const handleSolve = (event: Event) => {
       const detail = (event as CustomEvent<{ token?: string }>).detail;
       if (detail?.token) onSolveRef.current(detail.token);
+      window.setTimeout(translate, 30);
+      window.setTimeout(translate, 120);
     };
-    const handleReset = () => onResetRef.current?.();
+    const handleReset = () => {
+      onResetRef.current?.();
+      window.setTimeout(translate, 30);
+      window.setTimeout(translate, 120);
+    };
 
     loadCapScript()
       .then(() => {
@@ -111,19 +140,33 @@ export default function CapWidget({ onSolve, onReset }: Props) {
         widget.addEventListener("reset", handleReset);
         container.appendChild(widget);
 
-        // 用 MutationObserver 监听文本变化，动态替换
-        observer = new MutationObserver(() => {
-          if (!widget) return;
-          translateCapWidget(widget, labels);
-        });
-        observer.observe(widget, {
-          childList: true,
-          subtree: true,
-          characterData: true,
-        });
+        // 立即翻译
+        translate();
+        window.setTimeout(translate, 50);
+        window.setTimeout(translate, 200);
 
-        // 立即翻译一次（可能 Cap 已渲染）
-        translateCapWidget(widget, labels);
+        // Observer：cap-widget + shadow root
+        observer = new MutationObserver(translate);
+        const targets: (Element | ShadowRoot)[] = [widget];
+        if (widget.shadowRoot) targets.push(widget.shadowRoot);
+        for (const target of targets) {
+          observer.observe(target, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+          });
+        }
+
+        // 兜底轮询：8 秒内每 400ms 一次
+        let ticks = 0;
+        intervalId = window.setInterval(() => {
+          translate();
+          ticks += 1;
+          if (ticks >= 20) {
+            if (intervalId !== null) window.clearInterval(intervalId);
+            intervalId = null;
+          }
+        }, 400);
       })
       .catch((error) => {
         console.error("[CapWidget] failed to load cap.min.js", error);
@@ -132,6 +175,7 @@ export default function CapWidget({ onSolve, onReset }: Props) {
     return () => {
       cancelled = true;
       if (observer) observer.disconnect();
+      if (intervalId !== null) window.clearInterval(intervalId);
       if (widget) {
         widget.removeEventListener("solve", handleSolve);
         widget.removeEventListener("reset", handleReset);
@@ -139,6 +183,16 @@ export default function CapWidget({ onSolve, onReset }: Props) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 语言变化时立即翻译（不重建 widget）
+  useEffect(() => {
+    const widget = containerRef.current?.querySelector(
+      "cap-widget",
+    ) as HTMLElement | null;
+    if (widget) {
+      translateCapWidget(widget, labelsRef.current);
+    }
   }, [t]);
 
   return <div ref={containerRef} className="flex justify-center" />;
