@@ -205,7 +205,9 @@ export default function UserDashboard() {
         {/* 用户信息卡 */}
         <button
           type="button"
-          onClick={() => notify("个人资料开发中")}
+          onClick={() => {
+            window.location.href = `${getBase()}dashboard/profile/`;
+          }}
           className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
         >
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-200">
