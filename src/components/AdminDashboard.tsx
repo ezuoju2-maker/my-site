@@ -78,6 +78,9 @@ export default function AdminDashboard() {
       // 忽略登出网络错误
     }
 
+    // 兜底：清掉手动设置的 Cookie
+    document.cookie = "session=; Path=/; Max-Age=0; Secure; SameSite=Lax";
+
     window.location.replace(getBasePath());
   }
 

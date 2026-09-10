@@ -17,6 +17,7 @@ export function corsHeaders(origin: string) {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Expose-Headers": "X-Session-Token, X-Session-MaxAge",
     "Vary": "Origin",
   };
 }
