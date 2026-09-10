@@ -1,0 +1,61 @@
+name: Clear All Users (Manual Only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "YES-CLEAR-ALL" to confirm'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Verify confirmation string
+        run: |
+          set -e
+          if [ "${{ inputs.confirm }}" != "YES-CLEAR-ALL" ]; then
+            echo "::error::Confirmation string does not match. Aborting."
+            exit 1
+          fi
+          echo "Confirmation string verified."
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Show current user count
+        run: |
+          npx wrangler d1 execute my-site-db --remote \
+            --command="SELECT COUNT(*) AS total FROM users;"
+
+      - name: Delete all users
+        run: |
+          npx wrangler d1 execute my-site-db --remote \
+            --command="DELETE FROM users;"
+
+      - name: Verify empty
+        run: |
+          npx wrangler d1 execute my-site-db --remote \
+            --command="SELECT COUNT(*) AS total FROM users;"
+
+      - name: Done
+        run: echo "All users cleared."
