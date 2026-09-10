@@ -40,6 +40,7 @@ type UserInfo = {
   username: string;
   email: string;
   role: string;
+  displayName: string;
 };
 
 const FEATURE_ICONS: Record<IconName, React.FC<{ className?: string }>> = {
@@ -215,7 +216,7 @@ export default function UserDashboard() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-semibold text-neutral-900">
-              {user.username}
+              {user.displayName || user.username}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
               <IconMail className="h-3.5 w-3.5 shrink-0" />
