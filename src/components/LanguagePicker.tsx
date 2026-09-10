@@ -23,7 +23,7 @@ export default function LanguagePicker({
   const scrollRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<number | null>(null);
 
-  // open 时，把当前语言滚到中间
+  // open 时，滚到当前语言
   useEffect(() => {
     if (!open) return;
 
@@ -35,7 +35,6 @@ export default function LanguagePicker({
 
     const scroller = scrollRef.current;
     if (scroller) {
-      // 等 DOM 更新后滚动
       window.setTimeout(() => {
         scroller.scrollTop = idx * ITEM_HEIGHT;
       }, 0);
@@ -110,35 +109,20 @@ export default function LanguagePicker({
           className="relative mt-3"
           style={{ height: `${CONTAINER_HEIGHT}px` }}
         >
-          {/* 中央高亮条 */}
+          {/* 层级 1：中央高亮条（最底层） */}
           <div
-            className="pointer-events-none absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-lg bg-neutral-100"
-            style={{ height: `${ITEM_HEIGHT}px` }}
-          />
-
-          {/* 顶部/底部渐变 */}
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-10"
+            className="pointer-events-none absolute inset-x-4 z-0 rounded-lg bg-neutral-100"
             style={{
-              height: `${PADDING}px`,
-              background:
-                "linear-gradient(to bottom, rgba(255,255,255,1) 30%, rgba(255,255,255,0))",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
-            style={{
-              height: `${PADDING}px`,
-              background:
-                "linear-gradient(to top, rgba(255,255,255,1) 30%, rgba(255,255,255,0))",
+              top: `${PADDING}px`,
+              height: `${ITEM_HEIGHT}px`,
             }}
           />
 
-          {/* 滚动区 */}
+          {/* 层级 2：滚动区 */}
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="h-full overflow-y-scroll"
+            className="relative z-10 h-full overflow-y-scroll"
             style={{
               scrollSnapType: "y mandatory",
               scrollbarWidth: "none",
@@ -171,6 +155,24 @@ export default function LanguagePicker({
               );
             })}
           </div>
+
+          {/* 层级 3：上下渐变遮罩（最上层） */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-20"
+            style={{
+              height: `${PADDING}px`,
+              background:
+                "linear-gradient(to bottom, rgba(255,255,255,1) 20%, rgba(255,255,255,0))",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
+            style={{
+              height: `${PADDING}px`,
+              background:
+                "linear-gradient(to top, rgba(255,255,255,1) 20%, rgba(255,255,255,0))",
+            }}
+          />
         </div>
       </div>
     </div>
