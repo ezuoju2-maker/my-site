@@ -167,7 +167,9 @@ export default function LoginForm() {
         return;
       }
 
-      window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/developing/`;
+      const role = data?.user?.role === "admin" ? "admin" : "user";
+      const target = role === "admin" ? "/admin/" : "/dashboard/";
+      window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, "")}${target}`;
     } catch {
       setPasswordError("网络连接失败，请检查网络后重试");
       setCaptchaToken("");
