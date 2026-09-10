@@ -56,6 +56,12 @@ function loadCapScript(): Promise<void> {
 export default function CapWidget({ onSolve, onReset }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 用 ref 存储最新回调，避免 useEffect 依赖变化
+  const onSolveRef = useRef(onSolve);
+  const onResetRef = useRef(onReset);
+  onSolveRef.current = onSolve;
+  onResetRef.current = onReset;
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -66,17 +72,20 @@ export default function CapWidget({ onSolve, onReset }: Props) {
     const handleSolve = (event: Event) => {
       const detail = (event as CustomEvent<{ token?: string }>).detail;
       if (detail?.token) {
-        onSolve(detail.token);
+        onSolveRef.current(detail.token);
       }
     };
 
     const handleReset = () => {
-      onReset?.();
+      onResetRef.current?.();
     };
 
     loadCapScript()
       .then(() => {
-        if (cancelled || !containerRef.current) return;
+        if (cancelled || !container) return;
+
+        // 防止重复插入
+        if (container.querySelector("cap-widget")) return;
 
         widget = document.createElement("cap-widget");
         widget.setAttribute("data-cap-api-endpoint", CAP_API_ENDPOINT);
@@ -84,7 +93,7 @@ export default function CapWidget({ onSolve, onReset }: Props) {
         widget.addEventListener("solve", handleSolve);
         widget.addEventListener("reset", handleReset);
 
-        containerRef.current.appendChild(widget);
+        container.appendChild(widget);
       })
       .catch((error) => {
         console.error("[CapWidget] failed to load cap.min.js", error);
@@ -98,7 +107,7 @@ export default function CapWidget({ onSolve, onReset }: Props) {
         widget.remove();
       }
     };
-  }, [onSolve, onReset]);
+  }, []); // 空依赖：只跑一次
 
   return <div ref={containerRef} className="flex justify-center" />;
 }
