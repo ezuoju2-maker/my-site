@@ -12,6 +12,7 @@ import {
 } from "./dashboard-data";
 import LanguagePicker from "./LanguagePicker";
 import { DEFAULT_LANG, getLanguage } from "./languages";
+import { setLanguage, useTranslation } from "../i18n/useTranslation";
 import {
   IconBox,
   IconGlobe,
@@ -93,6 +94,7 @@ export default function UserDashboard() {
     } catch {
       // localStorage 不可用时忽略
     }
+    setLanguage(code);
     setToast(`已切换到 ${getLanguage(code).native}`);
     window.setTimeout(() => setToast(""), 2200);
   }
