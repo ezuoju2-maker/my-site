@@ -433,7 +433,7 @@ export default function RegisterForm() {
         return;
       }
 
-      window.location.href = `${import.meta.env.BASE_URL}register-success/?username=${encodeURIComponent(username.trim())}`;
+      window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/register-success/?username=${encodeURIComponent(username.trim())}`;
     } catch {
       setUsernameError("网络连接失败，请检查网络后重试");
       setCaptchaToken("");
