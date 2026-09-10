@@ -11,6 +11,7 @@ export type ApiUserInfo = {
   username: string;
   email: string;
   role: string;
+  displayName: string;
 };
 
 export type ApiResponse = {

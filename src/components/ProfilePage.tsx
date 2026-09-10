@@ -23,7 +23,6 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
 
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState(0);
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -114,7 +113,6 @@ export default function ProfilePage() {
         return;
       }
 
-      setSavedAt(Date.now());
       notify("已保存");
     } catch {
       notify("网络错误，请重试");
