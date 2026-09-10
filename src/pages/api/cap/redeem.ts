@@ -1,6 +1,10 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
-import { corsHeaders, getAllowedOrigin } from "../../../lib/cors";
+import {
+  corsHeaders,
+  getAllowedOrigin,
+  rejectCrossSiteRequest,
+} from "../../../lib/cors";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -59,6 +63,10 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
+
+  // CSRF 保护
+  const rejected = rejectCrossSiteRequest(request);
+  if (rejected) return rejected;
 
   const upstream = await proxyToCapWorker(request, "/api/redeem");
 
