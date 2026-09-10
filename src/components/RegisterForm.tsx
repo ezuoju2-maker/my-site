@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 import CapWidget from "./CapWidget";
+import { withBase } from "../lib/url";
 import { Requirement } from "./Requirement";
 
 export default function RegisterForm() {
@@ -433,7 +434,7 @@ export default function RegisterForm() {
         return;
       }
 
-      window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/register-success/?username=${encodeURIComponent(username.trim())}`;
+      window.location.href = withBase(`register-success/?username=${encodeURIComponent(username.trim())}`);
     } catch {
       setUsernameError("网络连接失败，请检查网络后重试");
       setCaptchaToken("");
@@ -871,7 +872,7 @@ export default function RegisterForm() {
       <p className="pt-1 text-center text-sm text-neutral-500">
         已有账号？
         <a
-          href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/`}
+          href={withBase("")}
           className="ml-1 font-medium text-neutral-800 underline underline-offset-4"
         >
           登录

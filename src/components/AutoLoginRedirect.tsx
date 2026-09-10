@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../lib/api";
 import { useEffect } from "react";
+import { withBase } from "../lib/url";
 
 
 export default function AutoLoginRedirect() {
@@ -22,7 +23,7 @@ export default function AutoLoginRedirect() {
           const role = data?.user?.role === "admin" ? "admin" : "user";
           const target = role === "admin" ? "/admin/" : "/dashboard/";
           window.location.replace(
-            `${import.meta.env.BASE_URL.replace(/\/$/, "")}${target}`,
+            withBase(target),
           );
         }
       } catch {

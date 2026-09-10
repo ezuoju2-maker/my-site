@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "../lib/api";
 import { useState, type FormEvent } from "react";
 import CapWidget from "./CapWidget";
+import { withBase } from "../lib/url";
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   return hidden ? (
@@ -169,7 +170,7 @@ export default function LoginForm() {
 
       const role = data?.user?.role === "admin" ? "admin" : "user";
       const target = role === "admin" ? "/admin/" : "/dashboard/";
-      window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, "")}${target}`;
+      window.location.href = withBase(target);
     } catch {
       setPasswordError("网络连接失败，请检查网络后重试");
       setCaptchaToken("");
@@ -324,7 +325,7 @@ export default function LoginForm() {
         </label>
 
         <a
-          href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/forgot-password/`}
+          href={withBase("forgot-password/")}
           className="py-2 text-neutral-600 underline-offset-4"
         >
           忘记密码？
@@ -343,7 +344,7 @@ export default function LoginForm() {
       <p className="pt-1 text-center text-sm text-neutral-500">
         还没有账号？{" "}
         <a
-          href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/register/`}
+          href={withBase("register/")}
           className="font-medium text-neutral-800 underline underline-offset-4"
         >
           注册
