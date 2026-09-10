@@ -4,39 +4,46 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, RefObject } from "react";
 import CapWidget from "./CapWidget";
 import { getBase } from "../lib/url";
+import { useTranslation } from "../i18n/useTranslation";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 
-function getErrorMessage(error: string, attemptsRemaining?: number) {
+type TFunc = (key: string) => string;
+
+function getErrorMessage(t: TFunc, error: string, attemptsRemaining?: number) {
   switch (error) {
     case "INVALID_EMAIL":
-      return "请输入有效的邮箱地址";
+      return t("forgot.error.INVALID_EMAIL");
     case "EMAIL_CODE_EXPIRED":
-      return "邮箱验证码已过期，请重新获取验证码";
+      return t("forgot.error.EMAIL_CODE_EXPIRED");
     case "INVALID_EMAIL_CODE":
       return attemptsRemaining
-        ? `邮箱验证码错误，还可尝试 ${attemptsRemaining} 次`
-        : "邮箱验证码错误";
+        ? t("forgot.error.INVALID_EMAIL_CODE_WITH_ATTEMPTS").replace(
+            "{n}",
+            String(attemptsRemaining),
+          )
+        : t("forgot.error.INVALID_EMAIL_CODE");
     case "EMAIL_CODE_TOO_MANY_ATTEMPTS":
-      return "邮箱验证码错误次数过多，请重新获取验证码";
+      return t("forgot.error.EMAIL_CODE_TOO_MANY_ATTEMPTS");
     case "INVALID_PASSWORD":
-      return "新密码长度必须为 8～128 个字符";
+      return t("forgot.error.INVALID_PASSWORD");
     case "TOO_MANY_REQUESTS":
-      return "请求过于频繁，请稍后再试";
+      return t("forgot.error.TOO_MANY_REQUESTS");
     case "EMAIL_SERVICE_NOT_CONFIGURED":
-      return "邮箱服务暂时不可用，请稍后再试";
+      return t("forgot.error.EMAIL_SERVICE_NOT_CONFIGURED");
     case "EMAIL_PROVIDER_ERROR":
     case "EMAIL_PROVIDER_UNREACHABLE":
-      return "验证码发送失败，请稍后再试";
+      return t("forgot.error.EMAIL_PROVIDER_ERROR");
     case "PASSWORD_RESET_FAILED":
-      return "密码重置失败，请重新获取验证码后再试";
+      return t("forgot.error.PASSWORD_RESET_FAILED");
     default:
-      return "操作失败，请稍后再试";
+      return t("forgot.error.DEFAULT");
   }
 }
 
 export default function ForgotPasswordForm() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -89,12 +96,12 @@ export default function ForgotPasswordForm() {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      showError("请输入有效的邮箱地址", emailRef);
+      showError(t("forgot.error.EMAIL_REQUIRED"), emailRef);
       return;
     }
 
     if (!captchaToken) {
-      setCaptchaError("请完成人机验证");
+      setCaptchaError(t("forgot.error.CAPTCHA_REQUIRED"));
       return;
     }
 
@@ -124,7 +131,7 @@ export default function ForgotPasswordForm() {
 
       if (!response.ok || !data?.ok) {
         showError(
-          getErrorMessage(
+          getErrorMessage(t, 
             data?.error ?? "UNKNOWN_ERROR",
             data?.attemptsRemaining,
           ),
@@ -138,13 +145,13 @@ export default function ForgotPasswordForm() {
       setCountdown(
         Number(data.retryAfter) || RESEND_COOLDOWN_SECONDS,
       );
-      setSuccess("验证码已发送，请检查邮箱");
+      setSuccess(t("forgot.sent_success"));
 
       window.setTimeout(() => {
         codeRef.current?.focus();
       }, 0);
     } catch {
-      showError("网络请求失败，请检查网络后重试", emailRef);
+      showError(t("forgot.error.NETWORK"), emailRef);
     } finally {
       setLoading(false);
     }
@@ -160,22 +167,22 @@ export default function ForgotPasswordForm() {
     const code = emailCode.trim();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      showError("请输入有效的邮箱地址", emailRef);
+      showError(t("forgot.error.EMAIL_REQUIRED"), emailRef);
       return;
     }
 
     if (!/^\d{6}$/.test(code)) {
-      showError("请输入 6 位邮箱验证码", codeRef);
+      showError(t("forgot.error.EMAIL_CODE_REQUIRED"), codeRef);
       return;
     }
 
     if (newPassword.length < 8 || newPassword.length > 128) {
-      showError("新密码长度必须为 8～128 个字符", passwordRef);
+      showError(t("forgot.error.INVALID_PASSWORD"), passwordRef);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showError("两次输入的新密码不一致", confirmPasswordRef);
+      showError(t("forgot.error.PASSWORD_MISMATCH"), confirmPasswordRef);
       return;
     }
 
@@ -202,7 +209,7 @@ export default function ForgotPasswordForm() {
 
       if (!response.ok || !data?.ok) {
         showError(
-          getErrorMessage(
+          getErrorMessage(t, 
             data?.error ?? "UNKNOWN_ERROR",
             data?.attemptsRemaining,
           ),
@@ -215,7 +222,7 @@ export default function ForgotPasswordForm() {
         return;
       }
 
-      setSuccess("密码重置成功，请使用新密码登录");
+      setSuccess(t("forgot.success"));
 
       setEmailCode("");
       setNewPassword("");
@@ -225,7 +232,7 @@ export default function ForgotPasswordForm() {
         window.location.href = getBase();
       }, 1500);
     } catch {
-      showError("网络请求失败，请稍后再试");
+      showError(t("forgot.error.NETWORK_RETRY"));
     } finally {
       setResetting(false);
     }
@@ -242,7 +249,7 @@ export default function ForgotPasswordForm() {
           htmlFor="forgot-email"
           className="mb-2 block text-sm font-medium"
         >
-          邮箱
+          {t("forgot.email")}
         </label>
 
         <input
@@ -252,7 +259,7 @@ export default function ForgotPasswordForm() {
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="请输入注册邮箱"
+          placeholder={t("forgot.email_placeholder")}
           className="w-full rounded-lg border px-4 py-3 outline-none"
           disabled={loading || resetting}
         />
@@ -261,7 +268,7 @@ export default function ForgotPasswordForm() {
       {/* 人机验证 */}
       <div>
         <label className="mb-2 block text-sm font-medium">
-          人机验证
+          {t("forgot.captcha")}
         </label>
 
         <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border px-2 py-2">
@@ -284,7 +291,7 @@ export default function ForgotPasswordForm() {
           htmlFor="forgot-code"
           className="mb-2 block text-sm font-medium"
         >
-          邮箱验证码
+          {t("forgot.email_code")}
         </label>
 
         <div className="flex gap-2">
@@ -301,7 +308,7 @@ export default function ForgotPasswordForm() {
                 event.target.value.replace(/\D/g, "").slice(0, 6),
               )
             }
-            placeholder="6 位验证码"
+            placeholder=t("forgot.email_code_placeholder")
             className="min-w-0 flex-1 rounded-lg border px-4 py-3 outline-none"
             disabled={loading || resetting}
           />
@@ -313,12 +320,12 @@ export default function ForgotPasswordForm() {
             className="shrink-0 rounded-lg border px-4 py-3 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading
-              ? "发送中…"
+              ? t("forgot.send_code_sending")
               : countdown > 0
                 ? `${countdown}s`
                 : codeSent
-                  ? "重新获取"
-                  : "获取验证码"}
+                  ? t("forgot.send_code_resend")
+                  : t("forgot.send_code")}
           </button>
         </div>
       </div>
@@ -328,7 +335,7 @@ export default function ForgotPasswordForm() {
           htmlFor="forgot-password"
           className="mb-2 block text-sm font-medium"
         >
-          新密码
+          {t("forgot.new_password")}
         </label>
 
         <input
@@ -338,7 +345,7 @@ export default function ForgotPasswordForm() {
           autoComplete="new-password"
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
-          placeholder="请输入新密码"
+          placeholder=t("forgot.error.NEW_PASSWORD_REQUIRED")
           className="w-full rounded-lg border px-4 py-3 outline-none"
           disabled={loading || resetting}
         />
@@ -349,7 +356,7 @@ export default function ForgotPasswordForm() {
           htmlFor="forgot-confirm-password"
           className="mb-2 block text-sm font-medium"
         >
-          确认新密码
+          {t("forgot.confirm_password")}
         </label>
 
         <input
@@ -359,7 +366,7 @@ export default function ForgotPasswordForm() {
           autoComplete="new-password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
-          placeholder="请再次输入新密码"
+          placeholder={t("forgot.confirm_password_placeholder")}
           className="w-full rounded-lg border px-4 py-3 outline-none"
           disabled={loading || resetting}
         />
@@ -388,14 +395,14 @@ export default function ForgotPasswordForm() {
         disabled={resetting}
         className="w-full rounded-lg border px-4 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {resetting ? "重置中…" : "重置密码"}
+        {resetting ? t("forgot.submitting") : t("forgot.submit")}
       </button>
 
       <a
         href={getBase()}
         className="block text-center text-sm underline"
       >
-        返回登录
+        {t("forgot.back_to_login")}
       </a>
     </form>
   );
