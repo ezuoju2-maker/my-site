@@ -6,8 +6,10 @@ import { ClearIcon } from "./icons/ClearIcon";
 import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
 import { Requirement } from "./Requirement";
+import { useTranslation } from "../i18n/useTranslation";
 
 export default function RegisterForm() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
@@ -53,27 +55,27 @@ export default function RegisterForm() {
   const passwordStrength = useMemo(() => {
     if (!password) {
       return {
-        label: "未设置",
+        label: t("register.strength_none"),
         percent: 0,
       };
     }
 
     if (validPasswordRules <= 2) {
       return {
-        label: "弱",
+        label: t("register.strength_weak"),
         percent: 35,
       };
     }
 
     if (validPasswordRules <= 4) {
       return {
-        label: "中等",
+        label: t("register.strength_medium"),
         percent: 65,
       };
     }
 
     return {
-      label: "强",
+      label: t("register.strength_strong"),
       percent: 100,
     };
   }, [password, validPasswordRules]);
@@ -81,11 +83,11 @@ export default function RegisterForm() {
 
   function validateUsername(value: string) {
     if (!value.trim()) {
-      return "请输入用户名";
+      return t("register.error.username_required");
     }
 
     if (!/^[A-Za-z0-9_]{3,20}$/.test(value)) {
-      return "用户名为 3～20 个字符，仅支持字母、数字和下划线";
+      return t("register.error.username_format");
     }
 
     return "";
@@ -93,11 +95,11 @@ export default function RegisterForm() {
 
   function validateEmail(value: string) {
     if (!value.trim()) {
-      return "请输入邮箱地址";
+      return t("register.error.email_required");
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      return "请输入正确的邮箱地址";
+      return t("register.error.email_invalid");
     }
 
     return "";
@@ -136,7 +138,7 @@ export default function RegisterForm() {
 
   async function handleSendEmailCode() {
     if (!email.trim()) {
-      setEmailCodeError("请先输入邮箱");
+      setEmailCodeError(t("register.error.email_required_first"));
       return;
     }
 
@@ -152,7 +154,7 @@ export default function RegisterForm() {
     }
 
     if (!captchaToken) {
-      setCaptchaError("请完成人机验证");
+      setCaptchaError(t("register.error.captcha_required"));
       return;
     }
 
@@ -188,20 +190,20 @@ export default function RegisterForm() {
 
         const message =
           data?.error === "TOO_MANY_REQUESTS"
-            ? `请等待 ${retryAfter} 秒后再试`
+            ? t("register.error.wait_seconds").replace("{n}", String(retryAfter))
             : data?.error === "FORBIDDEN_ORIGIN"
-              ? "请求来源不被允许"
+              ? t("register.error.forbidden_origin")
               : data?.error === "EMAIL_SERVICE_NOT_CONFIGURED"
-                ? "邮箱服务尚未配置"
+                ? t("register.error.email_service_not_configured")
                 : data?.error === "EMAIL_PROVIDER_ERROR"
-                  ? "验证码发送失败，请稍后重试"
+                  ? t("register.error.send_code_failed")
                   : data?.error === "EMAIL_PROVIDER_UNREACHABLE"
-                    ? "邮箱服务暂时无法连接，请稍后重试"
+                    ? t("register.error.email_provider_unreachable")
                     : data?.error === "INVALID_EMAIL"
-                      ? "请输入正确的邮箱地址"
+                      ? t("register.error.email_invalid")
                       : data?.error === "EMAIL_SEND_FAILED"
-                        ? "验证码发送失败，请稍后重试"
-                        : "验证码发送失败，请稍后重试";
+                        ? t("register.error.send_code_failed")
+                        : t("register.error.send_code_failed");
 
         setEmailCodeError(message);
 
@@ -218,7 +220,7 @@ export default function RegisterForm() {
       setEmailCodeCooldown(60);
     } catch {
       setEmailCodeCooldown(0);
-      setEmailCodeError("网络连接失败，请检查网络后重试");
+      setEmailCodeError(t("common.network_error"));
     } finally {
       sendingEmailCodeRef.current = false;
     }
@@ -282,7 +284,7 @@ export default function RegisterForm() {
     }
 
     setConfirmPasswordError(
-      value === password ? "" : "两次输入的密码不一致",
+      value === password ? "" : t("register.error.password_mismatch"),
     );
   }
 
@@ -297,26 +299,26 @@ export default function RegisterForm() {
     const emailValidation = validateEmail(email);
 
     const nextPasswordError = !password
-      ? "请输入密码"
+      ? t("register.error.password_required")
       : validPasswordRules !== 5
-        ? "密码不符合要求"
+        ? t("register.error.password_invalid")
         : "";
 
     const nextConfirmPasswordError = !confirmPassword
-      ? "请再次输入密码"
+      ? t("register.error.confirm_password_required")
       : confirmPassword !== password
-        ? "两次输入的密码不一致"
+        ? t("register.error.password_mismatch")
         : "";
 
     const nextEmailCodeError = !emailCode.trim()
-      ? "请输入邮箱验证码"
+      ? t("register.error.email_code_required")
       : !/^\d{6}$/.test(emailCode)
-        ? "请输入 6 位数字邮箱验证码"
+        ? t("register.error.email_code_format")
         : "";
 
     const nextAgreementError = agreement
       ? ""
-      : "请先阅读并同意用户协议";
+      : t("register.error.agreement_required");
 
     setUsernameError(usernameValidation);
     setEmailError(emailValidation);
@@ -376,56 +378,56 @@ export default function RegisterForm() {
         const error = data?.error;
 
         if (error === "USERNAME_EXISTS") {
-          setUsernameError("用户名已存在");
+          setUsernameError(t("register.error.username_exists"));
           setEmailError("");
           setEmailCodeError("");
           scrollToRegisterError("username");
         } else if (error === "EMAIL_EXISTS") {
           setUsernameError("");
-          setEmailError("该邮箱已被注册");
+          setEmailError(t("register.error.email_exists"));
           setEmailCodeError("");
           scrollToRegisterError("email");
         } else if (error === "EMAIL_CODE_EXPIRED") {
           setUsernameError("");
           setEmailError("");
-          setEmailCodeError("邮箱验证码已过期，请重新获取验证码");
+          setEmailCodeError(t("register.error.email_code_expired"));
           scrollToRegisterError("emailCode");
         } else if (error === "INVALID_EMAIL_CODE") {
           setUsernameError("");
           setEmailError("");
           setEmailCodeError(
             data?.attemptsRemaining
-              ? `邮箱验证码错误，还可尝试 ${data.attemptsRemaining} 次`
-              : "邮箱验证码错误",
+              ? t("register.error.email_code_invalid_with_attempts").replace("{n}", String(data.attemptsRemaining))
+              : t("register.error.email_code_invalid"),
           );
           scrollToRegisterError("emailCode");
         } else if (error === "EMAIL_CODE_TOO_MANY_ATTEMPTS") {
           setUsernameError("");
           setEmailError("");
-          setEmailCodeError("邮箱验证码错误次数过多，请重新获取验证码");
+          setEmailCodeError(t("register.error.email_code_too_many"));
           scrollToRegisterError("emailCode");
         } else if (error === "CAPTCHA_FAILED") {
-          setUsernameError("人机验证失败，请重试");
+          setUsernameError(t("register.error.captcha_failed"));
           setEmailError("");
           setEmailCodeError("");
           scrollToRegisterError("username");
         } else if (error === "FORBIDDEN_ORIGIN") {
-          setUsernameError("请求来源不被允许");
+          setUsernameError(t("register.error.forbidden_origin"));
           setEmailError("");
           setEmailCodeError("");
           scrollToRegisterError("username");
         } else if (error === "SESSION_SERVICE_NOT_CONFIGURED") {
-          setUsernameError("注册服务暂时不可用，请稍后重试");
+          setUsernameError(t("register.error.service_unavailable"));
           setEmailError("");
           setEmailCodeError("");
           scrollToRegisterError("username");
         } else if (error === "REGISTRATION_FAILED") {
-          setUsernameError("注册失败，请稍后重试");
+          setUsernameError(t("register.error.registration_failed"));
           setEmailError("");
           setEmailCodeError("");
           scrollToRegisterError("username");
         } else {
-          setUsernameError("注册失败，请稍后重试");
+          setUsernameError(t("register.error.registration_failed"));
           setEmailError("");
           setEmailCodeError("");
           scrollToRegisterError("username");
@@ -437,7 +439,7 @@ export default function RegisterForm() {
 
       window.location.href = withBase(`register-success/?username=${encodeURIComponent(username.trim())}`);
     } catch {
-      setUsernameError("网络连接失败，请检查网络后重试");
+      setUsernameError(t("common.network_error"));
       setCaptchaToken("");
     } finally {
       setLoading(false);
@@ -465,7 +467,7 @@ export default function RegisterForm() {
             type="text"
             autoComplete="username"
             maxLength={20}
-            placeholder="请输入用户名"
+            placeholder=t("register.error.username_required")
             aria-invalid={Boolean(usernameError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-12 text-base outline-none ${
               usernameError
@@ -486,7 +488,7 @@ export default function RegisterForm() {
                 ? "text-neutral-500"
                 : "pointer-events-none text-transparent"
             }`}
-            aria-label="清除用户名"
+            aria-label=t("register.username_clear")
           >
             <ClearIcon />
           </button>
@@ -523,7 +525,7 @@ export default function RegisterForm() {
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="请输入邮箱地址"
+            placeholder=t("register.error.email_required")
             aria-invalid={Boolean(emailError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-12 text-base outline-none ${
               emailError
@@ -544,7 +546,7 @@ export default function RegisterForm() {
                 ? "text-neutral-500"
                 : "pointer-events-none text-transparent"
             }`}
-            aria-label="清除邮箱"
+            aria-label=t("register.email_clear")
           >
             <ClearIcon />
           </button>
@@ -576,7 +578,7 @@ export default function RegisterForm() {
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
             maxLength={20}
-            placeholder="请输入密码"
+            placeholder=t("register.error.password_required")
             aria-invalid={Boolean(passwordError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-24 text-base outline-none ${
               passwordError
@@ -598,7 +600,7 @@ export default function RegisterForm() {
                   ? "text-neutral-500"
                   : "pointer-events-none text-transparent"
               }`}
-              aria-label="清除密码"
+              aria-label=t("register.password_clear")
             >
               <ClearIcon />
             </button>
@@ -609,7 +611,7 @@ export default function RegisterForm() {
                 setShowPassword((value) => !value)
               }
               className="flex h-10 w-10 items-center justify-center text-neutral-500"
-              aria-label={showPassword ? "隐藏密码" : "显示密码"}
+              aria-label={showPassword ? t("register.password_hide") : t("register.password_show")}
             >
               <EyeIcon hidden={!showPassword} />
             </button>
@@ -659,9 +661,9 @@ export default function RegisterForm() {
 
           <span
             className={`text-sm ${
-              passwordStrength.label === "强"
+              passwordStrength.label === t("register.strength_strong")
                 ? "text-green-600"
-                : passwordStrength.label === "中等"
+                : passwordStrength.label === t("register.strength_medium")
                   ? "text-neutral-700"
                   : "text-neutral-500"
             }`}
@@ -676,7 +678,7 @@ export default function RegisterForm() {
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={passwordStrength.percent}
-          aria-label="密码强度"
+          aria-label=t("register.password_strength")
         >
           <div
             className="h-full rounded-full bg-neutral-800"
@@ -707,7 +709,7 @@ export default function RegisterForm() {
             type={showConfirmPassword ? "text" : "password"}
             autoComplete="new-password"
             maxLength={20}
-            placeholder="请再次输入密码"
+            placeholder=t("register.error.confirm_password_required")
             aria-invalid={Boolean(confirmPasswordError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-24 text-base outline-none ${
               confirmPasswordError
@@ -729,7 +731,7 @@ export default function RegisterForm() {
                   ? "text-neutral-500"
                   : "pointer-events-none text-transparent"
               }`}
-              aria-label="清除确认密码"
+              aria-label=t("register.confirm_password_clear")
             >
               <ClearIcon />
             </button>
@@ -742,8 +744,8 @@ export default function RegisterForm() {
               className="flex h-10 w-10 items-center justify-center text-neutral-500"
               aria-label={
                 showConfirmPassword
-                  ? "隐藏确认密码"
-                  : "显示确认密码"
+                  ? t("register.confirm_password_hide")
+                  : t("register.confirm_password_show")
               }
             >
               <EyeIcon hidden={!showConfirmPassword} />
@@ -780,7 +782,7 @@ export default function RegisterForm() {
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
-            placeholder="请输入邮箱验证码"
+            placeholder=t("register.error.email_code_required")
             aria-invalid={Boolean(emailCodeError)}
             className={`min-w-0 flex-1 rounded-lg bg-white px-4 text-base outline-none ${
               emailCodeError
@@ -796,8 +798,8 @@ export default function RegisterForm() {
             className="h-12 w-[108px] shrink-0 rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {emailCodeCooldown > 0
-              ? `${emailCodeCooldown} 秒后重发`
-              : "获取验证码"}
+              ? t("register.resend_in_seconds").replace("{n}", String(emailCodeCooldown))
+              : t("register.send_code")}
           </button>
         </div>
 
@@ -867,7 +869,7 @@ export default function RegisterForm() {
         disabled={loading}
         className="h-12 w-full rounded-lg bg-neutral-900 px-4 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? "注册中…" : "注 册"}
+        {loading ? t("register.submitting") : t("register.submit")}
       </button>
 
       <p className="pt-1 text-center text-sm text-neutral-500">
