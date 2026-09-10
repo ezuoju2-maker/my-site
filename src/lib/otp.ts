@@ -58,10 +58,10 @@ function validatePurpose(purpose: string): void {
 }
 
 function getOtpSecret(): string {
-  const secret = env.RESEND_API_KEY;
+  const secret = env.OTP_SECRET;
 
   if (!secret) {
-    throw new Error("RESEND_API_KEY is not configured");
+    throw new Error("OTP_SECRET is not configured");
   }
 
   return secret;
