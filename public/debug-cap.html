@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cap 诊断</title>
+<style>
+  body { font-family: -apple-system, sans-serif; padding: 16px; font-size: 15px; line-height: 1.6; }
+  .box { border: 1px solid #ddd; padding: 10px; margin: 8px 0; border-radius: 6px; font-size: 14px; }
+  .ok { background: #e8f8e8; border-color: #4a4; }
+  .err { background: #ffe8e8; border-color: #a44; }
+  .info { background: #e8f0ff; border-color: #44a; }
+  code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 12px; word-break: break-all; }
+  h3 { margin-top: 24px; font-size: 16px; }
+  #render-area { border: 2px dashed #ccc; padding: 20px; margin-top: 10px; min-height: 100px; text-align: center; }
+</style>
+</head>
+<body>
+<h2>Cap 诊断页</h2>
+<div class="box info">
+  <strong>URL：</strong> <code id="page-url"></code><br>
+  <strong>尝试加载：</strong> <code id="cap-path"></code>
+</div>
+<div id="log"></div>
+<h3>测试 1：cap.min.js 能否加载</h3>
+<div id="test1" class="box">进行中…</div>
+<h3>测试 2：cap-widget 元素是否注册</h3>
+<div id="test2" class="box">等待…</div>
+<h3>测试 3：渲染 Cap 组件</h3>
+<div id="test3" class="box">等待…</div>
+<h3>渲染区域</h3>
+<div id="render-area">（成功后会在这里显示组件）</div>
+<script>
+function show(id, cls, html) {
+  var el = document.getElementById(id);
+  el.className = 'box ' + cls;
+  el.innerHTML = html;
+}
+var base = location.pathname.replace(/[^/]*$/, '');
+var capPath = base + 'cap.min.js';
+document.getElementById('page-url').textContent = location.href;
+document.getElementById('cap-path').textContent = capPath;
+
+var s = document.createElement('script');
+s.src = capPath;
+s.async = true;
+s.onload = function() {
+  show('test1', 'ok', '✅ cap.min.js 加载成功');
+  setTimeout(function() {
+    if (customElements.get('cap-widget')) {
+      show('test2', 'ok', '✅ cap-widget 已注册');
+      try {
+        var w = document.createElement('cap-widget');
+        w.setAttribute('data-cap-api-endpoint', 'https://my-site-n7j.pages.dev/api/cap/');
+        document.getElementById('render-area').innerHTML = '';
+        document.getElementById('render-area').appendChild(w);
+        show('test3', 'ok', '✅ cap-widget 已插入');
+        w.addEventListener('solve', function(e) {
+          show('test3', 'ok', '✅ solve 事件触发 token=' + e.detail.token.slice(0, 16) + '…');
+        });
+      } catch (err) {
+        show('test3', 'err', '❌ ' + err.message);
+      }
+    } else {
+      show('test2', 'err', '❌ cap-widget 未注册');
+    }
+  }, 800);
+};
+s.onerror = function() {
+  show('test1', 'err', '❌ cap.min.js 加载失败');
+};
+document.head.appendChild(s);
+window.addEventListener('error', function(e) {
+  var d = document.createElement('div');
+  d.className = 'box err';
+  d.textContent = '全局错误: ' + e.message;
+  document.getElementById('log').appendChild(d);
+});
+</script>
+</body>
+</html>
