@@ -176,7 +176,7 @@ export async function verifyPassword(
     const bits = await crypto.subtle.deriveBits(
       {
         name: "PBKDF2",
-        salt: parsed.salt,
+        salt: parsed.salt as BufferSource,
         iterations: parsed.iterations,
         hash: "SHA-256",
       },
@@ -256,6 +256,7 @@ export async function getSession(request: Request) {
     if (
       typeof session.userId !== "string" ||
       typeof session.username !== "string" ||
+      typeof session.sessionVersion !== "number" ||
       !Number.isInteger(session.sessionVersion) ||
       session.sessionVersion < 1
     ) {
