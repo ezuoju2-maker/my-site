@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../lib/api";
+import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
 
 type UserInfo = {
@@ -8,10 +9,7 @@ type UserInfo = {
   role: string;
 };
 
-function getBasePath() {
-  const base = import.meta.env.BASE_URL || "/";
-  return base.endsWith("/") ? base : `${base}/`;
-}
+const getBasePath = getBase;
 
 export default function UserDashboard() {
   const [user, setUser] = useState<UserInfo | null>(null);
