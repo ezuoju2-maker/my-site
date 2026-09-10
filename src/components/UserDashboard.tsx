@@ -41,6 +41,7 @@ type UserInfo = {
   email: string;
   role: string;
   displayName: string;
+  avatarUrl: string | null;
 };
 
 const FEATURE_ICONS: Record<IconName, React.FC<{ className?: string }>> = {
@@ -217,8 +218,16 @@ export default function UserDashboard() {
           }}
           className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
         >
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-lg font-semibold text-white">
-            {initial}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-900 text-lg font-semibold text-white">
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt="头像"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              initial
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-semibold text-neutral-900">
