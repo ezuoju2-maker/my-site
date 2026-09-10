@@ -135,6 +135,10 @@ export const translations: Record<string, Record<string, string>> = {
     "register.error.email_service_not_configured": "邮箱服务尚未配置",
     "register.error.email_provider_unreachable": "邮箱服务暂时无法连接，请稍后重试",
     "register.error.wait_seconds": "请等待 {n} 秒后再试",
+    "register.create_account": "创建账户",
+    "register.create_account_subtitle": "注册一个新账户",
+    "forgot.title": "忘记密码",
+    "forgot.subtitle": "通过注册邮箱验证后设置新密码",
   },
 
   en: {
@@ -256,5 +260,9 @@ export const translations: Record<string, Record<string, string>> = {
     "register.error.email_service_not_configured": "Email service not configured",
     "register.error.email_provider_unreachable": "Email service unreachable, please retry",
     "register.error.wait_seconds": "Please wait {n} seconds",
+    "register.create_account": "Create Account",
+    "register.create_account_subtitle": "Create a new account",
+    "forgot.title": "Forgot Password",
+    "forgot.subtitle": "Reset your password via email verification",
   },
 };
