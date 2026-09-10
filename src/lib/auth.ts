@@ -16,6 +16,20 @@ export type SessionData = {
   sessionVersion: number;
 };
 
+/**
+ * 从 getSession 返回的完整会话对象。
+ *
+ * 注意：role 不存 KV，每次从 DB 实时读取，
+ * 这样管理员权限变更可以立即生效，无需等 session 过期。
+ */
+export type ActiveSession = {
+  token: string;
+  userId: string;
+  username: string;
+  sessionVersion: number;
+  role: string;
+};
+
 type StoredPassword = {
   iterations: number;
   salt: Uint8Array;
@@ -250,10 +264,10 @@ export async function getSession(request: Request) {
     }
 
     const user = await env.DB.prepare(
-      "SELECT session_version FROM users WHERE id = ?1 LIMIT 1",
+      "SELECT session_version, role FROM users WHERE id = ?1 LIMIT 1",
     )
       .bind(session.userId)
-      .first<{ session_version: number }>();
+      .first<{ session_version: number; role: string }>();
 
     if (
       !user ||
@@ -268,6 +282,7 @@ export async function getSession(request: Request) {
       userId: session.userId,
       username: session.username,
       sessionVersion: session.sessionVersion,
+      role: user.role || "user",
     };
   } catch {
     return null;

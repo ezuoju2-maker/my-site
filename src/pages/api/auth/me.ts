@@ -55,10 +55,10 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     const user = await env.DB.prepare(
-      "SELECT id, username, email FROM users WHERE id = ?1 LIMIT 1",
+      "SELECT id, username, email, role FROM users WHERE id = ?1 LIMIT 1",
     )
       .bind(session.userId)
-      .first<{ id: string; username: string; email: string }>();
+      .first<{ id: string; username: string; email: string; role: string }>();
 
     if (!user) {
       return json({ ok: false, error: "UNAUTHENTICATED" }, 401, origin);
@@ -71,6 +71,7 @@ export const GET: APIRoute = async ({ request }) => {
           id: user.id,
           username: user.username,
           email: user.email,
+          role: user.role || "user",
         },
       },
       200,
