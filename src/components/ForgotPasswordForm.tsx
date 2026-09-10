@@ -308,7 +308,7 @@ export default function ForgotPasswordForm() {
                 event.target.value.replace(/\D/g, "").slice(0, 6),
               )
             }
-            placeholder=t("forgot.email_code_placeholder")
+            placeholder={t("forgot.email_code_placeholder")}
             className="min-w-0 flex-1 rounded-lg border px-4 py-3 outline-none"
             disabled={loading || resetting}
           />
@@ -345,7 +345,7 @@ export default function ForgotPasswordForm() {
           autoComplete="new-password"
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
-          placeholder=t("forgot.error.NEW_PASSWORD_REQUIRED")
+          placeholder={t("forgot.error.NEW_PASSWORD_REQUIRED")}
           className="w-full rounded-lg border px-4 py-3 outline-none"
           disabled={loading || resetting}
         />
