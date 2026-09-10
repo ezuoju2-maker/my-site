@@ -1,10 +1,12 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { getBase } from "../../lib/url";
 
 const username = Astro.url.searchParams.get("username")?.trim() ?? "";
+const base = getBase();
 const loginUrl = username
-  ? `/?username=${encodeURIComponent(username)}`
-  : "/";
+  ? `${base}?username=${encodeURIComponent(username)}`
+  : base;
 ---
 
 <Layout title="注册成功">
