@@ -14,16 +14,14 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_PAGES: "true"
-      PUBLIC_API_BASE_URL: "https://my-site-n7j.pages.dev"
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Install, build, and upload site
         uses: withastro/action@v6
+        env:
+          PUBLIC_API_BASE_URL: "https://my-site-n7j.pages.dev"
 
   deploy:
     needs: build
