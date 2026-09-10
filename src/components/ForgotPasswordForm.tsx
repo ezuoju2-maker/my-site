@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../lib/api";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, RefObject } from "react";
 import CapWidget from "./CapWidget";
+import { getBase } from "../lib/url";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -220,7 +221,7 @@ export default function ForgotPasswordForm() {
       setConfirmPassword("");
 
       window.setTimeout(() => {
-        window.location.href = `${import.meta.env.BASE_URL}`;
+        window.location.href = getBase();
       }, 1500);
     } catch {
       showError("网络请求失败，请稍后再试");
@@ -390,7 +391,7 @@ export default function ForgotPasswordForm() {
       </button>
 
       <a
-        href={import.meta.env.BASE_URL}
+        href={getBase()}
         className="block text-center text-sm underline"
       >
         返回登录
