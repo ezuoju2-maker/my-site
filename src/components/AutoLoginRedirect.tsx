@@ -18,8 +18,11 @@ export default function AutoLoginRedirect() {
         );
 
         if (!cancelled && response.ok) {
+          const data = await response.json().catch(() => null);
+          const role = data?.user?.role === "admin" ? "admin" : "user";
+          const target = role === "admin" ? "/admin/" : "/dashboard/";
           window.location.replace(
-            `${import.meta.env.BASE_URL.replace(/\/$/, "")}/developing/`,
+            `${import.meta.env.BASE_URL.replace(/\/$/, "")}${target}`,
           );
         }
       } catch {
