@@ -1,4 +1,5 @@
 import { defineMiddleware } from "astro:middleware";
+import { getSession } from "./lib/auth";
 
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
@@ -12,7 +13,7 @@ const SECURITY_HEADERS: Record<string, string> = {
     "img-src 'self' data: blob:",
     "style-src 'self' 'unsafe-inline'",
     "script-src 'self' 'unsafe-inline'",
-    "connect-src 'self'",
+    "connect-src 'self' https://my-site-n7j.pages.dev https://cap-worker.ezuoju2.workers.dev",
     "font-src 'self' data:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
@@ -21,7 +22,48 @@ const SECURITY_HEADERS: Record<string, string> = {
   ].join("; "),
 };
 
-export const onRequest = defineMiddleware(async (_context, next) => {
+function isProtectedPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/dashboard") || pathname.startsWith("/admin")
+  );
+}
+
+function isApiPath(pathname: string): boolean {
+  return pathname.startsWith("/api/");
+}
+
+export const onRequest = defineMiddleware(async (context, next) => {
+  const url = new URL(context.request.url);
+  const pathname = url.pathname;
+
+  // 服务端权限检查
+  // - 仅 SSR 模式生效（GitHub Pages 是纯静态，跳过）
+  // - API 路径由各 handler 自己处理
+  if (
+    import.meta.env.GITHUB_PAGES !== "true" &&
+    isProtectedPath(pathname) &&
+    !isApiPath(pathname)
+  ) {
+    try {
+      const session = await getSession(context.request);
+
+      if (!session) {
+        return context.redirect("/");
+      }
+
+      // 非 admin 访问 /admin/* 返回 404，不暴露后台存在
+      if (pathname.startsWith("/admin") && session.role !== "admin") {
+        return new Response("Not Found", {
+          status: 404,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+    } catch (error) {
+      console.error("[middleware] auth check failed", error);
+      return context.redirect("/");
+    }
+  }
+
   const response = await next();
   const headers = new Headers(response.headers);
 
