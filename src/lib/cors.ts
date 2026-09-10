@@ -23,6 +23,16 @@ export function corsHeaders(origin: string) {
 }
 
 export function rejectCrossSiteRequest(request: Request) {
+  const method = request.method.toUpperCase();
+
+  // 读操作不要求 Origin：
+  // - 同源 GET/HEAD 浏览器通常不带 Origin（规范行为）
+  // - OPTIONS 是 CORS 预检，由各 API 的 OPTIONS handler 单独处理
+  // - CSRF 只对写操作有意义（POST/PUT/PATCH/DELETE）
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+    return null;
+  }
+
   const origin = getAllowedOrigin(request);
 
   if (!origin) {
