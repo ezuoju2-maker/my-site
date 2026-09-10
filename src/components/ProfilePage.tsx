@@ -75,6 +75,14 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailFormError, setEmailFormError] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+
   const [saving, setSaving] = useState(false);
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -132,6 +140,14 @@ export default function ProfilePage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (emailCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setEmailCooldown((v) => (v <= 1 ? 0 : v - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [emailCooldown]);
+
   function notify(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2200);
@@ -168,6 +184,137 @@ export default function ProfilePage() {
     } finally {
       setUploading(false);
       event.target.value = "";
+    }
+  }
+
+  async function handleSendEmailCode() {
+    setEmailFormError("");
+
+    if (!newEmail.trim()) {
+      setEmailFormError("请输入新邮箱");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
+      setEmailFormError("邮箱格式不正确");
+      return;
+    }
+    if (emailCooldown > 0 || emailSending) return;
+
+    setEmailSending(true);
+    setEmailCooldown(60);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/user/email/send-code`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newEmail: newEmail.trim() }),
+        },
+      );
+      const data = await parseApiResponse(response);
+
+      if (!response.ok || !data.ok) {
+        const err = (data as unknown as { error?: string }).error;
+        setEmailFormError(
+          err === "EMAIL_ALREADY_USED"
+            ? "该邮箱已被使用"
+            : err === "TOO_MANY_REQUESTS"
+              ? "请求过于频繁，请稍后重试"
+              : err === "EMAIL_SERVICE_NOT_CONFIGURED"
+                ? "邮箱服务未配置"
+                : err === "EMAIL_PROVIDER_ERROR" || err === "EMAIL_PROVIDER_UNREACHABLE"
+                  ? "验证码发送失败，请稍后重试"
+                  : err === "INVALID_EMAIL"
+                    ? "邮箱格式不正确"
+                    : "验证码发送失败",
+        );
+        setEmailCooldown(0);
+        return;
+      }
+
+      notify("验证码已发送，请检查新邮箱");
+    } catch {
+      setEmailFormError("网络错误，请重试");
+      setEmailCooldown(0);
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
+  async function handleChangeEmail() {
+    setEmailFormError("");
+
+    if (!newEmail.trim()) {
+      setEmailFormError("请输入新邮箱");
+      return;
+    }
+    if (!/^\d{6}$/.test(emailCode.trim())) {
+      setEmailFormError("请输入 6 位验证码");
+      return;
+    }
+
+    if (emailSubmitting) return;
+    setEmailSubmitting(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/user/email/change`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            newEmail: newEmail.trim(),
+            emailCode: emailCode.trim(),
+          }),
+        },
+      );
+      const data = await parseApiResponse(response);
+
+      if (!response.ok || !data.ok) {
+        const err = (data as unknown as { error?: string }).error;
+        const attemptsRemaining = (data as unknown as { attemptsRemaining?: number })
+          .attemptsRemaining;
+        setEmailFormError(
+          err === "EMAIL_ALREADY_USED"
+            ? "该邮箱已被使用"
+            : err === "EMAIL_CODE_EXPIRED"
+              ? "验证码已过期，请重新获取"
+              : err === "INVALID_EMAIL_CODE"
+                ? attemptsRemaining
+                  ? `验证码错误，还可尝试 ${attemptsRemaining} 次`
+                  : "验证码错误"
+                : err === "EMAIL_CODE_TOO_MANY_ATTEMPTS"
+                  ? "错误次数过多，请重新获取验证码"
+                  : "修改失败，请稍后重试",
+        );
+        return;
+      }
+
+      // 成功后关闭表单 + 刷新 profile
+      setShowEmailForm(false);
+      setNewEmail("");
+      setEmailCode("");
+      notify("邮箱修改成功");
+
+      const reload = await fetch(`${API_BASE_URL}/api/user/profile`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const fresh = await parseApiResponse(reload);
+      const p = (fresh as unknown as { profile?: Profile }).profile;
+      if (p) {
+        setProfile(p);
+        setDisplayName(p.displayName || "");
+        setBio(p.bio || "");
+        setAvatarUrl(p.avatarUrl || "");
+      }
+    } catch {
+      setEmailFormError("网络错误，请重试");
+    } finally {
+      setEmailSubmitting(false);
     }
   }
 
@@ -423,16 +570,96 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-              邮箱
-            </label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-sm font-medium text-neutral-700">
+                邮箱
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmailForm((v) => !v);
+                  setEmailFormError("");
+                }}
+                className="text-sm font-medium text-neutral-900"
+              >
+                {showEmailForm ? "取消" : "修改邮箱"}
+              </button>
+            </div>
             <input
               type="text"
               value={profile.email}
               readOnly
               className="h-11 w-full cursor-not-allowed rounded-xl border border-neutral-200 bg-neutral-50 px-3 text-base text-neutral-500 outline-none"
             />
-            <p className="mt-1 text-xs text-neutral-400">修改邮箱功能开发中</p>
+
+            {showEmailForm && (
+              <div className="mt-3 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                    新邮箱
+                  </label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => {
+                      setNewEmail(e.target.value);
+                      setEmailFormError("");
+                    }}
+                    placeholder="new@example.com"
+                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                    验证码
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={emailCode}
+                      onChange={(e) => {
+                        setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        setEmailFormError("");
+                      }}
+                      placeholder="6 位验证码"
+                      className="min-w-0 flex-1 rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400 h-11"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendEmailCode}
+                      disabled={emailSending || emailCooldown > 0}
+                      className="h-11 shrink-0 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {emailSending
+                        ? "发送中…"
+                        : emailCooldown > 0
+                          ? `${emailCooldown}s`
+                          : "获取验证码"}
+                    </button>
+                  </div>
+                </div>
+
+                {emailFormError && (
+                  <p className="text-sm text-red-500">{emailFormError}</p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  disabled={emailSubmitting}
+                  className="h-11 w-full rounded-xl bg-neutral-900 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {emailSubmitting ? "修改中…" : "确认修改"}
+                </button>
+
+                <p className="text-xs text-neutral-400">
+                  验证码将发送到新邮箱，用于确认您拥有该邮箱
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
