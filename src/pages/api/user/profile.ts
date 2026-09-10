@@ -103,7 +103,7 @@ export const PATCH: APIRoute = async ({ request }) => {
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
 
-  let body: { displayName?: unknown; bio?: unknown };
+  let body: { displayName?: unknown; bio?: unknown; avatarUrl?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -120,6 +120,26 @@ export const PATCH: APIRoute = async ({ request }) => {
     displayName = trimmed.length > 0 ? trimmed : null;
   }
 
+  // avatarUrl：可选，字符串，http(s) 开头或空
+  let avatarUrl: string | null = null;
+  if (typeof body.avatarUrl === "string") {
+    const trimmed = body.avatarUrl.trim();
+    if (trimmed.length > 0) {
+      if (trimmed.length > 500) {
+        return json({ ok: false, error: "AVATAR_URL_TOO_LONG" }, 400, origin);
+      }
+      if (!/^https?:\/\//i.test(trimmed)) {
+        return json({ ok: false, error: "AVATAR_URL_INVALID" }, 400, origin);
+      }
+      avatarUrl = trimmed;
+    }
+  } else if (body.avatarUrl === null) {
+    avatarUrl = null;
+  } else {
+    // 未传 avatarUrl：保持原值（不修改）
+    avatarUrl = undefined as unknown as null;
+  }
+
   // bio：可选，字符串，去空白后 0-200 字符
   let bio: string | null = null;
   if (typeof body.bio === "string") {
@@ -131,13 +151,24 @@ export const PATCH: APIRoute = async ({ request }) => {
   }
 
   try {
-    await env.DB.prepare(
-      `UPDATE users
-       SET display_name = ?1, bio = ?2, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?3`,
-    )
-      .bind(displayName, bio, auth.session.userId)
-      .run();
+    // avatarUrl === undefined 表示不修改；null 表示清空
+    if (avatarUrl === (undefined as unknown as null)) {
+      await env.DB.prepare(
+        `UPDATE users
+         SET display_name = ?1, bio = ?2, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?3`,
+      )
+        .bind(displayName, bio, auth.session.userId)
+        .run();
+    } else {
+      await env.DB.prepare(
+        `UPDATE users
+         SET display_name = ?1, bio = ?2, avatar_url = ?3, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?4`,
+      )
+        .bind(displayName, bio, avatarUrl, auth.session.userId)
+        .run();
+    }
 
     return json({ ok: true }, 200, origin);
   } catch (error) {
