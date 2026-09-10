@@ -146,7 +146,7 @@ export default function LoadingScreen() {
             aria-label="页面加载进度"
           >
             <div
-              className="h-full rounded-full bg-white"
+              className="h-full rounded-full bg-neutral-900"
               style={{
                 width: `${progress}%`,
                 transition: "width 80ms linear",
