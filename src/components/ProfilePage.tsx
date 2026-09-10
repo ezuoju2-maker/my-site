@@ -2,7 +2,7 @@ import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
-import { IconUser, IconChevronRight } from "./icons/dashboard-icons";
+import { IconChevronRight } from "./icons/dashboard-icons";
 
 type Profile = {
   id: string;
@@ -21,6 +21,8 @@ export default function ProfilePage() {
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [showAvatarForm, setShowAvatarForm] = useState(false);
 
   const [saving, setSaving] = useState(false);
 
@@ -63,6 +65,7 @@ export default function ProfilePage() {
         setProfile(p);
         setDisplayName(p.displayName || "");
         setBio(p.bio || "");
+        setAvatarUrl(p.avatarUrl || "");
         setStatus("ok");
       } catch {
         if (!cancelled) {
@@ -96,7 +99,11 @@ export default function ProfilePage() {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName, bio }),
+        body: JSON.stringify({
+          displayName,
+          bio,
+          avatarUrl: avatarUrl.trim() || null,
+        }),
       });
 
       const data = await parseApiResponse(response);
@@ -218,25 +225,72 @@ export default function ProfilePage() {
         {/* 头像 */}
         <section className="rounded-2xl border border-neutral-100 bg-white p-6">
           <div className="flex flex-col items-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-200">
-              {profile.avatarUrl ? (
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-neutral-900 text-3xl font-semibold text-white">
+              {avatarUrl.trim() ? (
                 <img
-                  src={profile.avatarUrl}
+                  src={avatarUrl.trim()}
                   alt="头像"
-                  className="h-full w-full rounded-full object-cover"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
                 />
               ) : (
-                <IconUser className="h-10 w-10 text-neutral-500" />
+                (displayName || profile.username).charAt(0).toUpperCase()
               )}
             </div>
             <button
               type="button"
-              onClick={() => notify("头像上传开发中")}
+              onClick={() => setShowAvatarForm((v) => !v)}
               className="mt-3 text-sm font-medium text-neutral-700"
             >
               更换头像
             </button>
           </div>
+
+          {showAvatarForm && (
+            <div className="mt-4 space-y-3 border-t border-neutral-100 pt-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                  头像图片 URL
+                </label>
+                <input
+                  type="url"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.png"
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400"
+                />
+                <p className="mt-1 text-xs text-neutral-400">
+                  粘贴一个公开可访问的图片链接（.jpg / .png / .webp）
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAvatarUrl("");
+                    setShowAvatarForm(false);
+                  }}
+                  className="h-11 flex-1 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700"
+                >
+                  清空头像
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarForm(false)}
+                  className="h-11 flex-1 rounded-xl bg-neutral-900 text-sm font-medium text-white"
+                >
+                  完成
+                </button>
+              </div>
+
+              <p className="text-xs text-neutral-400">
+                提示：修改后需要点右上角"保存"才会生效
+              </p>
+            </div>
+          )}
         </section>
 
         {/* 基本信息 */}
