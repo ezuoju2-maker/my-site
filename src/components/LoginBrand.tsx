@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "../i18n/useTranslation";
 
 export default function LoginBrand() {
+  const { t } = useTranslation();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -18,11 +20,11 @@ export default function LoginBrand() {
       </div>
 
       <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-        网站名称
+        {t("login.site_name")}
       </h1>
 
       <p className="mt-2 text-sm text-neutral-500">
-        欢迎回来，请登录
+        {t("login.welcome")}
       </p>
     </div>
   );
