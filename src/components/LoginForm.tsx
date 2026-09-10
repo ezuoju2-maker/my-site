@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../lib/api";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import CapWidget from "./CapWidget";
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   return hidden ? (
@@ -55,171 +56,19 @@ function ClearIcon() {
   );
 }
 
-function RefreshIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="19"
-      height="19"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 11a8 8 0 0 0-14.8-4L3 9" />
-      <path d="M3 4v5h5" />
-      <path d="M4 13a8 8 0 0 0 14.8 4L21 15" />
-      <path d="M21 20v-5h-5" />
-    </svg>
-  );
-}
-
-/* 演示用验证码：正式登录时会改成 Worker + KV 服务器验证码 */
-const CAPTCHA_CHARS =
-  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-
-function createCaptcha() {
-  const result: string[] = [];
-
-  while (result.length < 5) {
-    const char =
-      CAPTCHA_CHARS[Math.floor(Math.random() * CAPTCHA_CHARS.length)];
-
-    if (!result.includes(char)) {
-      result.push(char);
-    }
-  }
-
-  return result;
-}
-
-function CaptchaImage({
-  characters,
-  refreshKey,
-}: {
-  characters: string[];
-  refreshKey: number;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const width = 256;
-    const height = 88;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
-    for (let i = 0; i < 70; i++) {
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      const radius = i % 4 === 0 ? 1.4 : 0.7;
-
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = i % 3 === 0 ? "#555555" : "#888888";
-      ctx.globalAlpha = i % 3 === 0 ? 0.58 : 0.32;
-      ctx.fill();
-    }
-
-    ctx.globalAlpha = 1;
-
-    ctx.beginPath();
-    ctx.moveTo(2, 18);
-    ctx.bezierCurveTo(45, 65, 72, 8, 128, 45);
-    ctx.bezierCurveTo(170, 75, 205, 10, 254, 62);
-    ctx.strokeStyle = "#666666";
-    ctx.lineWidth = 2.2;
-    ctx.globalAlpha = 0.62;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(2, 70);
-    ctx.bezierCurveTo(48, 10, 82, 78, 135, 28);
-    ctx.bezierCurveTo(180, 4, 212, 72, 254, 14);
-    ctx.strokeStyle = "#888888";
-    ctx.lineWidth = 1.8;
-    ctx.globalAlpha = 0.68;
-    ctx.stroke();
-
-    ctx.globalAlpha = 1;
-
-    const rotations = [-8, 6, -5, 7, -6];
-
-    characters.forEach((char, index) => {
-      const x = 26 + index * 51;
-      const y = 57 + (index % 2 === 0 ? -4 : 4);
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate((rotations[index] * Math.PI) / 180);
-
-      ctx.font = '700 40px Arial, "Helvetica Neue", sans-serif';
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = index % 2 === 0 ? "#111111" : "#333333";
-      ctx.fillText(char, 0, 0);
-
-      ctx.restore();
-    });
-  }, [characters, refreshKey]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      role="img"
-      aria-label="图文验证码"
-      className="h-full w-full rounded-lg"
-      style={{
-        display: "block",
-        background: "#ffffff",
-        colorScheme: "light",
-        forcedColorAdjust: "none",
-      }}
-    />
-  );
-}
-
 export default function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [captcha, setCaptcha] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
-  const [captchaCharacters, setCaptchaCharacters] = useState(() =>
-    createCaptcha(),
-  );
-
-  const [captchaKey, setCaptchaKey] = useState(0);
+  const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [captchaError, setCaptchaError] = useState("");
-
-  function refreshCaptcha() {
-    setCaptchaCharacters(createCaptcha());
-    setCaptchaKey((value) => value + 1);
-    setCaptcha("");
-    setCaptchaError("");
-  }
 
   function handleUsernameChange(value: string) {
     setUsername(value);
@@ -232,13 +81,6 @@ export default function LoginForm() {
     setPassword(value);
     if (value) {
       setPasswordError("");
-    }
-  }
-
-  function handleCaptchaChange(value: string) {
-    setCaptcha(value);
-    if (value.trim()) {
-      setCaptchaError("");
     }
   }
 
@@ -265,8 +107,8 @@ export default function LoginForm() {
       hasError = true;
     }
 
-    if (!captcha.trim()) {
-      setCaptchaError("请输入验证码");
+    if (!captchaToken) {
+      setCaptchaError("请完成人机验证");
       hasError = true;
     }
 
@@ -295,6 +137,7 @@ export default function LoginForm() {
             identifier: username.trim(),
             password,
             remember,
+            captchaToken,
           }),
         },
       );
@@ -305,31 +148,34 @@ export default function LoginForm() {
         const message =
           data?.error === "INVALID_CREDENTIALS"
             ? "用户名或密码错误"
-            : data?.error === "FORBIDDEN_ORIGIN"
-              ? "请求来源不被允许"
-              : data?.error === "INVALID_REQUEST"
-                ? "请求格式错误，请重新提交"
-                : data?.error === "UNAUTHENTICATED"
-                  ? "登录状态已失效，请重新登录"
-                  : data?.error === "SESSION_SERVICE_NOT_CONFIGURED"
-                    ? "登录服务暂时不可用，请稍后重试"
-                    : data?.error === "INTERNAL_ERROR"
-                      ? "服务器内部错误，请稍后重试"
-                      : "登录失败，请稍后重试";
+            : data?.error === "CAPTCHA_FAILED"
+              ? "人机验证失败，请重试"
+              : data?.error === "FORBIDDEN_ORIGIN"
+                ? "请求来源不被允许"
+                : data?.error === "INVALID_REQUEST"
+                  ? "请求格式错误，请重新提交"
+                  : data?.error === "UNAUTHENTICATED"
+                    ? "登录状态已失效，请重新登录"
+                    : data?.error === "SESSION_SERVICE_NOT_CONFIGURED"
+                      ? "登录服务暂时不可用，请稍后重试"
+                      : data?.error === "INTERNAL_ERROR"
+                        ? "服务器内部错误，请稍后重试"
+                        : "登录失败，请稍后重试";
 
         setPasswordError(message);
-        refreshCaptcha();
+        setCaptchaToken("");
         return;
       }
 
       window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/developing/`;
     } catch {
       setPasswordError("网络连接失败，请检查网络后重试");
-      refreshCaptcha();
+      setCaptchaToken("");
     } finally {
       setLoading(false);
     }
   }
+
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {/* 用户名 */}
@@ -442,51 +288,20 @@ export default function LoginForm() {
         )}
       </div>
 
-      {/* 验证码 */}
+      {/* 人机验证 */}
       <div>
-        <label
-          htmlFor="captcha"
-          className="mb-2 block text-sm font-medium text-neutral-700"
-        >
-          验证码
+        <label className="mb-2 block text-sm font-medium text-neutral-700">
+          人机验证
         </label>
 
-        <div className="flex h-12 w-full gap-2">
-          <input
-            id="captcha"
-            name="captcha"
-            value={captcha}
-            onChange={(event) => handleCaptchaChange(event.target.value)}
-            type="text"
-            inputMode="text"
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            maxLength={5}
-            placeholder="请输入验证码"
-            aria-invalid={Boolean(captchaError)}
-            className={`min-w-0 flex-1 rounded-lg bg-white px-4 text-base outline-none ${
-              captchaError
-                ? "border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                : "border border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
-            }`}
+        <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
+          <CapWidget
+            onSolve={(token) => {
+              setCaptchaToken(token);
+              setCaptchaError("");
+            }}
+            onReset={() => setCaptchaToken("")}
           />
-
-          <div className="h-12 w-[118px] shrink-0 overflow-hidden rounded-lg border border-neutral-300 bg-white">
-            <CaptchaImage
-              characters={captchaCharacters}
-              refreshKey={captchaKey}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={refreshCaptcha}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-neutral-300 bg-white text-neutral-600"
-            aria-label="刷新验证码"
-          >
-            <RefreshIcon />
-          </button>
         </div>
 
         {captchaError && (
