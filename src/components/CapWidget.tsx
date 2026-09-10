@@ -1,21 +1,18 @@
 import { useEffect, useRef } from "react";
-import { CAP_WORKER_URL, CAP_API_ENDPOINT } from "../lib/cap-config";
+import { CAP_SCRIPT_URL, CAP_API_ENDPOINT } from "../lib/cap-config";
 
 type Props = {
   onSolve: (token: string) => void;
   onReset?: () => void;
 };
 
-// 全局：确保 cap.min.js 只加载一次
 let capScriptLoading: Promise<void> | null = null;
 
 function loadCapScript(): Promise<void> {
-  // 已经定义过，直接返回
   if (customElements.get("cap-widget")) {
     return Promise.resolve();
   }
 
-  // 已经在加载中，复用同一个 Promise
   if (capScriptLoading) {
     return capScriptLoading;
   }
@@ -26,7 +23,6 @@ function loadCapScript(): Promise<void> {
     );
 
     if (existing) {
-      // 脚本标签已存在，等它 load 或等元素定义
       customElements
         .whenDefined("cap-widget")
         .then(() => resolve())
@@ -35,7 +31,7 @@ function loadCapScript(): Promise<void> {
     }
 
     const script = document.createElement("script");
-    script.src = `${CAP_WORKER_URL}/cap.min.js`;
+    script.src = CAP_SCRIPT_URL;
     script.async = true;
     script.setAttribute("data-cap-script", "true");
 
