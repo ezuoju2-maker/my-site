@@ -149,6 +149,11 @@ export default function RegisterForm() {
       return;
     }
 
+    if (!captchaToken) {
+      setCaptchaError("请完成人机验证");
+      return;
+    }
+
     setEmailCodeError("");
     sendingEmailCodeRef.current = true;
 
@@ -166,6 +171,7 @@ export default function RegisterForm() {
           },
           body: JSON.stringify({
             email: email.trim(),
+            captchaToken,
           }),
         },
       );
