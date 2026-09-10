@@ -78,7 +78,7 @@ export default function RegisterForm() {
       label: t("register.strength_strong"),
       percent: 100,
     };
-  }, [password, validPasswordRules]);
+  }, [password, validPasswordRules, t]);
 
 
   function validateUsername(value: string) {
@@ -873,7 +873,7 @@ export default function RegisterForm() {
       </button>
 
       <p className="pt-1 text-center text-sm text-neutral-500">
-        {t("register.have_account")}？
+        {t("register.have_account")}
         <a
           href={withBase("")}
           className="ml-1 font-medium text-neutral-800 underline underline-offset-4"
