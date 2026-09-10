@@ -452,7 +452,7 @@ export default function RegisterForm() {
           htmlFor="register-username"
           className="mb-2 block text-sm font-medium text-neutral-700"
         >
-          用户名
+          {t("register.username")}
         </label>
 
         <div className="relative">
@@ -510,7 +510,7 @@ export default function RegisterForm() {
           htmlFor="register-email"
           className="mb-2 block text-sm font-medium text-neutral-700"
         >
-          邮箱
+          {t("register.email")}
         </label>
 
         <div className="relative">
@@ -564,7 +564,7 @@ export default function RegisterForm() {
           htmlFor="register-password"
           className="mb-2 block text-sm font-medium text-neutral-700"
         >
-          密码
+          {t("register.password")}
         </label>
 
         <div className="relative">
@@ -627,7 +627,7 @@ export default function RegisterForm() {
 
       <div>
         <p className="mb-2 text-sm font-medium text-neutral-700">
-          密码要求
+          {t("register.password_requirements")}
         </p>
 
         <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:text-sm">
@@ -636,19 +636,19 @@ export default function RegisterForm() {
           </Requirement>
 
           <Requirement valid={passwordRules.uppercase}>
-            大写字母
+            {t("register.req_uppercase")}
           </Requirement>
 
           <Requirement valid={passwordRules.lowercase}>
-            小写字母
+            {t("register.req_lowercase")}
           </Requirement>
 
           <Requirement valid={passwordRules.number}>
-            数字
+            {t("register.req_number")}
           </Requirement>
 
           <Requirement valid={passwordRules.special}>
-            特殊符号
+            {t("register.req_special")}
           </Requirement>
         </div>
       </div>
@@ -656,7 +656,7 @@ export default function RegisterForm() {
       <div>
         <div className="mb-2 flex items-center justify-between">
           <span className="text-sm font-medium text-neutral-700">
-            密码强度
+            {t("register.password_strength")}
           </span>
 
           <span
@@ -695,7 +695,7 @@ export default function RegisterForm() {
           htmlFor="register-confirm-password"
           className="mb-2 block text-sm font-medium text-neutral-700"
         >
-          确认密码
+          {t("register.confirm_password")}
         </label>
 
         <div className="relative">
@@ -766,7 +766,7 @@ export default function RegisterForm() {
           htmlFor="register-email-code"
           className="mb-2 block text-sm font-medium text-neutral-700"
         >
-          邮箱验证码
+          {t("register.email_code")}
         </label>
 
         <div className="flex h-12 w-full gap-2">
@@ -813,7 +813,7 @@ export default function RegisterForm() {
       {/* 人机验证 */}
       <div>
         <label className="mb-2 block text-sm font-medium text-neutral-700">
-          人机验证
+          {t("register.captcha")}
         </label>
 
         <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
@@ -846,13 +846,13 @@ export default function RegisterForm() {
           />
 
           <span>
-            我已阅读并同意
+            {t("register.agreement_prefix")}
             <a
               href="#"
               onClick={(event) => event.stopPropagation()}
               className="mx-1 font-medium text-neutral-800 underline underline-offset-4"
             >
-              用户协议
+              {t("register.agreement_link")}
             </a>
           </span>
         </label>
@@ -873,12 +873,12 @@ export default function RegisterForm() {
       </button>
 
       <p className="pt-1 text-center text-sm text-neutral-500">
-        已有账号？
+        {t("register.have_account")}？
         <a
           href={withBase("")}
           className="ml-1 font-medium text-neutral-800 underline underline-offset-4"
         >
-          登录
+          {t("register.login")}
         </a>
       </p>
     </form>
