@@ -1,9 +1,9 @@
+import { API_BASE_URL } from "../lib/api";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, RefObject } from "react";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
-const API_BASE_URL = "";
 
 function getErrorMessage(error: string, attemptsRemaining?: number) {
   switch (error) {
