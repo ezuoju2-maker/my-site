@@ -10,6 +10,8 @@ import {
   type TabKey,
   type IconName,
 } from "./dashboard-data";
+import LanguagePicker from "./LanguagePicker";
+import { DEFAULT_LANG, getLanguage } from "./languages";
 import {
   IconBox,
   IconGlobe,
@@ -71,6 +73,29 @@ export default function UserDashboard() {
   const [status, setStatus] = useState<"loading" | "ok">("loading");
   const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [toast, setToast] = useState("");
+  const [langPickerOpen, setLangPickerOpen] = useState(false);
+  const [currentLang, setCurrentLang] = useState(DEFAULT_LANG);
+
+  // 从 localStorage 读语言（首屏）
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("lang");
+      if (saved) setCurrentLang(saved);
+    } catch {
+      // localStorage 不可用时忽略
+    }
+  }, []);
+
+  function handleLangSelect(code: string) {
+    setCurrentLang(code);
+    try {
+      window.localStorage.setItem("lang", code);
+    } catch {
+      // localStorage 不可用时忽略
+    }
+    setToast(`已切换到 ${getLanguage(code).native}`);
+    window.setTimeout(() => setToast(""), 2200);
+  }
   const [loggingOut, setLoggingOut] = useState(false);
 
   // 未读通知数量。当前为 0，接入通知 API 后改为真实数据。
@@ -178,11 +203,11 @@ export default function UserDashboard() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => notify("语言切换开发中")}
+              onClick={() => setLangPickerOpen(true)}
               className="flex items-center gap-1 text-sm text-neutral-700"
             >
               <IconGlobe className="h-4 w-4" />
-              <span>中文</span>
+              <span>{getLanguage(currentLang).native}</span>
             </button>
             <button
               type="button"
@@ -377,6 +402,14 @@ export default function UserDashboard() {
           {loggingOut ? "退出中…" : "退出登录"}
         </button>
       </main>
+
+      {/* 语言选择器 */}
+      <LanguagePicker
+        open={langPickerOpen}
+        current={currentLang}
+        onClose={() => setLangPickerOpen(false)}
+        onSelect={handleLangSelect}
+      />
 
       {/* Toast */}
       {toast && (
