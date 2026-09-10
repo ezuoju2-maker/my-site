@@ -174,6 +174,11 @@ export const translations: Record<string, Record<string, string>> = {
     "forgot.error.CAPTCHA_REQUIRED": "请完成人机验证",
     "forgot.error.NETWORK": "网络请求失败，请检查网络后重试",
     "forgot.error.NETWORK_RETRY": "网络请求失败，请稍后再试",
+
+    // ============ Cap 组件 ============
+    "cap.verify": "点击进行人机验证",
+    "cap.verified": "已验证",
+    "cap.verifying": "验证中…",
   },
 
   en: {
@@ -334,5 +339,10 @@ export const translations: Record<string, Record<string, string>> = {
     "forgot.error.CAPTCHA_REQUIRED": "Please complete verification",
     "forgot.error.NETWORK": "Network error, please check and retry",
     "forgot.error.NETWORK_RETRY": "Network error, please retry",
+
+    // ============ Cap widget ============
+    "cap.verify": "Verify to continue",
+    "cap.verified": "Verified",
+    "cap.verifying": "Verifying…",
   },
 };
