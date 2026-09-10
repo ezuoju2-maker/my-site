@@ -168,7 +168,7 @@ export default function RegisterForm() {
 
     try {
       const response = await fetch(
-        "/api/auth/send-code",
+        `${API_BASE_URL}/api/auth/send-code`,
         {
           method: "POST",
           credentials: "include",
@@ -363,7 +363,7 @@ export default function RegisterForm() {
 
     try {
       const response = await fetch(
-        "/api/auth/register",
+        `${API_BASE_URL}/api/auth/register`,
         {
           method: "POST",
           credentials: "include",
