@@ -632,7 +632,7 @@ export default function RegisterForm() {
 
         <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:text-sm">
           <Requirement valid={passwordRules.length}>
-            8～20 个字符
+            {t("register.req_length")}
           </Requirement>
 
           <Requirement valid={passwordRules.uppercase}>
