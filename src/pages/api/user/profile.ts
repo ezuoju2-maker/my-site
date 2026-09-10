@@ -120,24 +120,28 @@ export const PATCH: APIRoute = async ({ request }) => {
     displayName = trimmed.length > 0 ? trimmed : null;
   }
 
-  // avatarUrl：可选，字符串，http(s) 开头或空
-  let avatarUrl: string | null = null;
+  // avatarUrl：可选，支持三种值
+  // - http(s)://... 公开链接
+  // - data:image/... base64（前端压缩后上传）
+  // - null 清空
+  // - undefined（未传）不修改
+  let avatarUrl: string | null | undefined = undefined;
   if (typeof body.avatarUrl === "string") {
     const trimmed = body.avatarUrl.trim();
-    if (trimmed.length > 0) {
-      if (trimmed.length > 500) {
-        return json({ ok: false, error: "AVATAR_URL_TOO_LONG" }, 400, origin);
-      }
-      if (!/^https?:\/\//i.test(trimmed)) {
-        return json({ ok: false, error: "AVATAR_URL_INVALID" }, 400, origin);
-      }
+    if (trimmed.length === 0) {
+      avatarUrl = null;
+    } else if (trimmed.length > 120_000) {
+      return json({ ok: false, error: "AVATAR_TOO_LARGE" }, 400, origin);
+    } else if (
+      /^https?:\/\//i.test(trimmed) ||
+      /^data:image\/(jpeg|png|webp|gif);base64,/i.test(trimmed)
+    ) {
       avatarUrl = trimmed;
+    } else {
+      return json({ ok: false, error: "AVATAR_URL_INVALID" }, 400, origin);
     }
   } else if (body.avatarUrl === null) {
     avatarUrl = null;
-  } else {
-    // 未传 avatarUrl：保持原值（不修改）
-    avatarUrl = undefined as unknown as null;
   }
 
   // bio：可选，字符串，去空白后 0-200 字符
@@ -152,7 +156,7 @@ export const PATCH: APIRoute = async ({ request }) => {
 
   try {
     // avatarUrl === undefined 表示不修改；null 表示清空
-    if (avatarUrl === (undefined as unknown as null)) {
+    if (avatarUrl === undefined) {
       await env.DB.prepare(
         `UPDATE users
          SET display_name = ?1, bio = ?2, updated_at = CURRENT_TIMESTAMP

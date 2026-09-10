@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { IconChevronRight } from "./icons/dashboard-icons";
 
 type Profile = {
@@ -15,6 +15,55 @@ type Profile = {
   createdAt: string;
 };
 
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const img = new Image();
+
+      img.onload = () => {
+        const MAX = 200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX) {
+            height = Math.round((height * MAX) / width);
+            width = MAX;
+          }
+        } else {
+          if (height > MAX) {
+            width = Math.round((width * MAX) / height);
+            height = MAX;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("canvas context unavailable"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+        resolve(dataUrl);
+      };
+
+      img.onerror = () => reject(new Error("image load failed"));
+      img.src = e.target?.result as string;
+    };
+
+    reader.onerror = () => reject(new Error("file read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState<"loading" | "ok">("loading");
@@ -23,6 +72,8 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [showAvatarForm, setShowAvatarForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -88,6 +139,36 @@ export default function ProfilePage() {
 
   function goBack() {
     window.location.href = `${getBase()}dashboard/`;
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      notify("请选择图片文件");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      notify("图片过大（最多 5MB）");
+      event.target.value = "";
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const dataUrl = await compressImage(file);
+      setAvatarUrl(dataUrl);
+      notify("图片已就绪，请点右上角保存");
+    } catch {
+      notify("图片处理失败");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
   }
 
   async function handleSave() {
@@ -250,21 +331,39 @@ export default function ProfilePage() {
 
           {showAvatarForm && (
             <div className="mt-4 space-y-3 border-t border-neutral-100 pt-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                  头像图片 URL
-                </label>
-                <input
-                  type="url"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://example.com/avatar.png"
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400"
-                />
-                <p className="mt-1 text-xs text-neutral-400">
-                  粘贴一个公开可访问的图片链接（.jpg / .png / .webp）
-                </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 disabled:opacity-50"
+              >
+                {uploading ? "处理中…" : "从相册选择图片"}
+              </button>
+
+              <div className="relative">
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-neutral-100" />
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-2 text-xs text-neutral-400">
+                    或粘贴图片链接
+                  </span>
+                </div>
               </div>
+
+              <input
+                type="url"
+                value={avatarUrl.startsWith("data:") ? "" : avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://example.com/avatar.png"
+                className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-base outline-none focus:border-neutral-400"
+              />
 
               <div className="flex gap-2">
                 <button
