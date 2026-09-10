@@ -6,7 +6,6 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "../../../lib/auth";
 import {
-  createOtpDigest,
   OTP_TTL_SECONDS,
   verifyOtpDigest,
 } from "../../../lib/otp";
