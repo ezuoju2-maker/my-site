@@ -2,8 +2,7 @@ import { API_BASE_URL } from "../lib/api";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
-import { RefreshIcon } from "./icons/RefreshIcon";
-import { CaptchaImage, createCaptcha } from "./CaptchaImage";
+import CapWidget from "./CapWidget";
 import { Requirement } from "./Requirement";
 
 export default function RegisterForm() {
@@ -15,16 +14,12 @@ export default function RegisterForm() {
   const sendingEmailCodeRef = useRef(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [captcha, setCaptcha] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [agreement, setAgreement] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [captchaCharacters, setCaptchaCharacters] = useState(() =>
-    createCaptcha(),
-  );
-  const [captchaKey, setCaptchaKey] = useState(0);
 
   const [usernameError, setUsernameError] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -81,12 +76,6 @@ export default function RegisterForm() {
     };
   }, [password, validPasswordRules]);
 
-  function refreshCaptcha() {
-    setCaptchaCharacters(createCaptcha());
-    setCaptchaKey((value) => value + 1);
-    setCaptcha("");
-    setCaptchaError("");
-  }
 
   function validateUsername(value: string) {
     if (!value.trim()) {
@@ -317,8 +306,8 @@ export default function RegisterForm() {
         ? "请输入 6 位数字邮箱验证码"
         : "";
 
-    const nextCaptchaError = !captcha.trim()
-      ? "请输入验证码"
+    const nextCaptchaError = !captchaToken
+      ? "请完成人机验证"
       : "";
 
     const nextAgreementError = agreement
@@ -375,6 +364,7 @@ export default function RegisterForm() {
             email: email.trim(),
             password,
             emailCode: emailCode.trim(),
+            captchaToken,
           }),
         },
       );
@@ -413,6 +403,11 @@ export default function RegisterForm() {
           setEmailError("");
           setEmailCodeError("邮箱验证码错误次数过多，请重新获取验证码");
           scrollToRegisterError("emailCode");
+        } else if (error === "CAPTCHA_FAILED") {
+          setUsernameError("人机验证失败，请重试");
+          setEmailError("");
+          setEmailCodeError("");
+          scrollToRegisterError("username");
         } else if (error === "FORBIDDEN_ORIGIN") {
           setUsernameError("请求来源不被允许");
           setEmailError("");
@@ -435,14 +430,14 @@ export default function RegisterForm() {
           scrollToRegisterError("username");
         }
 
-        refreshCaptcha();
+        setCaptchaToken("");
         return;
       }
 
       window.location.href = `${import.meta.env.BASE_URL}register-success/?username=${encodeURIComponent(username.trim())}`;
     } catch {
       setUsernameError("网络连接失败，请检查网络后重试");
-      refreshCaptcha();
+      setCaptchaToken("");
     } finally {
       setLoading(false);
     }
@@ -812,61 +807,24 @@ export default function RegisterForm() {
         )}
       </div>
 
+      {/* 人机验证 */}
       <div>
-        <label
-          htmlFor="register-captcha"
-          className="mb-2 block text-sm font-medium text-neutral-700"
-        >
-          验证码
+        <label className="mb-2 block text-sm font-medium text-neutral-700">
+          人机验证
         </label>
 
-        <div className="flex h-12 w-full gap-2">
-          <input
-            id="register-captcha"
-            name="captcha"
-            value={captcha}
-            onChange={(event) => {
-              setCaptcha(event.target.value);
-              if (event.target.value.trim()) {
-                setCaptchaError("");
-              }
+        <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
+          <CapWidget
+            onSolve={(token) => {
+              setCaptchaToken(token);
+              setCaptchaError("");
             }}
-            type="text"
-            inputMode="text"
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            maxLength={4}
-            placeholder="请输入验证码"
-            aria-invalid={Boolean(captchaError)}
-            className={`min-w-0 flex-1 rounded-lg bg-white px-4 text-base outline-none ${
-              captchaError
-                ? "border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                : "border border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
-            }`}
+            onReset={() => setCaptchaToken("")}
           />
-
-          <div className="h-12 w-[96px] shrink-0 overflow-hidden rounded-lg border border-neutral-300 bg-white">
-            <CaptchaImage
-              characters={captchaCharacters}
-              refreshKey={captchaKey}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={refreshCaptcha}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-neutral-300 bg-white text-neutral-600"
-            aria-label="刷新验证码"
-          >
-            <RefreshIcon />
-          </button>
         </div>
 
         {captchaError && (
-          <p className="mt-1.5 text-sm text-red-500">
-            {captchaError}
-          </p>
+          <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
         )}
       </div>
 
