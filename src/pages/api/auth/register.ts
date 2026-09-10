@@ -247,6 +247,8 @@ export const POST: APIRoute = async ({ request }) => {
         origin,
       );
     }
+    await kv.delete(codeKey);
+    await kv.delete(attemptsKey);
   } catch (error) {
     console.error("Email verification KV error", error);
 
