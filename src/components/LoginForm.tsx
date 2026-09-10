@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../lib/api";
+import { parseApiResponse } from "../lib/api-response";
 import { useState, type FormEvent } from "react";
 import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
@@ -143,7 +144,7 @@ export default function LoginForm() {
         },
       );
 
-      const data = await response.json().catch(() => null);
+      const data = await parseApiResponse(response);
 
       if (!response.ok) {
         const message =

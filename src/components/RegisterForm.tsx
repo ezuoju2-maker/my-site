@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../lib/api";
+import { parseApiResponse } from "../lib/api-response";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
@@ -177,7 +178,7 @@ export default function RegisterForm() {
         },
       );
 
-      const data = await response.json().catch(() => null);
+      const data = await parseApiResponse(response);
 
       if (!response.ok) {
         const retryAfter =
@@ -369,7 +370,7 @@ export default function RegisterForm() {
         },
       );
 
-      const data = await response.json().catch(() => null);
+      const data = await parseApiResponse(response);
 
       if (!response.ok) {
         const error = data?.error;

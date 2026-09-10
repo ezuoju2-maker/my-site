@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../lib/api";
+import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
 
@@ -34,7 +35,7 @@ export default function AdminDashboard() {
           return;
         }
 
-        const data = await response.json().catch(() => null);
+        const data = await parseApiResponse(response);
 
         if (cancelled) return;
 

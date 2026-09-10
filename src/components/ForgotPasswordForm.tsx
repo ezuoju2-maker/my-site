@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../lib/api";
+import { parseApiResponse } from "../lib/api-response";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, RefObject } from "react";
 import CapWidget from "./CapWidget";
@@ -119,7 +120,7 @@ export default function ForgotPasswordForm() {
         },
       );
 
-      const data = await response.json().catch(() => null);
+      const data = await parseApiResponse(response);
 
       if (!response.ok || !data?.ok) {
         showError(
@@ -197,7 +198,7 @@ export default function ForgotPasswordForm() {
         },
       );
 
-      const data = await response.json().catch(() => null);
+      const data = await parseApiResponse(response);
 
       if (!response.ok || !data?.ok) {
         showError(
