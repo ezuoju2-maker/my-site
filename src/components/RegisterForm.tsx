@@ -467,7 +467,7 @@ export default function RegisterForm() {
             type="text"
             autoComplete="username"
             maxLength={20}
-            placeholder=t("register.error.username_required")
+            placeholder={t("register.error.username_required")}
             aria-invalid={Boolean(usernameError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-12 text-base outline-none ${
               usernameError
@@ -488,7 +488,7 @@ export default function RegisterForm() {
                 ? "text-neutral-500"
                 : "pointer-events-none text-transparent"
             }`}
-            aria-label=t("register.username_clear")
+            aria-label={t("register.username_clear")}
           >
             <ClearIcon />
           </button>
@@ -525,7 +525,7 @@ export default function RegisterForm() {
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder=t("register.error.email_required")
+            placeholder={t("register.error.email_required")}
             aria-invalid={Boolean(emailError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-12 text-base outline-none ${
               emailError
@@ -546,7 +546,7 @@ export default function RegisterForm() {
                 ? "text-neutral-500"
                 : "pointer-events-none text-transparent"
             }`}
-            aria-label=t("register.email_clear")
+            aria-label={t("register.email_clear")}
           >
             <ClearIcon />
           </button>
@@ -578,7 +578,7 @@ export default function RegisterForm() {
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
             maxLength={20}
-            placeholder=t("register.error.password_required")
+            placeholder={t("register.error.password_required")}
             aria-invalid={Boolean(passwordError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-24 text-base outline-none ${
               passwordError
@@ -600,7 +600,7 @@ export default function RegisterForm() {
                   ? "text-neutral-500"
                   : "pointer-events-none text-transparent"
               }`}
-              aria-label=t("register.password_clear")
+              aria-label={t("register.password_clear")}
             >
               <ClearIcon />
             </button>
@@ -678,7 +678,7 @@ export default function RegisterForm() {
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={passwordStrength.percent}
-          aria-label=t("register.password_strength")
+          aria-label={t("register.password_strength")}
         >
           <div
             className="h-full rounded-full bg-neutral-800"
@@ -709,7 +709,7 @@ export default function RegisterForm() {
             type={showConfirmPassword ? "text" : "password"}
             autoComplete="new-password"
             maxLength={20}
-            placeholder=t("register.error.confirm_password_required")
+            placeholder={t("register.error.confirm_password_required")}
             aria-invalid={Boolean(confirmPasswordError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-24 text-base outline-none ${
               confirmPasswordError
@@ -731,7 +731,7 @@ export default function RegisterForm() {
                   ? "text-neutral-500"
                   : "pointer-events-none text-transparent"
               }`}
-              aria-label=t("register.confirm_password_clear")
+              aria-label={t("register.confirm_password_clear")}
             >
               <ClearIcon />
             </button>
@@ -782,7 +782,7 @@ export default function RegisterForm() {
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
-            placeholder=t("register.error.email_code_required")
+            placeholder={t("register.error.email_code_required")}
             aria-invalid={Boolean(emailCodeError)}
             className={`min-w-0 flex-1 rounded-lg bg-white px-4 text-base outline-none ${
               emailCodeError
