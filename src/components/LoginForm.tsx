@@ -168,6 +168,19 @@ export default function LoginForm() {
         return;
       }
 
+      // 兜底：Cloudflare Pages Functions 可能丢失 set-cookie，
+      // 从响应头读取 session 并手动设置 Cookie。
+      const sessionToken = response.headers.get("X-Session-Token");
+      const sessionMaxAge = response.headers.get("X-Session-MaxAge");
+
+      if (sessionToken) {
+        const maxAgePart =
+          sessionMaxAge && sessionMaxAge !== "0"
+            ? `; Max-Age=${sessionMaxAge}`
+            : "";
+        document.cookie = `session=${sessionToken}; Path=/; Secure; SameSite=Lax${maxAgePart}`;
+      }
+
       const role = data?.user?.role === "admin" ? "admin" : "user";
       const target = role === "admin" ? "/admin/" : "/dashboard/";
       window.location.href = withBase(target);
