@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../lib/api";
+import { parseApiResponse } from "../lib/api-response";
 import { useEffect } from "react";
 import { withBase } from "../lib/url";
 
@@ -19,7 +20,7 @@ export default function AutoLoginRedirect() {
         );
 
         if (!cancelled && response.ok) {
-          const data = await response.json().catch(() => null);
+          const data = await parseApiResponse(response);
           const role = data?.user?.role === "admin" ? "admin" : "user";
           const target = role === "admin" ? "/admin/" : "/dashboard/";
           window.location.replace(
