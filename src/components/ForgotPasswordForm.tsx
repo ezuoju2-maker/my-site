@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "../lib/api";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, RefObject } from "react";
+import CapWidget from "./CapWidget";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -46,6 +47,8 @@ export default function ForgotPasswordForm() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
 
   const emailRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
@@ -88,6 +91,11 @@ export default function ForgotPasswordForm() {
       return;
     }
 
+    if (!captchaToken) {
+      setCaptchaError("请完成人机验证");
+      return;
+    }
+
     if (countdown > 0 || loading) {
       return;
     }
@@ -105,6 +113,7 @@ export default function ForgotPasswordForm() {
           },
           body: JSON.stringify({
             email: normalizedEmail,
+            captchaToken,
           }),
         },
       );
@@ -245,6 +254,27 @@ export default function ForgotPasswordForm() {
           className="w-full rounded-lg border px-4 py-3 outline-none"
           disabled={loading || resetting}
         />
+      </div>
+
+      {/* 人机验证 */}
+      <div>
+        <label className="mb-2 block text-sm font-medium">
+          人机验证
+        </label>
+
+        <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border px-2 py-2">
+          <CapWidget
+            onSolve={(token) => {
+              setCaptchaToken(token);
+              setCaptchaError("");
+            }}
+            onReset={() => setCaptchaToken("")}
+          />
+        </div>
+
+        {captchaError && (
+          <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
+        )}
       </div>
 
       <div>
