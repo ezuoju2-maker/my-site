@@ -312,10 +312,6 @@ export default function RegisterForm() {
         ? "请输入 6 位数字邮箱验证码"
         : "";
 
-    const nextCaptchaError = !captchaToken
-      ? "请完成人机验证"
-      : "";
-
     const nextAgreementError = agreement
       ? ""
       : "请先阅读并同意用户协议";
@@ -325,7 +321,6 @@ export default function RegisterForm() {
     setPasswordError(nextPasswordError);
     setConfirmPasswordError(nextConfirmPasswordError);
     setEmailCodeError(nextEmailCodeError);
-    setCaptchaError(nextCaptchaError);
     setAgreementError(nextAgreementError);
 
     if (
@@ -334,7 +329,6 @@ export default function RegisterForm() {
       nextPasswordError ||
       nextConfirmPasswordError ||
       nextEmailCodeError ||
-      nextCaptchaError ||
       nextAgreementError
     ) {
       if (usernameValidation) {
@@ -370,7 +364,6 @@ export default function RegisterForm() {
             email: email.trim(),
             password,
             emailCode: emailCode.trim(),
-            captchaToken,
           }),
         },
       );
