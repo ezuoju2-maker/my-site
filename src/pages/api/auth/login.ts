@@ -10,6 +10,10 @@ import {
   sessionCookie,
   verifyPassword,
 } from "../../../lib/auth";
+import {
+  extractCaptchaToken,
+  verifyCaptcha,
+} from "../../../lib/captcha";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -17,6 +21,7 @@ type LoginBody = {
   identifier?: unknown;
   password?: unknown;
   remember?: unknown;
+  captchaToken?: unknown;
 };
 
 const LOGIN_WINDOW_SECONDS = 15 * 60;
@@ -87,6 +92,17 @@ export const POST: APIRoute = async ({ request }) => {
   const identifier = normalizeIdentifier(body.identifier);
   const password = typeof body.password === "string" ? body.password : "";
   const remember = body.remember === true;
+    const captchaToken = extractCaptchaToken(body);
+    const captchaOk = await verifyCaptcha(captchaToken);
+    if (!captchaOk) {
+      return json(
+        { ok: false, error: "CAPTCHA_FAILED" },
+        403,
+        {},
+        origin,
+      );
+    }
+
 
   if (!identifier || !password) {
     return json(
