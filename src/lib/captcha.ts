@@ -6,18 +6,19 @@ type CapValidateResponse = {
 
 /**
  * 验证前端提交的 Cap-Worker token。
- *
- * - 生产环境必须配置 CAP_WORKER_URL，否则拒绝（fail-closed）
- * - 开发环境（本地 wrangler dev）无 CAP_WORKER_URL 时跳过验证
- * - 网络异常或 token 无效时返回 false
+ * 优先使用 Service Binding（内网直达，不走公网），
+ * 其次用 CAP_WORKER_URL 公网地址兜底，
+ * 两者都没配置时（本地开发）跳过验证。
  */
 export async function verifyCaptcha(token: unknown): Promise<boolean> {
-  const capUrl = env.CAP_WORKER_URL;
+  const capWorker = (env as any).CAP_WORKER as
+    | { fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> }
+    | undefined;
+  const capUrl = (env as any).CAP_WORKER_URL as string | undefined;
 
-  // 本地开发环境：CAP_WORKER_URL 未配置时跳过验证
-  if (!capUrl) {
+  if (!capWorker && !capUrl) {
     console.warn(
-      "[captcha] CAP_WORKER_URL is not configured, skipping captcha verification (dev only)",
+      "[captcha] CAP_WORKER not configured, skipping captcha verification (dev only)",
     );
     return true;
   }
@@ -26,17 +27,16 @@ export async function verifyCaptcha(token: unknown): Promise<boolean> {
     return false;
   }
 
+  const init: RequestInit = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, keepToken: false }),
+  };
+
   try {
-    const response = await fetch(`${capUrl}/api/validate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        token,
-        keepToken: false,
-      }),
-    });
+    const response = capWorker
+      ? await capWorker.fetch("https://cap-worker.internal/api/validate", init)
+      : await fetch(`${capUrl}/api/validate`, init);
 
     if (!response.ok) {
       return false;
@@ -50,9 +50,6 @@ export async function verifyCaptcha(token: unknown): Promise<boolean> {
   }
 }
 
-/**
- * 从请求体里安全提取 captchaToken 字段。
- */
 export function extractCaptchaToken(body: unknown): string {
   if (!body || typeof body !== "object") {
     return "";
