@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../lib/api";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
@@ -283,7 +284,7 @@ export default function LoginForm() {
 
     try {
       const response = await fetch(
-        "/api/auth/login",
+        `${API_BASE_URL}/api/auth/login`,
         {
           method: "POST",
           credentials: "include",

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../lib/api";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";

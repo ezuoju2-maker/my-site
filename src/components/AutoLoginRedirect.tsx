@@ -1,6 +1,6 @@
+import { API_BASE_URL } from "../lib/api";
 import { useEffect } from "react";
 
-const API_BASE_URL = "";
 
 export default function AutoLoginRedirect() {
   useEffect(() => {
