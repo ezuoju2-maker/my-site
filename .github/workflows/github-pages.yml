@@ -11,6 +11,12 @@ permissions:
   pages: write
   id-token: write
 
+# 防止并发部署冲突：同一时间只允许一个部署，但不等前一个
+# 完整执行完（cancel-in-progress: false 表示不取消进行中的，排队）
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
