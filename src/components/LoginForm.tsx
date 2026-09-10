@@ -3,6 +3,7 @@ import { parseApiResponse } from "../lib/api-response";
 import { useState, type FormEvent } from "react";
 import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
+import { useTranslation } from "../i18n/useTranslation";
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   return hidden ? (
@@ -59,6 +60,7 @@ function ClearIcon() {
 }
 
 export default function LoginForm() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -100,17 +102,17 @@ export default function LoginForm() {
     let hasError = false;
 
     if (!username.trim()) {
-      setUsernameError("请输入用户名或邮箱");
+      setUsernameError(t("login.identifier_required"));
       hasError = true;
     }
 
     if (!password) {
-      setPasswordError("请输入密码");
+      setPasswordError(t("login.password_required"));
       hasError = true;
     }
 
     if (!captchaToken) {
-      setCaptchaError("请完成人机验证");
+      setCaptchaError(t("login.captcha_required"));
       hasError = true;
     }
 
@@ -149,20 +151,20 @@ export default function LoginForm() {
       if (!response.ok) {
         const message =
           data?.error === "INVALID_CREDENTIALS"
-            ? "用户名或密码错误"
+            ? t("login.error.INVALID_CREDENTIALS")
             : data?.error === "CAPTCHA_FAILED"
-              ? "人机验证失败，请重试"
+              ? t("login.error.CAPTCHA_FAILED")
               : data?.error === "FORBIDDEN_ORIGIN"
-                ? "请求来源不被允许"
+                ? t("login.error.FORBIDDEN_ORIGIN")
                 : data?.error === "INVALID_REQUEST"
-                  ? "请求格式错误，请重新提交"
+                  ? t("login.error.INVALID_REQUEST")
                   : data?.error === "UNAUTHENTICATED"
-                    ? "登录状态已失效，请重新登录"
+                    ? t("login.error.UNAUTHENTICATED")
                     : data?.error === "SESSION_SERVICE_NOT_CONFIGURED"
-                      ? "登录服务暂时不可用，请稍后重试"
+                      ? t("login.error.SESSION_SERVICE_NOT_CONFIGURED")
                       : data?.error === "INTERNAL_ERROR"
-                        ? "服务器内部错误，请稍后重试"
-                        : "登录失败，请稍后重试";
+                        ? t("login.error.INTERNAL_ERROR")
+                        : t("login.error.DEFAULT");
 
         setPasswordError(message);
         setCaptchaToken("");
@@ -186,7 +188,7 @@ export default function LoginForm() {
       const target = role === "admin" ? "/admin/" : "/dashboard/";
       window.location.href = withBase(target);
     } catch {
-      setPasswordError("网络连接失败，请检查网络后重试");
+      setPasswordError(t("common.network_error"));
       setCaptchaToken("");
     } finally {
       setLoading(false);
@@ -213,7 +215,7 @@ export default function LoginForm() {
             type="text"
             inputMode="email"
             autoComplete="username"
-            placeholder="请输入用户名或邮箱"
+            placeholder={t("login.identifier_placeholder")}
             aria-invalid={Boolean(usernameError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-12 text-base outline-none ${
               usernameError
@@ -234,7 +236,7 @@ export default function LoginForm() {
                 ? "text-neutral-500"
                 : "pointer-events-none text-transparent"
             }`}
-            aria-label="清除用户名或邮箱"
+            aria-label={t("login.identifier_clear")}
           >
             <ClearIcon />
           </button>
@@ -262,7 +264,7 @@ export default function LoginForm() {
             onChange={(event) => handlePasswordChange(event.target.value)}
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            placeholder="请输入密码"
+            placeholder={t("login.password_placeholder")}
             aria-invalid={Boolean(passwordError)}
             className={`h-12 w-full rounded-lg bg-white px-4 pr-24 text-base outline-none ${
               passwordError
@@ -284,7 +286,7 @@ export default function LoginForm() {
                   ? "text-neutral-500"
                   : "pointer-events-none text-transparent"
               }`}
-              aria-label="清除密码"
+              aria-label={t("login.password_clear")}
             >
               <ClearIcon />
             </button>
@@ -293,7 +295,7 @@ export default function LoginForm() {
               type="button"
               onClick={() => setShowPassword((value) => !value)}
               className="flex h-10 w-10 items-center justify-center text-neutral-500"
-              aria-label={showPassword ? "隐藏密码" : "显示密码"}
+              aria-label={showPassword ? t("login.password_hide") : t("login.password_show")}
             >
               <EyeIcon hidden={!showPassword} />
             </button>
@@ -326,7 +328,7 @@ export default function LoginForm() {
         )}
       </div>
 
-      {/* 记住登录 / 忘记密码 */}
+      {/* {t("login.remember")} / 忘记密码 */}
       <div className="flex items-center justify-between text-sm">
         <label className="flex min-h-11 cursor-pointer items-center gap-2 text-neutral-600">
           <input
@@ -335,14 +337,14 @@ export default function LoginForm() {
             onChange={(event) => setRemember(event.target.checked)}
             className="h-4 w-4 rounded border-neutral-300"
           />
-          记住登录
+          {t("login.remember")}
         </label>
 
         <a
           href={withBase("forgot-password/")}
           className="py-2 text-neutral-600 underline-offset-4"
         >
-          忘记密码？
+          {t("login.forgot")}
         </a>
       </div>
 
@@ -352,11 +354,11 @@ export default function LoginForm() {
         disabled={loading}
         className="h-12 w-full rounded-lg bg-neutral-900 px-4 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? "登录中…" : "登录"}
+        {loading ? t("login.submitting") : t("login.submit")}
       </button>
 
       <p className="pt-1 text-center text-sm text-neutral-500">
-        还没有账号？{" "}
+        {t("login.no_account")}{" "}
         <a
           href={withBase("register/")}
           className="font-medium text-neutral-800 underline underline-offset-4"
