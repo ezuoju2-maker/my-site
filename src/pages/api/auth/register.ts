@@ -323,6 +323,26 @@ export const POST: APIRoute = async ({ request }) => {
       origin,
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (message.includes("UNIQUE constraint failed: users.username")) {
+      return json(
+        { ok: false, error: "USERNAME_EXISTS" },
+        409,
+        {},
+        origin,
+      );
+    }
+
+    if (message.includes("UNIQUE constraint failed: users.email")) {
+      return json(
+        { ok: false, error: "EMAIL_EXISTS" },
+        409,
+        {},
+        origin,
+      );
+    }
+
     console.error("Registration database error", error);
 
     return json(
