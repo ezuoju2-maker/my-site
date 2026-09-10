@@ -2,13 +2,66 @@ import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
-import { FEATURES, TABS, SITE_NAME, ANNOUNCEMENT, type TabKey } from "./dashboard-data";
+import {
+  FEATURES,
+  TABS,
+  SITE_NAME,
+  ANNOUNCEMENT,
+  type TabKey,
+  type IconName,
+} from "./dashboard-data";
+import {
+  IconBox,
+  IconGlobe,
+  IconBell,
+  IconMenu,
+  IconUser,
+  IconMail,
+  IconWallet,
+  IconCreditCard,
+  IconMegaphone,
+  IconHome,
+  IconClipboard,
+  IconHeadphones,
+  IconSmartphone,
+  IconSend,
+  IconCrosshair,
+  IconMonitor,
+  IconTicket,
+  IconChevronRight,
+  IconPlus,
+  IconZap,
+  IconShield,
+  IconGem,
+} from "./icons/dashboard-icons";
 
 type UserInfo = {
   id: string;
   username: string;
   email: string;
   role: string;
+};
+
+const FEATURE_ICONS: Record<IconName, React.FC<{ className?: string }>> = {
+  smartphone: IconSmartphone,
+  send: IconSend,
+  crosshair: IconCrosshair,
+  monitor: IconMonitor,
+  ticket: IconTicket,
+};
+
+const TAB_ICONS: Record<TabKey, React.FC<{ className?: string }>> = {
+  home: IconHome,
+  orders: IconClipboard,
+  support: IconHeadphones,
+  me: IconUser,
+};
+
+const SUBTITLE_ICONS: Record<string, React.FC<{ className?: string }>> = {
+  globe: IconGlobe,
+  zap: IconZap,
+  shield: IconShield,
+  gem: IconGem,
 };
 
 export default function UserDashboard() {
@@ -94,89 +147,86 @@ export default function UserDashboard() {
     );
   }
 
-  const initial = user.username.charAt(0).toUpperCase();
-
   return (
     <div className="min-h-screen bg-neutral-50 pb-24">
       {/* 顶部栏 */}
-      <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white">
+      <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900 text-xs font-semibold text-white">
-              L
-            </div>
+            <IconBox className="h-6 w-6 text-neutral-900" />
+            <span className="text-neutral-300">|</span>
             <span className="text-base font-semibold text-neutral-900">
               {SITE_NAME}
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => notify("语言切换开发中")}
-              className="flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-neutral-600"
+              className="flex items-center gap-1 text-sm text-neutral-700"
             >
-              🌐 中文
+              <IconGlobe className="h-4 w-4" />
+              <span>中文</span>
             </button>
             <button
               type="button"
               onClick={() => notify("消息中心开发中")}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600"
+              className="relative flex items-center justify-center text-neutral-700"
               aria-label="通知"
             >
-              🔔
-              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+              <IconBell className="h-5 w-5" />
+              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500" />
             </button>
             <button
               type="button"
               onClick={() => notify("菜单开发中")}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600"
+              className="flex items-center justify-center text-neutral-700"
               aria-label="菜单"
             >
-              ☰
+              <IconMenu className="h-5 w-5" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-3 px-4 py-4">
+      <main className="mx-auto max-w-2xl space-y-3 px-4 py-3">
         {/* 用户信息卡 */}
         <button
           type="button"
           onClick={() => notify("个人资料开发中")}
-          className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left"
+          className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-900 text-lg font-semibold text-white">
-            {initial}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-200">
+            <IconUser className="h-7 w-7 text-neutral-500" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-semibold text-neutral-900">
               {user.username}
             </div>
-            <div className="mt-0.5 truncate text-sm text-neutral-500">
-              {user.email}
+            <div className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
+              <IconMail className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{user.email}</span>
             </div>
           </div>
-          <span className="text-neutral-300">›</span>
+          <IconChevronRight className="h-5 w-5 shrink-0 text-neutral-300" />
         </button>
 
         {/* 账户余额卡 */}
-        <div className="rounded-2xl bg-white p-4">
+        <div className="rounded-2xl border border-neutral-100 bg-white p-4">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-xl">
-                💳
-              </div>
+              <IconWallet className="h-6 w-6 shrink-0 text-neutral-900" />
               <div>
                 <div className="text-base font-semibold text-neutral-900">
                   账户余额
                 </div>
                 <div className="mt-1 text-sm text-neutral-500">
-                  当前余额：<span className="text-neutral-400">— —</span>
+                  当前余额：<span className="ml-1 tracking-widest text-neutral-400">— —</span>
                 </div>
               </div>
             </div>
-            <div className="text-3xl">💳</div>
+            <IconCreditCard className="h-8 w-8 text-neutral-200" />
           </div>
 
           <div className="mt-4 flex gap-3">
@@ -185,45 +235,42 @@ export default function UserDashboard() {
               onClick={() => notify("充值开发中")}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-neutral-900 text-base font-medium text-white"
             >
-              <span className="text-xl leading-none">＋</span>
+              <IconPlus className="h-4 w-4" />
               充值
             </button>
             <button
               type="button"
               onClick={() => notify("余额详情开发中")}
-              className="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-neutral-200 text-base font-medium text-neutral-700"
+              className="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-neutral-200 bg-white text-base font-medium text-neutral-700"
             >
               查看详情
-              <span className="text-neutral-400">›</span>
+              <IconChevronRight className="h-4 w-4 text-neutral-400" />
             </button>
           </div>
         </div>
 
-        {/* 公告 */}
+        {/* 公告栏 */}
         <button
           type="button"
           onClick={() => notify("公告列表开发中")}
-          className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left"
+          className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-base">
-            📢
-          </div>
-          <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-            <span className="shrink-0 text-base font-semibold text-neutral-900">
-              公告
-            </span>
-            <span className="min-w-0 flex-1 truncate text-right text-sm text-neutral-500">
-              {ANNOUNCEMENT}
-            </span>
-          </div>
-          <span className="shrink-0 text-neutral-300">›</span>
+          <IconMegaphone className="h-5 w-5 shrink-0 text-neutral-900" />
+          <span className="shrink-0 text-base font-semibold text-neutral-900">
+            公告
+          </span>
+          <span className="min-w-0 flex-1 truncate text-right text-sm text-neutral-500">
+            {ANNOUNCEMENT}
+          </span>
+          <IconChevronRight className="h-4 w-4 shrink-0 text-neutral-300" />
         </button>
 
-        {/* Tab 导航（当前位置展示，不是底部） */}
-        <div className="rounded-2xl bg-white p-1">
+        {/* Tab 导航 */}
+        <div className="rounded-2xl border border-neutral-100 bg-white py-2">
           <div className="grid grid-cols-4">
             {TABS.map((tab) => {
               const active = activeTab === tab.key;
+              const TabIcon = TAB_ICONS[tab.key];
               return (
                 <button
                   key={tab.key}
@@ -234,9 +281,15 @@ export default function UserDashboard() {
                       notify(`${tab.label}开发中`);
                     }
                   }}
-                  className="flex flex-col items-center gap-1 py-3"
+                  className="relative flex flex-col items-center gap-1.5 py-2"
                 >
-                  <span className="text-xl leading-none">{tab.emoji}</span>
+                  <TabIcon
+                    className={
+                      active
+                        ? "h-6 w-6 text-neutral-900"
+                        : "h-6 w-6 text-neutral-500"
+                    }
+                  />
                   <span
                     className={
                       active
@@ -246,13 +299,9 @@ export default function UserDashboard() {
                   >
                     {tab.label}
                   </span>
-                  <span
-                    className={
-                      active
-                        ? "mt-0.5 h-0.5 w-6 rounded-full bg-neutral-900"
-                        : "mt-0.5 h-0.5 w-6 rounded-full bg-transparent"
-                    }
-                  />
+                  {active && (
+                    <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-neutral-900" />
+                  )}
                 </button>
               );
             })}
@@ -261,27 +310,32 @@ export default function UserDashboard() {
 
         {/* 功能列表 */}
         <div className="space-y-3">
-          {FEATURES.map((feature) => (
-            <button
-              key={feature.title}
-              type="button"
-              onClick={() => notify(`${feature.title}正在开发中`)}
-              className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left"
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl">
-                {feature.emoji}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-base font-semibold text-neutral-900">
-                  {feature.title}
+          {FEATURES.map((feature) => {
+            const FeatureIcon = FEATURE_ICONS[feature.icon];
+            const SubtitleIcon = SUBTITLE_ICONS[feature.subtitleIcon];
+            return (
+              <button
+                key={feature.title}
+                type="button"
+                onClick={() => notify(`${feature.title}正在开发中`)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                  <FeatureIcon className="h-6 w-6 text-neutral-900" />
                 </div>
-                <div className="mt-0.5 truncate text-sm text-neutral-500">
-                  {feature.subtitle}
+                <div className="min-w-0 flex-1">
+                  <div className="text-base font-semibold text-neutral-900">
+                    {feature.title}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
+                    <SubtitleIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{feature.subtitle}</span>
+                  </div>
                 </div>
-              </div>
-              <span className="shrink-0 text-neutral-300">›</span>
-            </button>
-          ))}
+                <IconChevronRight className="h-5 w-5 shrink-0 text-neutral-300" />
+              </button>
+            );
+          })}
         </div>
 
         {/* 退出 */}
@@ -289,7 +343,7 @@ export default function UserDashboard() {
           type="button"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="mt-4 h-11 w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-600 disabled:opacity-50"
+          className="mt-2 h-11 w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-600 disabled:opacity-50"
         >
           {loggingOut ? "退出中…" : "退出登录"}
         </button>
