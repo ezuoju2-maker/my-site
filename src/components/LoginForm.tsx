@@ -6,7 +6,7 @@ import { withBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
 
 // 临时测试开关：设为 false 时不渲染 CapWidget
-const ENABLE_CAP_FOR_TEST = false;
+const ENABLE_CAP_FOR_TEST = true;
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 

@@ -18,21 +18,34 @@ function loadCapScript(): Promise<void> {
       'script[data-cap-script="true"]',
     );
     if (existing) {
-      customElements
-        .whenDefined("cap-widget")
-        .then(() => resolve())
-        .catch(reject);
-      return;
+      // 上次已插入的脚本可能执行失败，删除后重新加载
+      existing.remove();
     }
     const script = document.createElement("script");
     script.src = CAP_SCRIPT_URL;
     script.async = true;
     script.setAttribute("data-cap-script", "true");
     script.onload = () => {
+      if (customElements.get("cap-widget")) {
+        resolve();
+        return;
+      }
+      // 脚本已加载但未注册 customElement，等最多 5 秒
+      const timer = window.setTimeout(() => {
+        capScriptLoading = null;
+        reject(new Error("cap-widget not registered within 5s"));
+      }, 5000);
       customElements
         .whenDefined("cap-widget")
-        .then(() => resolve())
-        .catch(reject);
+        .then(() => {
+          window.clearTimeout(timer);
+          resolve();
+        })
+        .catch((err) => {
+          window.clearTimeout(timer);
+          capScriptLoading = null;
+          reject(err);
+        });
     };
     script.onerror = () => {
       capScriptLoading = null;
