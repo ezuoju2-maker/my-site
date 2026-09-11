@@ -6,7 +6,7 @@ import CapWidget from "./CapWidget";
 import { getBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
 
-const ENABLE_CAP_FOR_TEST = false;
+const ENABLE_CAP = import.meta.env.PUBLIC_ENABLE_CAP !== "false";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -103,7 +103,7 @@ export default function ForgotPasswordForm() {
       return;
     }
 
-    if (ENABLE_CAP_FOR_TEST && !captchaToken) {
+    if (ENABLE_CAP && !captchaToken) {
       setCaptchaError(t("forgot.error.CAPTCHA_REQUIRED"));
       return;
     }
@@ -282,7 +282,7 @@ export default function ForgotPasswordForm() {
       </div>
 
       {/* 人机验证 */}
-      {ENABLE_CAP_FOR_TEST && (
+      {ENABLE_CAP && (
         <div>
           <label className="mb-2 block text-sm font-medium">
             {t("forgot.captcha")}

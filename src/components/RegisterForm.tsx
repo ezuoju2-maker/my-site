@@ -8,7 +8,7 @@ import { withBase } from "../lib/url";
 import { Requirement } from "./Requirement";
 import { useTranslation } from "../i18n/useTranslation";
 
-const ENABLE_CAP_FOR_TEST = false;
+const ENABLE_CAP = import.meta.env.PUBLIC_ENABLE_CAP !== "false";
 
 export default function RegisterForm() {
   const { t } = useTranslation();
@@ -156,7 +156,7 @@ export default function RegisterForm() {
       return;
     }
 
-    if (ENABLE_CAP_FOR_TEST && !captchaToken) {
+    if (ENABLE_CAP && !captchaToken) {
       setCaptchaError(t("register.error.captcha_required"));
       return;
     }
@@ -821,7 +821,7 @@ export default function RegisterForm() {
       </div>
 
       {/* 人机验证 */}
-      {ENABLE_CAP_FOR_TEST && (
+      {ENABLE_CAP && (
         <div>
           <label className="mb-2 block text-sm font-medium text-neutral-700">
             {t("register.captcha")}
