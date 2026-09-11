@@ -1,0 +1,17 @@
+# Cloudflare Pages 响应头配置
+# 文档: https://developers.cloudflare.com/pages/configuration/headers/
+#
+# 作用范围：所有响应（静态 HTML + Pages Functions）
+# 生效前提：push 后 Cloudflare Pages 自动读取，无需 Dashboard 操作
+#
+# 注意：这里不配置 Content-Security-Policy
+# 原因：静态 HTML 无法注入 per-request nonce，只能 unsafe-inline
+#       而 unsafe-inline 会让 CSP 形同虚设，反而误导自己
+#       CSP Report-Only 保留在 Worker middleware 里做观察
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
