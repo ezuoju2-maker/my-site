@@ -1,5 +1,10 @@
 import type { APIRoute } from "astro";
-import { redeemChallenge, extractClientIdentity } from "../../../lib/pow";
+import {
+  redeemChallenge,
+  extractClientIdentity,
+  recordFail,
+  clearFail,
+} from "../../../lib/pow";
 import {
   corsHeaders,
   getAllowedOrigin,
@@ -43,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const { ip, userAgent } = extractClientIdentity(request);
-    const token = await redeemChallenge(
+    const result = await redeemChallenge(
       body.challenge_id,
       body.nonce,
       body.signature,
@@ -51,7 +56,10 @@ export const POST: APIRoute = async ({ request }) => {
       userAgent,
     );
 
-    if (!token) {
+    if ("error" in result) {
+      if (result.error === "hard") {
+        await recordFail(ip);
+      }
       return new Response(JSON.stringify({ ok: false, error: "POW_INVALID" }), {
         status: 400,
         headers: {
@@ -62,7 +70,9 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, token }), {
+    await clearFail(ip);
+
+    return new Response(JSON.stringify({ ok: true, token: result.token }), {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
