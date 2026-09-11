@@ -51,9 +51,17 @@ export function stockFor(serviceSlug: string, countryCode: string): number {
 }
 
 export function hasCoverage(serviceSlug: string, countryCode: string): boolean {
-  const seed = prand(serviceSlug + ":coverage");
-  const threshold = 0.4 + seed * 0.35;
-  return prand(serviceSlug + ":cov:" + countryCode) < threshold;
+  const servicePopular = POPULAR_SERVICES.has(serviceSlug);
+  const countryPopular = HIGH_PRICE.has(countryCode);
+
+  let baseRate: number;
+  if (servicePopular && countryPopular) baseRate = 0.85;
+  else if (servicePopular) baseRate = 0.55;
+  else if (countryPopular) baseRate = 0.45;
+  else baseRate = 0.25;
+
+  const noise = prand(serviceSlug + ":cov:" + countryCode);
+  return noise < baseRate;
 }
 
 export type MockStock = {
