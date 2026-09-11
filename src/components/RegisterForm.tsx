@@ -8,6 +8,8 @@ import { withBase } from "../lib/url";
 import { Requirement } from "./Requirement";
 import { useTranslation } from "../i18n/useTranslation";
 
+const ENABLE_CAP_FOR_TEST = false;
+
 export default function RegisterForm() {
   const { t } = useTranslation();
   const [username, setUsername] = useState("");
@@ -154,7 +156,7 @@ export default function RegisterForm() {
       return;
     }
 
-    if (!captchaToken) {
+    if (ENABLE_CAP_FOR_TEST && !captchaToken) {
       setCaptchaError(t("register.error.captcha_required"));
       return;
     }
@@ -819,26 +821,28 @@ export default function RegisterForm() {
       </div>
 
       {/* 人机验证 */}
-      <div>
-        <label className="mb-2 block text-sm font-medium text-neutral-700">
-          {t("register.captcha")}
-        </label>
+      {ENABLE_CAP_FOR_TEST && (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-neutral-700">
+            {t("register.captcha")}
+          </label>
 
-        <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
-          <CapWidget
-            key={capKey}
-            onSolve={(token) => {
-              setCaptchaToken(token);
-              setCaptchaError("");
-            }}
-            onReset={() => setCaptchaToken("")}
-          />
+          <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
+            <CapWidget
+              key={capKey}
+              onSolve={(token) => {
+                setCaptchaToken(token);
+                setCaptchaError("");
+              }}
+              onReset={() => setCaptchaToken("")}
+            />
+          </div>
+
+          {captchaError && (
+            <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
+          )}
         </div>
-
-        {captchaError && (
-          <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
-        )}
-      </div>
+      )}
 
       <div>
         <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-neutral-600">

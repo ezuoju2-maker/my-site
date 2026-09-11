@@ -6,6 +6,8 @@ import CapWidget from "./CapWidget";
 import { getBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
 
+const ENABLE_CAP_FOR_TEST = false;
+
 const RESEND_COOLDOWN_SECONDS = 60;
 
 
@@ -101,7 +103,7 @@ export default function ForgotPasswordForm() {
       return;
     }
 
-    if (!captchaToken) {
+    if (ENABLE_CAP_FOR_TEST && !captchaToken) {
       setCaptchaError(t("forgot.error.CAPTCHA_REQUIRED"));
       return;
     }
@@ -280,26 +282,28 @@ export default function ForgotPasswordForm() {
       </div>
 
       {/* 人机验证 */}
-      <div>
-        <label className="mb-2 block text-sm font-medium">
-          {t("forgot.captcha")}
-        </label>
+      {ENABLE_CAP_FOR_TEST && (
+        <div>
+          <label className="mb-2 block text-sm font-medium">
+            {t("forgot.captcha")}
+          </label>
 
-        <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border px-2 py-2">
-          <CapWidget
-            key={capKey}
-            onSolve={(token) => {
-              setCaptchaToken(token);
-              setCaptchaError("");
-            }}
-            onReset={() => setCaptchaToken("")}
-          />
+          <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border px-2 py-2">
+            <CapWidget
+              key={capKey}
+              onSolve={(token) => {
+                setCaptchaToken(token);
+                setCaptchaError("");
+              }}
+              onReset={() => setCaptchaToken("")}
+            />
+          </div>
+
+          {captchaError && (
+            <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
+          )}
         </div>
-
-        {captchaError && (
-          <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
-        )}
-      </div>
+      )}
 
       <div>
         <label

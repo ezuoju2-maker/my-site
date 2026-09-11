@@ -11,6 +11,13 @@ type CapValidateResponse = {
  * 两者都没配置时（本地开发）跳过验证。
  */
 export async function verifyCaptcha(token: unknown): Promise<boolean> {
+  const mode = (env as any).CAPTCHA_MODE as string | undefined;
+
+  if (mode === "disabled") {
+    console.warn("[captcha] CAPTCHA_MODE=disabled, skipping verification");
+    return true;
+  }
+
   const capWorker = (env as any).CAP_WORKER as
     | { fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> }
     | undefined;

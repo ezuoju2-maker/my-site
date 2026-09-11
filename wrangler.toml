@@ -18,6 +18,7 @@ id = "e38baa95fa0640498a127ba6d154671d"
 
 [vars]
 CAP_WORKER_URL = "https://cap-worker.ezuoju2.workers.dev"
+CAPTCHA_MODE = "disabled"
 
 [[services]]
 binding = "CAP_WORKER"
