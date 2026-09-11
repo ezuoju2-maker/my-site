@@ -3,6 +3,15 @@ import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
 
+type AdminUser = {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  displayName: string;
+  createdAt: string;
+};
+
 type UsageSnapshot = {
   date: string;
   mode: string;
@@ -41,6 +50,9 @@ export default function AdminDashboard() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [usage, setUsage] = useState<UsageSnapshot | null>(null);
   const [usageError, setUsageError] = useState("");
+  const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersError, setUsersError] = useState("");
 
 
   useEffect(() => {
@@ -127,6 +139,42 @@ export default function AdminDashboard() {
       }
     }
     void loadUsage();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUsers() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/users?limit=50`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (cancelled) return;
+        if (!response.ok) {
+          setUsersError("加载失败");
+          return;
+        }
+        const data = (await response.json()) as {
+          ok?: boolean;
+          users?: AdminUser[];
+          total?: number;
+        };
+        if (cancelled) return;
+        if (data.ok && data.users) {
+          setUsers(data.users);
+          setUsersTotal(data.total ?? data.users.length);
+        } else {
+          setUsersError("数据格式异常");
+        }
+      } catch {
+        if (!cancelled) setUsersError("网络错误");
+      }
+    }
+    void loadUsers();
     return () => {
       cancelled = true;
     };
@@ -260,6 +308,67 @@ export default function AdminDashboard() {
 
           <p className="mt-4 text-xs text-neutral-500">
             参考上限仅为 Resend 免费层每日 100 封的保守估算。Cloudflare Workers / D1 / KV 免费额度均远高于此。
+          </p>
+        </div>
+
+        {/* 用户列表 */}
+        <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-neutral-100">用户列表</h2>
+            <span className="text-xs text-neutral-400">
+              {users ? `共 ${usersTotal} 位` : "加载中…"}
+            </span>
+          </div>
+
+          {usersError && (
+            <p className="mt-3 text-sm text-red-400">{usersError}</p>
+          )}
+
+          {users && users.length === 0 && (
+            <p className="mt-3 text-sm text-neutral-500">暂无用户</p>
+          )}
+
+          {users && users.length > 0 && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-800 text-left text-xs uppercase tracking-wide text-neutral-500">
+                    <th className="py-2 pr-4 font-medium">用户</th>
+                    <th className="py-2 pr-4 font-medium">邮箱</th>
+                    <th className="py-2 pr-4 font-medium">角色</th>
+                    <th className="py-2 font-medium">注册时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id} className="border-b border-neutral-800/50">
+                      <td className="py-2 pr-4 text-neutral-200">
+                        {u.displayName || u.username}
+                      </td>
+                      <td className="py-2 pr-4 text-neutral-300">{u.email}</td>
+                      <td className="py-2 pr-4">
+                        <span
+                          className={
+                            u.role === "admin"
+                              ? "rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-300"
+                              : "rounded-md border border-neutral-700 bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300"
+                          }
+                        >
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-2 text-xs text-neutral-500">
+                        {u.createdAt}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <p className="mt-4 text-xs text-neutral-500">
+            只读展示，不含密码哈希等敏感字段。最多显示 50 条。
           </p>
         </div>
 
