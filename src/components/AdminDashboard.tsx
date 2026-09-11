@@ -18,12 +18,7 @@ type UsageRow = {
 };
 
 const USAGE_ROWS: UsageRow[] = [
-  { key: "login",           label: "登录",         limit: null, limitLabel: "—" },
-  { key: "register",        label: "注册",         limit: null, limitLabel: "—" },
-  { key: "send-code",       label: "注册发码",     limit: 100,  limitLabel: "100 / 天（Resend）" },
-  { key: "forgot-password", label: "忘记密码",     limit: 100,  limitLabel: "100 / 天（Resend）" },
-  { key: "reset-password",  label: "重置密码",     limit: null, limitLabel: "—" },
-  { key: "email-send-code", label: "改邮箱发码",   limit: 100,  limitLabel: "100 / 天（Resend）" },
+  { key: "email-total", label: "邮件发送总数", limit: 100, limitLabel: "100 / 天（Resend）" },
 ];
 
 type UserInfo = {
