@@ -7,6 +7,13 @@ import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 import CapWidget from "./CapWidget";
 
+type LoginLogEntry = {
+  id: string;
+  ipHash: string;
+  uaHash: string;
+  createdAt: string;
+};
+
 type Profile = {
   id: string;
   username: string;
@@ -107,6 +114,8 @@ export default function ProfilePage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [loginLogs, setLoginLogs] = useState<LoginLogEntry[] | null>(null);
+  const [loginLogError, setLoginLogError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +170,40 @@ export default function ProfilePage() {
     }, 1000);
     return () => window.clearInterval(timer);
   }, [emailCooldown]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadLoginLogs() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/user/login-history`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (cancelled) return;
+        if (!response.ok) {
+          setLoginLogError("加载失败");
+          return;
+        }
+        const data = (await response.json()) as {
+          ok?: boolean;
+          logs?: LoginLogEntry[];
+        };
+        if (cancelled) return;
+        if (data.ok && data.logs) {
+          setLoginLogs(data.logs);
+        } else {
+          setLoginLogError("数据格式异常");
+        }
+      } catch {
+        if (!cancelled) setLoginLogError("网络错误");
+      }
+    }
+    void loadLoginLogs();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function notify(message: string) {
     setToast(message);
@@ -970,6 +1013,46 @@ export default function ProfilePage() {
               退出全部
             </button>
           </div>
+        </section>
+
+        {/* 最近登录 */}
+        <section className="rounded-2xl border border-neutral-100 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-medium text-neutral-900">最近登录</h2>
+            <span className="text-xs text-neutral-400">
+              {loginLogs ? `最近 ${loginLogs.length} 条` : "加载中…"}
+            </span>
+          </div>
+
+          {loginLogError && (
+            <p className="mt-3 text-sm text-red-500">{loginLogError}</p>
+          )}
+
+          {loginLogs && loginLogs.length === 0 && (
+            <p className="mt-3 text-xs text-neutral-500">暂无记录</p>
+          )}
+
+          {loginLogs && loginLogs.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {loginLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-xs"
+                >
+                  <span className="text-neutral-500">
+                    {log.createdAt}
+                  </span>
+                  <span className="font-mono text-neutral-600">
+                    IP {log.ipHash.slice(0, 8)} · UA {log.uaHash.slice(0, 8)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-3 text-xs text-neutral-400">
+            只显示哈希值，同一设备两次登录会显示相同哈希。如果发现不认识的登录，请立刻修改密码并退出所有设备。
+          </p>
         </section>
 
         {/* 账户信息 */}
