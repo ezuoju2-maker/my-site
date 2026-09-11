@@ -12,7 +12,7 @@ const POW_API = `${API_BASE_URL}/api/pow`;
 
 export default function CapWidget({ onSolve, onReset }: Props) {
   const [state, setState] = useState<State>("idle");
-  const [progress, setProgress] = useState(0);
+  const [, setProgress] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const behaviorScoreRef = useRef(0);
@@ -62,7 +62,9 @@ export default function CapWidget({ onSolve, onReset }: Props) {
       if (!challengeRes.ok) {
         // 429 = 后端临时封禁（POW_BLOCKED）或资源被保护（BUDGET_*）
         if (challengeRes.status === 429) {
-          const errBody = await challengeRes.json().catch(() => ({} as Record<string, unknown>));
+          const errBody = (await challengeRes.json().catch(() => ({}))) as {
+            error?: string;
+          };
           if (errBody.error === "POW_BLOCKED") {
             setState("blocked");
             onReset?.();
