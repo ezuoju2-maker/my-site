@@ -19,7 +19,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Permissions-Policy":
     "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-  "Content-Security-Policy": [
+  "Content-Security-Policy-Report-Only": [
     "default-src 'self'",
     "img-src 'self' data: blob: https:",
     "style-src 'self' 'unsafe-inline'",
