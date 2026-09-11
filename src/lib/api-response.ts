@@ -12,6 +12,7 @@ export type ApiUserInfo = {
   email: string;
   role: string;
   displayName: string;
+  avatarUrl: string | null;
 };
 
 export type ApiResponse = {

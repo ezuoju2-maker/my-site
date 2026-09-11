@@ -12,7 +12,7 @@ import {
 } from "./dashboard-data";
 import LanguagePicker from "./LanguagePicker";
 import { DEFAULT_LANG, getLanguage } from "./languages";
-import { setLanguage, useTranslation } from "../i18n/useTranslation";
+import { setLanguage } from "../i18n/useTranslation";
 import {
   IconBox,
   IconGlobe,
