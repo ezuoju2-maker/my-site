@@ -3,7 +3,10 @@ import { env } from "cloudflare:workers";
 const POW_PREFIX = "pow";
 const CHALLENGE_TTL = 10 * 60;
 const TOKEN_TTL = 5 * 60;
-const DEFAULT_DIFFICULTY = 3;
+
+// 动态难度：基础 3，随失败次数上升
+const BASE_DIFFICULTY = 3;
+const FAIL_WINDOW_SECONDS = 600;
 
 const textEncoder = new TextEncoder();
 
@@ -53,10 +56,6 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-/**
- * 客户端绑定：IP + UA 与 secret 混合。
- * 攻击者拿到 challenge 后无法在其他 IP/UA 下 redeem。
- */
 async function computeClientBinding(
   ip: string,
   userAgent: string,
@@ -65,6 +64,55 @@ async function computeClientBinding(
   const ipHash = (await sha256Hex(`${secret}:ip:${ip}`)).slice(0, 32);
   const uaHash = (await sha256Hex(`${secret}:ua:${userAgent}`)).slice(0, 32);
   return { ipHash, uaHash };
+}
+
+/**
+ * 根据 IP 的失败次数决定难度。
+ * 返回值：null 表示直接拒绝（已被临时封禁）。
+ */
+async function getDifficultyForIp(ip: string): Promise<number | null> {
+  const kv = env.SESSION;
+  if (!kv) throw new Error("KV unavailable");
+
+  const key = `${POW_PREFIX}:fail:${ip}`;
+  const raw = await kv.get(key);
+  const failCount = Number.parseInt(raw ?? "0", 10) || 0;
+
+  if (failCount > 10) return null;     // 临时封禁
+  if (failCount > 5) return 5;
+  if (failCount > 2) return 4;
+  return BASE_DIFFICULTY;
+}
+
+/**
+ * 记录一次失败。TTL 10 分钟，自然过期。
+ */
+export async function recordFail(ip: string): Promise<void> {
+  const kv = env.SESSION;
+  if (!kv) return;
+  const key = `${POW_PREFIX}:fail:${ip}`;
+  try {
+    const raw = await kv.get(key);
+    const current = Number.parseInt(raw ?? "0", 10) || 0;
+    await kv.put(key, String(current + 1), {
+      expirationTtl: FAIL_WINDOW_SECONDS,
+    });
+  } catch {
+    // 静默：记录失败不影响主流程
+  }
+}
+
+/**
+ * 成功则清零。真人成功一次，不累计失败。
+ */
+export async function clearFail(ip: string): Promise<void> {
+  const kv = env.SESSION;
+  if (!kv) return;
+  try {
+    await kv.delete(`${POW_PREFIX}:fail:${ip}`);
+  } catch {
+    // 静默
+  }
 }
 
 export type Challenge = {
@@ -80,13 +128,17 @@ export type Challenge = {
 export async function createChallenge(
   ip: string,
   userAgent: string,
-): Promise<Challenge> {
+): Promise<Challenge | null> {
   const kv = env.SESSION;
   if (!kv) throw new Error("KV unavailable");
 
+  const difficulty = await getDifficultyForIp(ip);
+  if (difficulty === null) {
+    return null; // 拒绝：临时封禁
+  }
+
   const challenge_id = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
   const salt = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
-  const difficulty = DEFAULT_DIFFICULTY;
   const expires_at = Date.now() + CHALLENGE_TTL * 1000;
   const { ipHash, uaHash } = await computeClientBinding(ip, userAgent);
 
@@ -110,19 +162,26 @@ export async function createChallenge(
   };
 }
 
+/**
+ * 分类 redeem 失败原因。
+ * - "soft"：网络抖动/重试（不记账）
+ * - "hard"：签名/绑定/难度不达标（记账）
+ */
+type FailKind = "soft" | "hard";
+
 export async function redeemChallenge(
   challenge_id: unknown,
   nonce: unknown,
   signature: unknown,
   ip: string,
   userAgent: string,
-): Promise<string | null> {
+): Promise<{ token: string } | { error: FailKind }> {
   if (
     typeof challenge_id !== "string" || !challenge_id || challenge_id.length > 64 ||
     typeof nonce !== "number" || !Number.isInteger(nonce) || nonce < 0 || nonce > 1e12 ||
     typeof signature !== "string" || !signature || signature.length > 128
   ) {
-    return null;
+    return { error: "hard" };
   }
 
   const kv = env.SESSION;
@@ -130,7 +189,11 @@ export async function redeemChallenge(
 
   const key = `${POW_PREFIX}:challenge:${challenge_id}`;
   const raw = await kv.get(key);
-  if (!raw) return null;
+
+  // challenge 不存在：可能是过期/已消费/网络重试 → soft
+  if (!raw) {
+    return { error: "soft" };
+  }
 
   await kv.delete(key);
 
@@ -144,14 +207,16 @@ export async function redeemChallenge(
   try {
     stored = JSON.parse(raw);
   } catch {
-    return null;
+    return { error: "hard" };
   }
 
-  if (Date.now() > stored.expires_at) return null;
+  if (Date.now() > stored.expires_at) {
+    return { error: "soft" };
+  }
 
   const { ipHash, uaHash } = await computeClientBinding(ip, userAgent);
   if (ipHash !== stored.ipHash || uaHash !== stored.uaHash) {
-    return null;
+    return { error: "hard" };
   }
 
   const message = `${POW_PREFIX}:challenge:${challenge_id}:${stored.salt}:${stored.difficulty}:${stored.expires_at}:${stored.ipHash}:${stored.uaHash}`;
@@ -164,14 +229,18 @@ export async function redeemChallenge(
     const binary = atob(padded);
     providedSig = Uint8Array.from(binary, (c) => c.charCodeAt(0));
   } catch {
-    return null;
+    return { error: "hard" };
   }
 
-  if (!constantTimeEqual(providedSig, expectedSig)) return null;
+  if (!constantTimeEqual(providedSig, expectedSig)) {
+    return { error: "hard" };
+  }
 
   const hex = await sha256Hex(`${stored.salt}:${nonce}`);
   const target = "0".repeat(stored.difficulty);
-  if (!hex.startsWith(target)) return null;
+  if (!hex.startsWith(target)) {
+    return { error: "hard" };
+  }
 
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
   const token = bytesToBase64Url(tokenBytes);
@@ -180,7 +249,7 @@ export async function redeemChallenge(
     expirationTtl: TOKEN_TTL,
   });
 
-  return token;
+  return { token };
 }
 
 export async function verifyPowToken(token: unknown): Promise<boolean> {

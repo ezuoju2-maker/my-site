@@ -30,6 +30,18 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const { ip, userAgent } = extractClientIdentity(request);
     const c = await createChallenge(ip, userAgent);
+
+    if (c === null) {
+      return new Response(JSON.stringify({ error: "POW_BLOCKED" }), {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+          ...(origin ? corsHeaders(origin) : {}),
+        },
+      });
+    }
+
     return new Response(JSON.stringify(c), {
       status: 200,
       headers: {
