@@ -64,41 +64,5 @@ const { title = "登录" } = Astro.props;
       })();
     </script>
 
-    {/* 覆盖层清理器：移除第三方脚本误挂到 <html> 下的全屏覆盖元素 */}
-    <script is:inline>
-      (function () {
-        function cleanupOverlays() {
-          var children = Array.prototype.slice.call(document.documentElement.children);
-          for (var i = 0; i < children.length; i++) {
-            var el = children[i];
-            if (el.tagName === "HEAD" || el.tagName === "BODY") continue;
-            try {
-              var s = window.getComputedStyle(el);
-              var z = parseInt(s.zIndex, 10);
-              if (
-                s.position === "fixed" &&
-                s.pointerEvents !== "none" &&
-                s.display !== "none" &&
-                s.visibility !== "hidden" &&
-                !isNaN(z) && z > 1000 &&
-                (s.top === "0px" || s.inset === "0px")
-              ) {
-                console.warn("[cleanup] removed suspicious overlay", el.tagName, el.className, s.zIndex);
-                el.remove();
-              }
-            } catch (e) {}
-          }
-        }
-
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", cleanupOverlays, { once: true });
-        } else {
-          cleanupOverlays();
-        }
-        setTimeout(cleanupOverlays, 1000);
-        setTimeout(cleanupOverlays, 3000);
-      })();
-    </script>
-
   </body>
 </html>

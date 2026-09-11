@@ -6,7 +6,7 @@ import { withBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
 
 // 临时测试开关：设为 false 时不渲染 CapWidget
-const ENABLE_CAP_FOR_TEST = true;
+const ENABLE_CAP_FOR_TEST = false;
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 
@@ -63,7 +63,7 @@ export default function LoginForm() {
       hasError = true;
     }
 
-    if (!captchaToken) {
+    if (ENABLE_CAP_FOR_TEST && !captchaToken) {
       setCaptchaError(t("login.captcha_required"));
       hasError = true;
     }
@@ -262,13 +262,13 @@ export default function LoginForm() {
       </div>
 
       {/* 人机验证 */}
-      <div>
-        <label className="mb-2 block text-sm font-medium text-neutral-700">
-          {t("login.captcha")}
-        </label>
+      {ENABLE_CAP_FOR_TEST && (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-neutral-700">
+            {t("login.captcha")}
+          </label>
 
-        <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
-          {ENABLE_CAP_FOR_TEST ? (
+          <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
             <CapWidget
               key={capKey}
               onSolve={(token) => {
@@ -277,15 +277,13 @@ export default function LoginForm() {
               }}
               onReset={() => setCaptchaToken("")}
             />
-          ) : (
-            <span className="text-sm text-neutral-500">[Cap 已临时禁用 - 测试用]</span>
+          </div>
+
+          {captchaError && (
+            <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
           )}
         </div>
-
-        {captchaError && (
-          <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
-        )}
-      </div>
+      )}
 
       {/* {t("login.remember")} / 忘记密码 */}
       <div className="flex items-center justify-between text-sm">

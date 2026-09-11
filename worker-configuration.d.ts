@@ -27,6 +27,7 @@ declare namespace Cloudflare {
 
     // ============ Vars（wrangler.toml [vars]）============
     CAP_WORKER_URL?: string;
+    CAPTCHA_MODE?: string;
   }
 }
 
