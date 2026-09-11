@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getBase } from "../lib/url";
 import { getFlag, type SmsCountry } from "./sms-countries-data";
-import { priceFor, stockFor } from "./sms-mock-stock";
+import { stockFor } from "./sms-mock-stock";
 import type { SmsService } from "./sms-services-data";
 import type { PaymentMethodId } from "./sms-channels";
 
@@ -23,7 +23,7 @@ const PAYMENT_ICONS: Record<PaymentMethodId, { svg: string; color: string }> = {
   },
   usdt: {
     color: "#26A17B",
-    svg: '<svg viewBox="0 0 24 24" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="12" fill="#26A17B"/><path fill="#ffffff" d="M17.922 17.383v-.002c-.11.008-.677.042-1.942.042-1.01 0-1.721-.03-1.971-.042v.003c-3.888-.171-6.79-.848-6.79-1.658 0-.809 2.902-1.486 6.79-1.66v2.644c.254.018.982.061 1.988.061 1.207 0 1.812-.05 1.925-.06v-2.643c3.88.173 6.775.85 6.775 1.658 0 .81-2.895 1.485-6.775 1.657m0-3.59v-2.366h5.414V7.819H8.595v3.608h5.414v2.365c-4.4.202-7.709 1.074-7.709 2.118 0 1.044 3.309 1.915 7.709 2.118v7.582h3.913v-7.584c4.393-.202 7.694-1.073 7.694-2.116 0-1.043-3.301-1.914-7.694-2.117"/></svg>',
+    svg: '<svg viewBox="0 0 24 24" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" d="M17.922 17.383v-.002c-.11.008-.677.042-1.942.042-1.01 0-1.721-.03-1.971-.042v.003c-3.888-.171-6.79-.848-6.79-1.658 0-.809 2.902-1.486 6.79-1.66v2.644c.254.018.982.061 1.988.061 1.207 0 1.812-.05 1.925-.06v-2.643c3.88.173 6.775.85 6.775 1.658 0 .81-2.895 1.485-6.775 1.657m0-3.59v-2.366h5.414V7.819H8.595v3.608h5.414v2.365c-4.4.202-7.709 1.074-7.709 2.118 0 1.044 3.309 1.915 7.709 2.118v7.582h3.913v-7.584c4.393-.202 7.694-1.073 7.694-2.116 0-1.043-3.301-1.914-7.694-2.117"/></svg>',
   },
 };
 
@@ -60,16 +60,12 @@ function ServiceBadge({ service, size = 44 }: { service: SmsService; size?: numb
 
 export default function SmsOrderPage({ service, country, onBack, onConfirm }: Props) {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodId | null>(null);
-  const [quantity, setQuantity] = useState(1);
-
-  const unitPrice = priceFor(service.slug, country.code);
   const stock = stockFor(service.slug, country.code);
-  const total = Math.round(unitPrice * quantity * 100) / 100;
 
   function handleNext() {
     if (!selectedPayment) { window.alert("请先选择支付方式"); return; }
     if (stock <= 0) { window.alert("该服务在此国家暂无库存"); return; }
-    onConfirm(selectedPayment, quantity);
+    onConfirm(selectedPayment, 1);
   }
 
   return (
@@ -98,33 +94,6 @@ export default function SmsOrderPage({ service, country, onBack, onConfirm }: Pr
         </section>
 
         <section className="rounded-2xl border border-neutral-100 bg-white p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-neutral-900">购买数量</span>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 disabled:opacity-40">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14" /></svg>
-              </button>
-              <span className="w-10 text-center text-base font-semibold text-neutral-900">{quantity}</span>
-              <button type="button" onClick={() => setQuantity((q) => Math.min(10, q + 1))} disabled={quantity >= 10} className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 disabled:opacity-40">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
-              </button>
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-neutral-500">
-            <span>参考单价 ${unitPrice.toFixed(2)}</span>
-            <span>总库存 {stock}</span>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-neutral-100 bg-white p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-neutral-500">参考合计</span>
-            <span className="text-2xl font-bold text-neutral-900">${total.toFixed(2)}</span>
-          </div>
-          <p className="mt-2 text-xs text-neutral-400">不同通道价格略有差异，下一步选择通道后显示最终金额</p>
-        </section>
-
-        <section className="rounded-2xl border border-neutral-100 bg-white p-4">
           <h2 className="mb-3 text-sm font-medium text-neutral-900">选择支付方式</h2>
           <div className="space-y-2">
             {PAYMENTS.map((p) => {
@@ -132,7 +101,9 @@ export default function SmsOrderPage({ service, country, onBack, onConfirm }: Pr
               const icon = PAYMENT_ICONS[p.id];
               return (
                 <button key={p.id} type="button" onClick={() => setSelectedPayment(p.id)} className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (selected ? "border-neutral-900 bg-neutral-50" : "border-neutral-200 bg-white")}>
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full" style={{ background: icon.color }} dangerouslySetInnerHTML={{ __html: icon.svg }} />
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-2" style={{ background: icon.color }}>
+                    <span className="block h-full w-full" dangerouslySetInnerHTML={{ __html: icon.svg }} />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-neutral-900">{p.name}</div>
                     <div className="truncate text-xs text-neutral-500">{p.hint}</div>
@@ -150,12 +121,8 @@ export default function SmsOrderPage({ service, country, onBack, onConfirm }: Pr
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 px-5 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="text-xs text-neutral-500">参考金额</div>
-            <div className="text-lg font-bold text-neutral-900">${total.toFixed(2)}</div>
-          </div>
-          <button type="button" onClick={handleNext} disabled={!selectedPayment} className="h-12 shrink-0 rounded-xl bg-neutral-900 px-6 text-base font-medium text-white disabled:opacity-50">
+        <div className="mx-auto flex max-w-3xl items-center justify-end">
+          <button type="button" onClick={handleNext} disabled={!selectedPayment} className="h-12 rounded-xl bg-neutral-900 px-8 text-base font-medium text-white disabled:opacity-50">
             下一步 · 选通道
           </button>
         </div>
