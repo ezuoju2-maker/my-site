@@ -2,7 +2,8 @@ export type ServiceCategory =
   | "social" | "china" | "japan_korea" | "sea" | "south_asia"
   | "tw_hk_mo" | "russia" | "europe" | "north_america" | "latam"
   | "mena_africa" | "oceania" | "ai" | "dev" | "ecommerce"
-  | "entertainment" | "gaming" | "travel" | "fintech" | "productivity";
+  | "entertainment" | "gaming" | "travel" | "fintech" | "productivity"
+  | "other";
 
 export const CATEGORY_LABELS: Record<ServiceCategory, string> = {
   social: "社交与通讯",
@@ -25,6 +26,7 @@ export const CATEGORY_LABELS: Record<ServiceCategory, string> = {
   travel: "出行旅游",
   fintech: "金融科技",
   productivity: "效率工具",
+  other: "其他",
 };
 
 export type SmsService = {
@@ -341,4 +343,21 @@ export function groupByCategory(): { category: ServiceCategory; label: string; i
     label: CATEGORY_LABELS[category],
     items,
   }));
+}
+
+export function mergeWithAuto(
+  base: SmsService[],
+  auto: { slug: string; name: string; category: string; brand: string }[],
+): SmsService[] {
+  const existing = new Set(base.map((s) => s.slug));
+  const validCategories = new Set(Object.keys(CATEGORY_LABELS));
+  const extra: SmsService[] = [];
+  for (const a of auto) {
+    if (existing.has(a.slug)) continue;
+    const cat = (validCategories.has(a.category)
+      ? a.category
+      : "other") as ServiceCategory;
+    extra.push({ slug: a.slug, name: a.name, category: cat, brand: a.brand });
+  }
+  return [...base, ...extra];
 }
