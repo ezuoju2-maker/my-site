@@ -70,7 +70,7 @@ export default function AdminDashboard() {
   const [usage, setUsage] = useState<UsageSnapshot | null>(null);
   const [usageError, setUsageError] = useState("");
   const [users, setUsers] = useState<AdminUser[] | null>(null);
-  const [usersTotal, setUsersTotal] = useState(0);
+  const [hasMoreUsers, setHasMoreUsers] = useState(false);
   const [usersError, setUsersError] = useState("");
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[] | null>(null);
@@ -183,12 +183,12 @@ export default function AdminDashboard() {
         const data = (await response.json()) as {
           ok?: boolean;
           users?: AdminUser[];
-          total?: number;
+          hasMore?: boolean;
         };
         if (cancelled) return;
         if (data.ok && data.users) {
           setUsers(data.users);
-          setUsersTotal(data.total ?? data.users.length);
+          setHasMoreUsers(Boolean(data.hasMore));
         } else {
           setUsersError("数据格式异常");
         }
@@ -450,7 +450,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-neutral-100">用户列表</h2>
             <span className="text-xs text-neutral-400">
-              {users ? `共 ${usersTotal} 位` : "加载中…"}
+              {users ? `本页 ${users.length} 位${hasMoreUsers ? " · 有更多" : ""}` : "加载中…"}
             </span>
           </div>
 

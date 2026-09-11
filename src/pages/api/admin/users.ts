@@ -59,28 +59,26 @@ export const GET: APIRoute = async ({ request }) => {
     Number.isInteger(offsetRaw) && offsetRaw >= 0 ? offsetRaw : 0;
 
   try {
-    const [rowsResult, countResult] = await Promise.all([
-      env.DB.prepare(
-        `SELECT id, username, email, role, display_name, created_at
-         FROM users
-         ORDER BY created_at DESC
-         LIMIT ?1 OFFSET ?2`,
-      )
-        .bind(limit, offset)
-        .all<{
-          id: string;
-          username: string;
-          email: string;
-          role: string;
-          display_name: string | null;
-          created_at: string;
-        }>(),
-      env.DB.prepare(`SELECT COUNT(*) AS total FROM users`).first<{
-        total: number;
-      }>(),
-    ]);
+    // 用 LIMIT + 1 检测是否有下一页，避免全表 COUNT(*)
+    const rowsResult = await env.DB.prepare(
+      `SELECT id, username, email, role, display_name, created_at
+       FROM users
+       ORDER BY created_at DESC
+       LIMIT ?1 OFFSET ?2`,
+    )
+      .bind(limit + 1, offset)
+      .all<{
+        id: string;
+        username: string;
+        email: string;
+        role: string;
+        display_name: string | null;
+        created_at: string;
+      }>();
 
-    const users = (rowsResult.results ?? []).map((u) => ({
+    const allRows = rowsResult.results ?? [];
+    const hasMore = allRows.length > limit;
+    const users = allRows.slice(0, limit).map((u) => ({
       id: u.id,
       username: u.username,
       email: u.email,
@@ -93,7 +91,7 @@ export const GET: APIRoute = async ({ request }) => {
       {
         ok: true,
         users,
-        total: countResult?.total ?? users.length,
+        hasMore,
         limit,
         offset,
       },
