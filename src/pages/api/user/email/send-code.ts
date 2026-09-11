@@ -1,3 +1,4 @@
+import { recordUsage } from "../../../../lib/budget";
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { requireAuth } from "../../../../lib/permissions";
@@ -59,6 +60,7 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
+  recordUsage("email-send-code").catch(() => {});
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
   if (rejected) return rejected;
