@@ -1,128 +1,46 @@
 import { useEffect, useState } from "react";
 
-const MIN_LOADING_TIME = 900;
-const HARD_TIMEOUT_MS = 3000;
-
-function getNetworkSpeed() {
-  const connection =
-    (navigator as Navigator & {
-      connection?: {
-        effectiveType?: string;
-      };
-    }).connection;
-
-  return connection?.effectiveType ?? "4g";
-}
+// 总时长（毫秒）：无论网络快慢，最多显示这么久
+const TOTAL_DURATION = 1200;
 
 export default function LoadingScreen() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    let finished = false;
     const startTime = performance.now();
-    let current = 0;
-    let completed = false;
-
-    const networkType = getNetworkSpeed();
-
-    const getTargetProgress = () => {
-      const now = performance.now();
-      const elapsed = now - startTime;
-
-      if (document.readyState === "loading") {
-        return Math.min(65, Math.max(12, Math.round(elapsed / 12)));
-      }
-
-      if (document.readyState === "interactive") {
-        return 82;
-      }
-
-      if (document.readyState === "complete") {
-        if (networkType === "slow-2g" || networkType === "2g") {
-          return 94;
-        }
-
-        if (networkType === "3g") {
-          return 97;
-        }
-
-        return 99;
-      }
-
-      return 20;
-    };
-
-    const finishUI = () => {
-      const loadingScreen = document.getElementById("loading-screen");
-      const loginPage = document.getElementById("login-page");
-
-      loadingScreen?.removeAttribute("aria-busy");
-      loadingScreen?.remove();
-
-      loginPage?.removeAttribute("hidden");
-    };
 
     const finish = () => {
-      if (completed) {
-        return;
-      }
-
-      const elapsed = performance.now() - startTime;
-      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      if (finished) return;
+      finished = true;
+      setProgress(100);
 
       window.setTimeout(() => {
-        if (completed) {
-          return;
-        }
-
-        completed = true;
-        setProgress(100);
-
-        window.setTimeout(finishUI, 120);
-      }, remaining);
+        const loadingEl = document.getElementById("loading-screen");
+        const loginEl = document.getElementById("login-page");
+        loadingEl?.removeAttribute("aria-busy");
+        loadingEl?.remove();
+        loginEl?.removeAttribute("hidden");
+      }, 120);
     };
 
-    // 硬超时：无论 document 状态如何，3 秒后强制完成
-    const hardTimeout = window.setTimeout(() => {
-      if (completed) return;
-      completed = true;
-      setProgress(100);
-      window.setTimeout(finishUI, 120);
-    }, HARD_TIMEOUT_MS);
+    // 每 50ms 更新一次进度：0 → 99
+    const progressTimer = window.setInterval(() => {
+      if (finished) return;
+      const elapsed = performance.now() - startTime;
+      const ratio = Math.min(1, elapsed / TOTAL_DURATION);
+      // 用 1.1 倍系数保证 99 前结束
+      const pct = Math.min(99, Math.floor(ratio * 110));
+      setProgress(pct);
+    }, 50);
 
-    const update = () => {
-      if (completed) {
-        return;
-      }
-
-      const target = getTargetProgress();
-
-      if (current < target) {
-        const difference = target - current;
-
-        current += Math.max(1, Math.ceil(difference / 6));
-        current = Math.min(current, target);
-
-        setProgress(current);
-      }
-
-      if (
-        document.readyState === "complete" &&
-        current >= 99
-      ) {
-        finish();
-      }
-    };
-
-    const interval = window.setInterval(update, 50);
-
-    window.addEventListener("load", update);
-
-    update();
+    // 硬性总时长后强制完成（不依赖 document.readyState）
+    const finishTimer = window.setTimeout(finish, TOTAL_DURATION);
 
     return () => {
-      window.clearInterval(interval);
-      window.clearTimeout(hardTimeout);
-      window.removeEventListener("load", update);
+      finished = true;
+      window.clearInterval(progressTimer);
+      window.clearTimeout(finishTimer);
     };
   }, []);
 
