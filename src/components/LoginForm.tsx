@@ -4,6 +4,9 @@ import { useState, type FormEvent } from "react";
 import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
+
+// 临时测试开关：设为 false 时不渲染 CapWidget
+const ENABLE_CAP_FOR_TEST = false;
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 
@@ -265,14 +268,18 @@ export default function LoginForm() {
         </label>
 
         <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
-          <CapWidget
-            key={capKey}
-            onSolve={(token) => {
-              setCaptchaToken(token);
-              setCaptchaError("");
-            }}
-            onReset={() => setCaptchaToken("")}
-          />
+          {ENABLE_CAP_FOR_TEST ? (
+            <CapWidget
+              key={capKey}
+              onSolve={(token) => {
+                setCaptchaToken(token);
+                setCaptchaError("");
+              }}
+              onReset={() => setCaptchaToken("")}
+            />
+          ) : (
+            <span className="text-sm text-neutral-500">[Cap 已临时禁用 - 测试用]</span>
+          )}
         </div>
 
         {captchaError && (
