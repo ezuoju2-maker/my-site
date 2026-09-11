@@ -6,7 +6,7 @@ type Props = {
   onReset?: () => void;
 };
 
-type State = "idle" | "verifying" | "done" | "error";
+type State = "idle" | "verifying" | "done" | "error" | "blocked";
 
 const POW_API = `${API_BASE_URL}/api/pow`;
 
@@ -59,7 +59,18 @@ export default function CapWidget({ onSolve, onReset }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ behaviorScore: behaviorScoreRef.current }),
       });
-      if (!challengeRes.ok) throw new Error("challenge failed");
+      if (!challengeRes.ok) {
+        // 429 = 后端临时封禁（POW_BLOCKED）或资源被保护（BUDGET_*）
+        if (challengeRes.status === 429) {
+          const errBody = await challengeRes.json().catch(() => ({} as Record<string, unknown>));
+          if (errBody.error === "POW_BLOCKED") {
+            setState("blocked");
+            onReset?.();
+            return;
+          }
+        }
+        throw new Error("challenge failed");
+      }
       const challenge = (await challengeRes.json()) as {
         challenge_id: string;
         salt: string;
@@ -171,6 +182,9 @@ export default function CapWidget({ onSolve, onReset }: Props) {
         )}
         {state === "error" && (
           <span className="text-sm text-red-600">验证失败，点击重试</span>
+        )}
+        {state === "blocked" && (
+          <span className="text-sm text-amber-600">请求过于频繁，请稍后重试</span>
         )}
       </div>
     </div>
