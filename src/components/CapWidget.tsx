@@ -15,6 +15,7 @@ export default function CapWidget({ onSolve, onReset }: Props) {
   const [progress, setProgress] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const workerRef = useRef<Worker | null>(null);
+  const behaviorScoreRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -22,6 +23,26 @@ export default function CapWidget({ onSolve, onReset }: Props) {
         workerRef.current.terminate();
         workerRef.current = null;
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    // 行为信号：统计页面级交互次数（mousemove / touchstart / keydown）
+    // 不上报轨迹、坐标、时间，只上报"次数"这个数字。
+    // 真人从打开页面到点验证框，必然产生至少 1 次交互。
+    // 无头浏览器 / curl / 纯脚本 → 0 次。
+    let count = 0;
+    const bump = () => {
+      count += 1;
+      behaviorScoreRef.current = count;
+    };
+    window.addEventListener("mousemove", bump, { passive: true });
+    window.addEventListener("touchstart", bump, { passive: true });
+    window.addEventListener("keydown", bump);
+    return () => {
+      window.removeEventListener("mousemove", bump);
+      window.removeEventListener("touchstart", bump);
+      window.removeEventListener("keydown", bump);
     };
   }, []);
 
@@ -35,6 +56,8 @@ export default function CapWidget({ onSolve, onReset }: Props) {
       const challengeRes = await fetch(`${POW_API}/challenge`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ behaviorScore: behaviorScoreRef.current }),
       });
       if (!challengeRes.ok) throw new Error("challenge failed");
       const challenge = (await challengeRes.json()) as {

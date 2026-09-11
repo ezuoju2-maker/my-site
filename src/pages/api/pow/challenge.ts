@@ -28,8 +28,21 @@ export const POST: APIRoute = async ({ request }) => {
   if (rejected) return rejected;
 
   try {
+    let body: { behaviorScore?: unknown } = {};
+    try {
+      body = await request.json();
+    } catch {
+      // 允许空 body（旧客户端 / curl）
+    }
+    const behaviorScore =
+      typeof body.behaviorScore === "number" &&
+      Number.isInteger(body.behaviorScore) &&
+      body.behaviorScore >= 0
+        ? body.behaviorScore
+        : -1; // -1 = 未知，不惩罚
+
     const { ip, userAgent } = extractClientIdentity(request);
-    const c = await createChallenge(ip, userAgent);
+    const c = await createChallenge(ip, userAgent, behaviorScore);
 
     if (c === null) {
       return new Response(JSON.stringify({ error: "POW_BLOCKED" }), {
