@@ -1,11 +1,75 @@
 import { useMemo, useState } from "react";
 import { getBase } from "../lib/url";
 import {
-  ALL_SERVICES,
-  POPULAR_SERVICES,
-  groupByCategory,
+  ALL_SERVICES as RAW_SERVICES,
+  POPULAR_SERVICES as RAW_POPULAR,
+  groupByCategory as rawGroupByCategory,
+  mergeWithAuto,
   type SmsService,
 } from "./sms-services-data";
+import { AUTO_SERVICES } from "./sms-services-auto";
+
+const ALL_SERVICES = mergeWithAuto(RAW_SERVICES, AUTO_SERVICES);
+
+const POPULAR_SERVICES = (() => {
+  const known = new Map(ALL_SERVICES.map((s) => [s.slug, s]));
+  const out: SmsService[] = [];
+  for (const p of RAW_POPULAR) {
+    const fresh = known.get(p.slug);
+    if (fresh) out.push(fresh);
+  }
+  return out;
+})();
+
+function groupByCategory() {
+  const groups = rawGroupByCategory();
+  const autoOnly = ALL_SERVICES.filter(
+    (s) => !RAW_SERVICES.some((r) => r.slug === s.slug),
+  );
+  if (autoOnly.length === 0) return groups;
+
+  const map = new Map(groups.map((g) => [g.category, g]));
+  for (const svc of autoOnly) {
+    const existing = map.get(svc.category);
+    if (existing) {
+      existing.items.push(svc);
+    } else {
+      map.set(svc.category, {
+        category: svc.category,
+        label: categoryLabel(svc.category),
+        items: [svc],
+      });
+    }
+  }
+  return Array.from(map.values());
+}
+
+function categoryLabel(cat: string): string {
+  const labels: Record<string, string> = {
+    social: "社交与通讯",
+    china: "中国平台",
+    japan_korea: "日本 · 韩国",
+    sea: "东南亚",
+    south_asia: "南亚",
+    tw_hk_mo: "港澳台",
+    russia: "俄罗斯 · 独联体",
+    europe: "欧洲",
+    north_america: "北美",
+    latam: "拉美",
+    mena_africa: "中东 · 非洲",
+    oceania: "大洋洲",
+    ai: "AI 工具",
+    dev: "开发者服务",
+    ecommerce: "电商购物",
+    entertainment: "影音娱乐",
+    gaming: "游戏",
+    travel: "出行旅游",
+    fintech: "金融科技",
+    productivity: "效率工具",
+    other: "其他",
+  };
+  return labels[cat] || cat;
+}
 
 type SmsCountry = { id: string; name: string; code: string; flag: string };
 

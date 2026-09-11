@@ -1,0 +1,70 @@
+name: Sync SMS Services
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "API source"
+        required: false
+        default: "mock"
+        type: choice
+        options:
+          - mock
+          - sms-activate
+      apply:
+        description: "Write changes (unchecked = dry-run)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-sms-services
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync SMS services
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sync
+        env:
+          SMS_API_KEY: ${{ secrets.SMS_ACTIVATE_KEY }}
+        run: |
+          ARGS="--source=${{ inputs.source || 'mock' }}"
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            ARGS="$ARGS --apply"
+          fi
+          node scripts/sync-services.mjs $ARGS
+
+      - name: Commit and push if changed
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(sync): auto-update SMS services [skip ci]"
+          git push
