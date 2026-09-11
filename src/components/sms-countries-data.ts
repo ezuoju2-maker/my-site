@@ -1,3 +1,5 @@
+import { isValidIso } from "./iso-codes";
+
 export type SmsRegion =
   | "east_asia"
   | "southeast_asia"
@@ -301,6 +303,7 @@ export const POPULAR_COUNTRIES: SmsCountry[] = POPULAR_COUNTRY_CODES
 
 export function getFlag(code: string): string {
   if (!/^[a-z]{2}$/i.test(code)) return "🏳️";
+  if (!isValidIso(code)) return "🏳️";
   return code
     .toUpperCase()
     .replace(/./g, (ch) =>
