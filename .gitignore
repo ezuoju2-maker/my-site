@@ -30,3 +30,8 @@ my-site-local-audit-archive*/
 # OS / IDE
 .DS_Store
 .idea/
+
+# local backups / debug scripts
+*.bak
+*.bak[0-9]
+*.bak.*
