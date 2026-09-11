@@ -1,0 +1,92 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getBase } from "../lib/url";
+---
+
+<Layout title="用户协议">
+  <main class="min-h-screen bg-neutral-50 px-5 py-10">
+    <article class="mx-auto w-full max-w-2xl">
+      <header class="mb-8">
+        <h1 class="text-2xl font-semibold tracking-tight text-neutral-900">
+          用户协议
+        </h1>
+        <p class="mt-2 text-sm text-neutral-500">
+          最后更新：2026-09-11
+        </p>
+      </header>
+
+      <div class="space-y-6 text-sm leading-7 text-neutral-700">
+        <section>
+          <h2 class="mb-3 text-base font-semibold text-neutral-900">1. 服务说明</h2>
+          <p>
+            本站为个人全栈 Web 应用示例，提供账号注册、登录、密码重置、个人资料管理等基础功能。
+            使用本站即表示您已阅读并同意本协议全部内容。
+          </p>
+        </section>
+
+        <section>
+          <h2 class="mb-3 text-base font-semibold text-neutral-900">2. 账号责任</h2>
+          <ul class="list-disc space-y-1.5 pl-5">
+            <li>您需提供真实有效的邮箱地址以接收验证码</li>
+            <li>您对账号密码的安全性负责，请勿与他人共享</li>
+            <li>禁止批量注册、机器注册、使用他人身份注册</li>
+            <li>发现账号被盗用请立即通过密码重置保护账号</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="mb-3 text-base font-semibold text-neutral-900">3. 数据使用</h2>
+          <p>
+            本站仅在提供服务的必要范围内收集和使用您的数据，
+            详见
+            <a href={`${getBase()}privacy/`} class="text-neutral-900 underline underline-offset-4">
+              隐私政策
+            </a>。
+          </p>
+        </section>
+
+        <section>
+          <h2 class="mb-3 text-base font-semibold text-neutral-900">4. 禁止行为</h2>
+          <ul class="list-disc space-y-1.5 pl-5">
+            <li>对本站进行攻击、扫描、压测、爬取</li>
+            <li>绕过或破坏人机验证、限流等安全机制</li>
+            <li>利用本站从事违法或侵害他人权益的行为</li>
+            <li>上传违法内容或恶意代码</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="mb-3 text-base font-semibold text-neutral-900">5. 服务变更与终止</h2>
+          <p>
+            本站保留在合理范围内修改、暂停或终止服务的权利。
+            重大变更会通过站内公告或邮件通知。
+            若您不同意变更，请停止使用本站并申请注销账号。
+          </p>
+        </section>
+
+        <section>
+          <h2 class="mb-3 text-base font-semibold text-neutral-900">6. 免责声明</h2>
+          <p>
+            本站按「现状」提供服务，不对服务的绝对连续性和无错误性作出保证。
+            因不可抗力、第三方服务中断（如云服务商、邮件服务商）导致的损失，
+            本站不承担赔偿责任。
+          </p>
+        </section>
+
+        <section>
+          <h2 class="mb-3 text-base font-semibold text-neutral-900">7. 协议更新</h2>
+          <p>
+            本协议可能不定期更新。更新后的协议自发布之日起生效。
+            继续使用本站即视为接受新协议。
+          </p>
+        </section>
+      </div>
+
+      <footer class="mt-10 border-t border-neutral-200 pt-6">
+        <a href={getBase()} class="text-sm text-neutral-500 underline underline-offset-4">
+          ← 返回首页
+        </a>
+      </footer>
+    </article>
+  </main>
+</Layout>
