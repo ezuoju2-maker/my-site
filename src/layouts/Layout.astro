@@ -24,5 +24,51 @@ const { title = "登录" } = Astro.props;
     <main>
       <slot />
     </main>
+
+    {/* Workaround: Astro 7 未自动注入 island boot 脚本，手动触发 hydration */}
+    <script is:inline>
+      (function () {
+        async function boot(el) {
+          if (!el.hasAttribute("client")) return;
+          if (!el.hasAttribute("ssr")) return;
+
+          var rendererUrl = el.getAttribute("renderer-url");
+          var componentUrl = el.getAttribute("component-url");
+          var componentExport = el.getAttribute("component-export") || "default";
+          if (!rendererUrl || !componentUrl) return;
+
+          try {
+            var mods = await Promise.all([
+              import(rendererUrl),
+              import(componentUrl),
+            ]);
+            var hydrator = mods[0].default;
+            var Component = mods[1][componentExport];
+
+            if (typeof hydrator !== "function" || !Component) {
+              console.error("[island] invalid hydrator/component", componentUrl);
+              return;
+            }
+
+            el.Component = Component;
+            el.hydrator = hydrator;
+            await el.hydrate();
+          } catch (err) {
+            console.error("[island] boot failed", componentUrl, err);
+          }
+        }
+
+        function bootAll() {
+          var islands = document.querySelectorAll("astro-island[client]");
+          islands.forEach(boot);
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", bootAll, { once: true });
+        } else {
+          bootAll();
+        }
+      })();
+    </script>
   </body>
 </html>
