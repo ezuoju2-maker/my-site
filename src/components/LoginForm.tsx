@@ -5,8 +5,8 @@ import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
 
-// 临时测试开关：设为 false 时不渲染 CapWidget
-const ENABLE_CAP_FOR_TEST = false;
+// 生产默认启用；只有显式设置 PUBLIC_ENABLE_CAP=false 才关闭。
+const ENABLE_CAP = import.meta.env.PUBLIC_ENABLE_CAP !== "false";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 
@@ -262,7 +262,7 @@ export default function LoginForm() {
       </div>
 
       {/* 人机验证 */}
-      {ENABLE_CAP_FOR_TEST && (
+      {ENABLE_CAP && (
         <div>
           <label className="mb-2 block text-sm font-medium text-neutral-700">
             {t("login.captcha")}
