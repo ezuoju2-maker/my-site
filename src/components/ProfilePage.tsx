@@ -427,7 +427,6 @@ export default function ProfilePage() {
 
       if (relogin) {
         notify("密码修改成功，正在跳转重新登录…");
-        document.cookie = "session=; Path=/; Max-Age=0; Secure; SameSite=Lax";
         window.setTimeout(() => {
           window.location.href = getBase();
         }, 1200);
