@@ -1,30 +1,191 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { API_BASE_URL } from "../lib/api";
 
 type Props = {
   onSolve: (token: string) => void;
   onReset?: () => void;
 };
 
-// ⚠️ 临时诊断版本 —— 只用于判断"点不动"是否 Cap 造成
-// 诊断完成后立刻被自写 PoW 替换
-export default function CapWidget({ onSolve }: Props) {
+type State = "idle" | "verifying" | "done" | "error";
+
+const POW_API = `${API_BASE_URL}/api/pow`;
+
+export default function CapWidget({ onSolve, onReset }: Props) {
+  const [state, setState] = useState<State>("idle");
+  const [progress, setProgress] = useState(0);
+  const [attempts, setAttempts] = useState(0);
+  const workerRef = useRef<Worker | null>(null);
+
   useEffect(() => {
-    // 给一个假 token，让业务代码能走到"按钮可点"阶段
-    onSolve("DIAGNOSTIC_FAKE_TOKEN");
-  }, [onSolve]);
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+        workerRef.current = null;
+      }
+    };
+  }, []);
+
+  async function solve() {
+    if (state === "verifying" || state === "done") return;
+    setState("verifying");
+    setProgress(0);
+    setAttempts(0);
+
+    try {
+      const challengeRes = await fetch(`${POW_API}/challenge`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!challengeRes.ok) throw new Error("challenge failed");
+      const challenge = (await challengeRes.json()) as {
+        challenge_id: string;
+        salt: string;
+        difficulty: number;
+        expires_at: number;
+        signature: string;
+      };
+
+      const worker = createPowWorker();
+      workerRef.current = worker;
+
+      const nonce = await new Promise<number>((resolve, reject) => {
+        worker.onmessage = (e) => {
+          const data = e.data as {
+            nonce?: number;
+            progress?: number;
+            error?: string;
+          };
+          if (data.error) {
+            reject(new Error(data.error));
+            return;
+          }
+          if (typeof data.progress === "number") {
+            setAttempts(data.progress);
+            const maxAttempts = Math.pow(16, challenge.difficulty);
+            setProgress(Math.min(95, Math.round((data.progress / maxAttempts) * 100)));
+          }
+          if (typeof data.nonce === "number") {
+            resolve(data.nonce);
+          }
+        };
+        worker.onerror = (e) => reject(new Error(e.message || "worker error"));
+        worker.postMessage({
+          salt: challenge.salt,
+          difficulty: challenge.difficulty,
+        });
+      });
+
+      worker.terminate();
+      workerRef.current = null;
+
+      const redeemRes = await fetch(`${POW_API}/redeem`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challenge_id: challenge.challenge_id,
+          nonce,
+          signature: challenge.signature,
+        }),
+      });
+      const redeemData = (await redeemRes.json()) as {
+        ok?: boolean;
+        token?: string;
+        error?: string;
+      };
+      if (!redeemRes.ok || !redeemData.ok || !redeemData.token) {
+        throw new Error(redeemData.error || "redeem failed");
+      }
+
+      setState("done");
+      setProgress(100);
+      onSolve(redeemData.token);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[pow]", msg);
+      setState("error");
+      onReset?.();
+    }
+  }
+
+  function reset() {
+    setState("idle");
+    setProgress(0);
+    setAttempts(0);
+    onReset?.();
+  }
 
   return (
-    <div
-      style={{
-        padding: "12px 16px",
-        background: "#e0f2e9",
-        borderRadius: 8,
-        color: "#0d7332",
-        fontWeight: 600,
-        fontSize: 14,
-      }}
-    >
-      🟢 诊断组件已加载（Cap 已临时替换）
+    <div className="flex w-full items-center gap-3 rounded-md border border-neutral-200 bg-white px-4 py-3">
+      <button
+        type="button"
+        onClick={state === "done" ? reset : solve}
+        disabled={state === "verifying"}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-2 border-neutral-300 bg-white disabled:cursor-wait"
+        aria-label={state === "done" ? "reset" : "verify"}
+      >
+        {state === "done" && <span className="text-lg text-green-600">✓</span>}
+        {state === "verifying" && (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-blue-500" />
+        )}
+        {state === "error" && <span className="text-lg text-red-500">×</span>}
+        {state === "idle" && (
+          <span className="h-3 w-3 rounded-full bg-neutral-200" />
+        )}
+      </button>
+
+      <div className="min-w-0 flex-1">
+        {state === "idle" && (
+          <span className="text-sm text-neutral-700">点击进行人机验证</span>
+        )}
+        {state === "verifying" && (
+          <span className="text-sm text-neutral-700">
+            验证中…{attempts > 0 ? ` (${attempts} 次尝试)` : ""}
+          </span>
+        )}
+        {state === "done" && (
+          <span className="text-sm text-green-700">已验证</span>
+        )}
+        {state === "error" && (
+          <span className="text-sm text-red-600">验证失败，点击重试</span>
+        )}
+      </div>
     </div>
   );
+}
+
+function createPowWorker(): Worker {
+  const code = `
+    self.onmessage = async (event) => {
+      const { salt, difficulty } = event.data;
+      const target = "0".repeat(difficulty);
+      const encoder = new TextEncoder();
+      let nonce = 0;
+      while (true) {
+        const input = salt + ":" + nonce;
+        const buf = encoder.encode(input);
+        const hashBuf = await crypto.subtle.digest("SHA-256", buf);
+        const bytes = new Uint8Array(hashBuf);
+        let hex = "";
+        for (let i = 0; i < bytes.length; i += 1) {
+          hex += bytes[i].toString(16).padStart(2, "0");
+        }
+        if (hex.startsWith(target)) {
+          self.postMessage({ nonce });
+          break;
+        }
+        nonce += 1;
+        if (nonce % 2048 === 0) {
+          self.postMessage({ progress: nonce });
+        }
+        if (nonce > 5e7) {
+          self.postMessage({ error: "too many attempts" });
+          break;
+        }
+      }
+    };
+  `;
+  const blob = new Blob([code], { type: "application/javascript" });
+  const url = URL.createObjectURL(blob);
+  return new Worker(url);
 }
