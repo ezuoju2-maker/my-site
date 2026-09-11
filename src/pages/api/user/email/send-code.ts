@@ -1,4 +1,4 @@
-import { recordUsage } from "../../../../lib/budget";
+import { checkBudget, recordEmailOp } from "../../../../lib/budget";
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { requireAuth } from "../../../../lib/permissions";
@@ -60,7 +60,8 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  recordUsage("email-send-code").catch(() => {});
+  const budget = await checkBudget("email-send-code");
+  if (!budget.ok) return budget.response;
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
   if (rejected) return rejected;
@@ -194,6 +195,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.error("KV write failed", error);
     return json({ ok: false, error: "OTP_SERVICE_ERROR" }, 500, {}, origin);
   }
+  recordEmailOp().catch(() => {});
 
   return json(
     { ok: true, expiresIn: OTP_TTL_SECONDS, retryAfter: RESEND_COOLDOWN_SECONDS },

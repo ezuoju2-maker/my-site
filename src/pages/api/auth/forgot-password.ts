@@ -1,4 +1,4 @@
-import { recordUsage } from "../../../lib/budget";
+import { checkBudget, recordEmailOp } from "../../../lib/budget";
 import type { APIRoute } from "astro";
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -70,7 +70,8 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  recordUsage("forgot-password").catch(() => {});
+  const budget = await checkBudget("forgot-password");
+  if (!budget.ok) return budget.response;
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
 
@@ -289,7 +290,8 @@ export const POST: APIRoute = async ({ request }) => {
       expirationTtl: 86400,
     });
 
-    return json(
+    recordEmailOp().catch(() => {});
+  return json(
       {
         ok: true,
         expiresIn: OTP_TTL_SECONDS,
