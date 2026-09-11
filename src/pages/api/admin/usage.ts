@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
-import { getUsageSnapshot } from "../../../lib/budget";
+import { getCurrentMode } from "../../../lib/budget";
+import { getUsageForDay } from "../../../lib/usage-log";
 import { requireRole } from "../../../lib/permissions";
 import {
   corsHeaders,
@@ -31,15 +32,22 @@ export const GET: APIRoute = async ({ request }) => {
   if (!auth.ok) return auth.response;
 
   try {
-    const snapshot = await getUsageSnapshot();
-    return new Response(JSON.stringify({ ok: true, ...snapshot }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "no-store",
-        ...(origin ? corsHeaders(origin) : {}),
+    const date = new Date().toISOString().slice(0, 10);
+    const mode = await getCurrentMode();
+    const counts = await getUsageForDay(date);
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    return new Response(
+      JSON.stringify({ ok: true, date, mode, counts, total }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+          ...(origin ? corsHeaders(origin) : {}),
+        },
       },
-    });
+    );
   } catch (error) {
     console.error("usage snapshot error", error);
     return new Response(

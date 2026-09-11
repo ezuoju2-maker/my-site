@@ -1,3 +1,4 @@
+import { recordUsage } from "../../../lib/usage-log";
 import { checkBudget } from "../../../lib/budget";
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
@@ -77,6 +78,7 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
   const budget = await checkBudget("reset-password");
   if (!budget.ok) return budget.response;
+  await recordUsage("reset-password").catch(() => {});
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
 
