@@ -1,3 +1,15 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+cd ~/my-site
+
+FILE="src/components/SmsServicePage.tsx"
+cp "$FILE" "${FILE}.bak.$(date +%s)" 2>/dev/null || true
+
+echo "=================================================="
+echo "【阶段 2B】重写接码页面组件"
+echo "=================================================="
+
+cat << 'TSX' > "$FILE"
 import { useMemo, useState } from "react";
 import { getBase } from "../lib/url";
 import {
@@ -351,3 +363,24 @@ export default function SmsServicePage() {
     </div>
   );
 }
+TSX
+
+echo "OK: 页面组件已更新"
+echo "文件大小：$(wc -c < "$FILE") bytes"
+echo "行数：$(wc -l < "$FILE")"
+echo ""
+echo "=================================================="
+echo "【阶段 2B 完成】现在推送，让 GitHub Actions 构建"
+echo "=================================================="
+echo ""
+echo "即将执行 git add / commit / push..."
+echo ""
+
+git add -A
+git commit -m "接码系统：接入237个服务，按20个分类展示，本地官方Logo" || true
+git push origin main
+
+echo ""
+echo "=================================================="
+echo "【推送完成】请打开 GitHub Actions 查看构建状态"
+echo "=================================================="
