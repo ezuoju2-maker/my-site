@@ -9,12 +9,56 @@ import {
 } from "./sms-services-data";
 import { AUTO_SERVICES } from "./sms-services-auto";
 import {
-  ALL_COUNTRIES,
-  POPULAR_COUNTRIES,
-  groupByRegion,
+  ALL_COUNTRIES as RAW_COUNTRIES,
+  POPULAR_COUNTRIES as RAW_POPULAR_COUNTRIES,
+  groupByRegion as rawGroupByRegion,
   getFlag,
   type SmsCountry,
+  type SmsRegion,
+  REGION_LABELS,
 } from "./sms-countries-data";
+import { AUTO_COUNTRIES } from "./sms-countries-auto";
+
+const ALL_COUNTRIES: SmsCountry[] = (() => {
+  const existing = new Set(RAW_COUNTRIES.map((c) => c.code));
+  const extra = AUTO_COUNTRIES
+    .filter((a) => !existing.has(a.code))
+    .map((a) => ({
+      code: a.code,
+      name: a.name,
+      nameEn: a.nameEn,
+      dial: a.dial,
+      region: a.region as SmsRegion,
+    }));
+  return [...RAW_COUNTRIES, ...extra];
+})();
+
+const POPULAR_COUNTRIES: SmsCountry[] = RAW_POPULAR_COUNTRIES
+  .map((p) => ALL_COUNTRIES.find((c) => c.code === p.code))
+  .filter((c): c is SmsCountry => Boolean(c));
+
+function groupByRegion() {
+  const groups = rawGroupByRegion();
+  const autoOnly = ALL_COUNTRIES.filter(
+    (c) => !RAW_COUNTRIES.some((r) => r.code === c.code),
+  );
+  if (autoOnly.length === 0) return groups;
+
+  const map = new Map(groups.map((g) => [g.region, g]));
+  for (const country of autoOnly) {
+    const existing = map.get(country.region);
+    if (existing) {
+      existing.items.push(country);
+    } else {
+      map.set(country.region, {
+        region: country.region,
+        label: REGION_LABELS[country.region] || country.region,
+        items: [country],
+      });
+    }
+  }
+  return Array.from(map.values());
+}
 
 const ALL_SERVICES = mergeWithAuto(RAW_SERVICES, AUTO_SERVICES);
 
