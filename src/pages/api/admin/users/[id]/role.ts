@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { requireRole } from "../../../../../lib/permissions";
 import { isValidRole, USER_ROLES } from "../../../../../lib/roles";
+import { recordAdminAction } from "../../../../../lib/admin-audit";
 import {
   corsHeaders,
   getAllowedOrigin,
@@ -100,6 +101,16 @@ export const PATCH: APIRoute = async ({ request, params }) => {
     if (!result.success) {
       throw new Error("role update failed");
     }
+
+    // Fire-and-forget audit (does not block response)
+    recordAdminAction({
+      actorId: auth.session.userId,
+      actorUsername: auth.session.username,
+      action: "role.change",
+      targetId,
+      targetUsername: null,
+      details: { newRole: body.role },
+    }).catch(() => {});
 
     return json({ ok: true, role: body.role }, 200, origin);
   } catch (error) {
