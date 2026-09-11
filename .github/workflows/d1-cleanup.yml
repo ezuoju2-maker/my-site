@@ -1,0 +1,73 @@
+name: D1 Cleanup
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d1-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DB_NAME: my-site-db
+      NO_COLOR: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Show row counts before cleanup
+        run: |
+          set -e
+          echo "=== Before ==="
+          npx wrangler d1 execute "$DB_NAME" --remote \
+            --command="SELECT 'user_login_logs' AS tbl, COUNT(*) AS n FROM user_login_logs UNION ALL SELECT 'admin_audit_logs', COUNT(*) FROM admin_audit_logs UNION ALL SELECT 'usage_logs', COUNT(*) FROM usage_logs;"
+
+      - name: Safety check (abort if too many rows to delete)
+        run: |
+          set -e
+          CANDIDATES=$(npx wrangler d1 execute "$DB_NAME" --remote --json \
+            --command="SELECT (SELECT COUNT(*) FROM user_login_logs WHERE created_at < datetime('now', '-30 days')) + (SELECT COUNT(*) FROM admin_audit_logs WHERE created_at < datetime('now', '-180 days')) + (SELECT COUNT(*) FROM usage_logs WHERE day < date('now', '-90 days')) AS total;" \
+            | jq '.[0].results[0].total')
+          echo "Rows eligible for deletion: $CANDIDATES"
+          if [ "$CANDIDATES" -gt 10000 ]; then
+            echo "::error::Too many rows ($CANDIDATES) to delete. Aborting for safety."
+            exit 1
+          fi
+          echo "Safety check passed."
+
+      - name: Apply cleanup SQL
+        run: |
+          set -e
+          npx wrangler d1 execute "$DB_NAME" --remote \
+            --file=scripts/d1-cleanup.sql
+
+      - name: Show row counts after cleanup
+        run: |
+          set -e
+          echo "=== After ==="
+          npx wrangler d1 execute "$DB_NAME" --remote \
+            --command="SELECT 'user_login_logs' AS tbl, COUNT(*) AS n FROM user_login_logs UNION ALL SELECT 'admin_audit_logs', COUNT(*) FROM admin_audit_logs UNION ALL SELECT 'usage_logs', COUNT(*) FROM usage_logs;"
+
+      - name: Done
+        run: echo "D1 cleanup completed."
