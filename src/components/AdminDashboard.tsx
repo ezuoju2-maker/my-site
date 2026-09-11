@@ -3,6 +3,29 @@ import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
 
+type UsageSnapshot = {
+  date: string;
+  mode: string;
+  counts: Record<string, number>;
+  total: number;
+};
+
+type UsageRow = {
+  key: string;
+  label: string;
+  limit: number | null;
+  limitLabel: string;
+};
+
+const USAGE_ROWS: UsageRow[] = [
+  { key: "login",           label: "登录",         limit: null, limitLabel: "—" },
+  { key: "register",        label: "注册",         limit: null, limitLabel: "—" },
+  { key: "send-code",       label: "注册发码",     limit: 100,  limitLabel: "100 / 天（Resend）" },
+  { key: "forgot-password", label: "忘记密码",     limit: 100,  limitLabel: "100 / 天（Resend）" },
+  { key: "reset-password",  label: "重置密码",     limit: null, limitLabel: "—" },
+  { key: "email-send-code", label: "改邮箱发码",   limit: 100,  limitLabel: "100 / 天（Resend）" },
+];
+
 type UserInfo = {
   id: string;
   username: string;
@@ -16,6 +39,9 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "denied">("loading");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [usage, setUsage] = useState<UsageSnapshot | null>(null);
+  const [usageError, setUsageError] = useState("");
+
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +87,40 @@ export default function AdminDashboard() {
 
     void check();
 
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUsage() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/usage`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (cancelled) return;
+        if (!response.ok) {
+          setUsageError("加载失败");
+          return;
+        }
+        const data = await parseApiResponse(response);
+        if (cancelled) return;
+        if (data?.ok) {
+          setUsage({
+            date: (data as any).date ?? "",
+            mode: (data as any).mode ?? "normal",
+            counts: (data as any).counts ?? {},
+            total: (data as any).total ?? 0,
+          });
+        }
+      } catch {
+        if (!cancelled) setUsageError("网络错误");
+      }
+    }
+    void loadUsage();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
     return () => {
       cancelled = true;
     };
@@ -136,6 +196,66 @@ export default function AdminDashboard() {
           管理员控制台，{user.username}
         </h1>
         <p className="mt-2 text-sm text-neutral-400">{user.email}</p>
+
+        {/* 今日用量 */}
+        <div className="mt-10 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-neutral-100">今日用量</h2>
+            <span className="text-xs text-neutral-400">
+              {usage ? `${usage.date} UTC · 模式 ${usage.mode}` : "加载中…"}
+            </span>
+          </div>
+
+          {usageError && (
+            <p className="mt-3 text-sm text-red-400">{usageError}</p>
+          )}
+
+          {usage && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-800 text-left text-xs uppercase tracking-wide text-neutral-500">
+                    <th className="py-2 pr-4 font-medium">操作</th>
+                    <th className="py-2 pr-4 text-right font-medium">今日次数</th>
+                    <th className="py-2 pr-4 font-medium">参考上限</th>
+                    <th className="py-2 text-right font-medium">占比</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {USAGE_ROWS.map((row) => {
+                    const count = usage.counts[row.key] ?? 0;
+                    const pct = row.limit ? Math.min(100, Math.round((count / row.limit) * 100)) : null;
+                    const warn = pct !== null && pct >= 70;
+                    return (
+                      <tr key={row.key} className="border-b border-neutral-800/50">
+                        <td className="py-2 pr-4 text-neutral-200">{row.label}</td>
+                        <td className="py-2 pr-4 text-right font-mono text-neutral-100">{count}</td>
+                        <td className="py-2 pr-4 text-neutral-500">{row.limitLabel}</td>
+                        <td className={`py-2 text-right font-mono ${warn ? "text-red-400" : "text-neutral-400"}`}>
+                          {pct !== null ? `${pct}%` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td className="pt-3 text-xs text-neutral-500" colSpan={3}>
+                      今日总请求（仅统计埋点接口）
+                    </td>
+                    <td className="pt-3 text-right font-mono text-neutral-100">
+                      {usage.total}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+
+          <p className="mt-4 text-xs text-neutral-500">
+            参考上限仅为 Resend 免费层每日 100 封的保守估算。Cloudflare Workers / D1 / KV 免费额度均远高于此。
+          </p>
+        </div>
 
         <div className="mt-10 rounded-2xl border border-neutral-800 bg-neutral-900 p-8">
           <div className="flex items-start gap-4">
