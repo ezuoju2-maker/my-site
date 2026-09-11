@@ -35,3 +35,6 @@ my-site-local-audit-archive*/
 *.bak
 *.bak[0-9]
 *.bak.*
+
+# debug / one-off scripts (keep locally, don't commit)
+/*.sh
