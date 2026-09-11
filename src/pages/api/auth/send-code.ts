@@ -16,6 +16,7 @@ import {
 } from "../../../lib/captcha";
 
 const RESEND_COOLDOWN_SECONDS = 60;
+const EMAIL_DAILY_LIMIT = 5;
 const OTP_PURPOSE = "email-verification";
 
 function json(
@@ -135,13 +136,18 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const clientKey = getClientKey(request, email);
-  const cooldownKey = `email-code-cooldown:${clientKey}`;
+  const ipCooldownKey = `email-code-cooldown:${clientKey}`;
+  const emailCooldownKey = `email-code-cooldown-email:${email}`;
+  const dailyKey = `email-code-daily:${email}`;
   const codeKey = `email-code:${email}`;
   const attemptsKey = `email-code-attempts:${email}`;
 
-  const cooldown = await kv.get(cooldownKey);
+  const [ipCooldown, emailCooldown] = await Promise.all([
+    kv.get(ipCooldownKey),
+    kv.get(emailCooldownKey),
+  ]);
 
-  if (cooldown) {
+  if (ipCooldown || emailCooldown) {
     return json(
       {
         ok: false,
@@ -151,6 +157,24 @@ export const POST: APIRoute = async ({ request }) => {
       429,
       {
         "Retry-After": String(RESEND_COOLDOWN_SECONDS),
+      },
+      origin,
+    );
+  }
+
+  const dailyCount =
+    Number.parseInt((await kv.get(dailyKey)) ?? "0", 10) || 0;
+
+  if (dailyCount >= EMAIL_DAILY_LIMIT) {
+    return json(
+      {
+        ok: false,
+        error: "TOO_MANY_REQUESTS",
+        retryAfter: 86400,
+      },
+      429,
+      {
+        "Retry-After": "86400",
       },
       origin,
     );
@@ -224,8 +248,16 @@ export const POST: APIRoute = async ({ request }) => {
 
     await kv.delete(attemptsKey);
 
-    await kv.put(cooldownKey, "1", {
+    await kv.put(ipCooldownKey, "1", {
       expirationTtl: RESEND_COOLDOWN_SECONDS,
+    });
+
+    await kv.put(emailCooldownKey, "1", {
+      expirationTtl: RESEND_COOLDOWN_SECONDS,
+    });
+
+    await kv.put(dailyKey, String(dailyCount + 1), {
+      expirationTtl: 86400,
     });
   } catch (error) {
     console.error("OTP KV storage error", error);

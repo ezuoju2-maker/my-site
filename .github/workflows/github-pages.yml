@@ -24,6 +24,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Remove API routes for static GitHub Pages build
+        run: |
+          set -e
+          rm -rf src/pages/api
+          rm -rf src/middleware.ts
+          echo "API routes and server middleware removed for static build."
+
       - name: Install, build, and upload site
         uses: withastro/action@v6
         env:

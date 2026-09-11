@@ -57,11 +57,19 @@ function validatePurpose(purpose: string): void {
   }
 }
 
+const OTP_SECRET_HEX_RE = /^[0-9a-fA-F]{64}$/;
+
 function getOtpSecret(): string {
   const secret = env.OTP_SECRET;
 
   if (!secret) {
     throw new Error("OTP_SECRET is not configured");
+  }
+
+  if (!OTP_SECRET_HEX_RE.test(secret)) {
+    throw new Error(
+      "OTP_SECRET must be exactly 64 hexadecimal characters (32 bytes)",
+    );
   }
 
   return secret;

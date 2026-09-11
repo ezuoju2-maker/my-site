@@ -5,6 +5,37 @@ import LoginForm from "../components/LoginForm";
 import LoginBrand from "../components/LoginBrand";
 ---
 
+const isGitHubPages = import.meta.env.GITHUB_PAGES === "true";
+const MAIN_SITE_URL = "https://my-site-n7j.pages.dev/";
+
+{isGitHubPages && (
+  <Layout title="请访问主站">
+    <main class="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
+      <section class="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
+        <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-sm font-semibold tracking-wide text-neutral-700">
+          LOGO
+        </div>
+        <h1 class="text-2xl font-semibold text-neutral-900">本站已迁移</h1>
+        <p class="mt-3 text-sm leading-6 text-neutral-500">
+          本备用站仅供静态展示，注册、登录等功能请前往主站使用。
+        </p>
+        <a
+          href={MAIN_SITE_URL}
+          class="mt-7 flex h-12 w-full items-center justify-center rounded-lg bg-neutral-900 px-4 text-base font-medium text-white"
+        >
+          前往主站
+        </a>
+        <p class="mt-4 break-all text-xs text-neutral-400">
+          {MAIN_SITE_URL}
+        </p>
+      </section>
+    </main>
+  </Layout>
+)}
+
+{!isGitHubPages && (
+  <Layout title="登录">
+
 <div id="loading-screen" aria-busy="true">
   <main class="fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-white px-5">
     <section class="w-full max-w-sm">
@@ -43,15 +74,15 @@ import LoginBrand from "../components/LoginBrand";
 <AutoLoginRedirect client:load />
 
 <div id="login-page" hidden>
-  <Layout title="登录">
     <section class="flex min-h-screen items-center justify-center px-5 py-10 sm:px-6">
       <div class="w-full max-w-md">
         <LoginBrand client:load />
         <LoginForm client:load />
       </div>
     </section>
-  </Layout>
 </div>
+  </Layout>
+)}
 
 <script is:inline>
   (function () {

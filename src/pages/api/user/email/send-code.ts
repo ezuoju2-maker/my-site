@@ -113,13 +113,19 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
-  const cooldownKey = `email-change-cooldown:${clientIp}:${newEmail}`;
+  const ipCooldownKey = `email-change-cooldown:${clientIp}:${newEmail}`;
+  const emailCooldownKey = `email-change-cooldown-email:${newEmail}`;
   const dailyKey = `email-change-daily:${newEmail}`;
   const codeKey = `email-change-code:${newEmail}`;
   const attemptsKey = `email-change-attempts:${newEmail}`;
 
   // 冷却检查
-  if (await kv.get(cooldownKey)) {
+  const [ipCooldown, emailCooldown] = await Promise.all([
+    kv.get(ipCooldownKey),
+    kv.get(emailCooldownKey),
+  ]);
+
+  if (ipCooldown || emailCooldown) {
     return json(
       { ok: false, error: "TOO_MANY_REQUESTS", retryAfter: RESEND_COOLDOWN_SECONDS },
       429,
@@ -179,7 +185,8 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     await kv.put(codeKey, digest, { expirationTtl: OTP_TTL_SECONDS });
     await kv.delete(attemptsKey);
-    await kv.put(cooldownKey, "1", { expirationTtl: RESEND_COOLDOWN_SECONDS });
+    await kv.put(ipCooldownKey, "1", { expirationTtl: RESEND_COOLDOWN_SECONDS });
+    await kv.put(emailCooldownKey, "1", { expirationTtl: RESEND_COOLDOWN_SECONDS });
     await kv.put(dailyKey, String(dailyCount + 1), { expirationTtl: 86400 });
   } catch (error) {
     console.error("KV write failed", error);
