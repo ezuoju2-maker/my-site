@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, RefObject } from "react";
+import type { RefObject } from "react";
 import CapWidget from "./CapWidget";
 import { getBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
@@ -166,7 +166,7 @@ export default function ForgotPasswordForm() {
     }
   }
 
-  async function resetPassword(event: FormEvent<HTMLFormElement>) {
+  async function resetPassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
