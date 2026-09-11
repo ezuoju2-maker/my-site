@@ -25,101 +25,89 @@ const { title = "登录" } = Astro.props;
       <slot />
     </main>
 
-    {/* DEBUG v2: capture console + check React control */}
+    {/* DEBUG v3: banner click test + cap check */}
     <script is:inline>
-      (async function () {
-        var out = document.createElement("pre");
-        out.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#000;color:#0f0;font-size:10px;padding:4px;max-height:35vh;overflow:auto;white-space:pre-wrap;margin:0;font-family:monospace;line-height:1.2";
-        out.textContent = "[boot v2]\n";
+      (function () {
+        // 红色大横幅：点击测试
+        var banner = document.createElement("div");
+        banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#c00;color:#fff;padding:14px;font-size:17px;text-align:center;cursor:pointer;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,0.3)";
+        banner.textContent = "🔴 点我测试事件系统";
+        banner.onclick = function () {
+          banner.textContent = "✅ 事件正常 · " + new Date().toLocaleTimeString();
+          banner.style.background = "#080";
+        };
+        document.body.appendChild(banner);
+
+        // 底部日志
+        var out = document.createElement("div");
+        out.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:2147483646;background:#000;color:#0f0;font-size:10px;padding:4px;max-height:28vh;overflow-y:auto;white-space:pre-wrap;font-family:monospace;line-height:1.2";
         document.body.appendChild(out);
 
-        function log(msg) {
-          out.textContent += msg + "\n";
+        function log(m) {
+          out.appendChild(document.createTextNode(m + "\n"));
           out.scrollTop = out.scrollHeight;
         }
 
-        // 拦截 console
-        var _warn = console.warn, _error = console.error;
-        console.warn = function () {
-          var m = Array.prototype.slice.call(arguments).map(function (a) {
-            try { return typeof a === "string" ? a : JSON.stringify(a); } catch (e) { return String(a); }
-          }).join(" ");
-          log("WARN: " + m.slice(0, 400));
-          _warn.apply(console, arguments);
-        };
+        // 捕获 console
+        var _err = console.error;
         console.error = function () {
-          var m = Array.prototype.slice.call(arguments).map(function (a) {
-            try { return typeof a === "string" ? a : JSON.stringify(a); } catch (e) { return String(a); }
+          var a = Array.prototype.slice.call(arguments).map(function (x) {
+            try { return typeof x === "string" ? x : JSON.stringify(x); } catch (e) { return String(x); }
           }).join(" ");
-          log("ERR: " + m.slice(0, 600));
-          _error.apply(console, arguments);
+          log("ERR: " + a.slice(0, 500));
+          _err.apply(console, arguments);
         };
 
         window.addEventListener("error", function (e) {
-          log("window.error: " + (e.message || "") + " @ " + (e.filename || "") + ":" + (e.lineno || ""));
+          log("window.error: " + (e.message || "") + " @ " + (e.lineno || ""));
         });
 
         window.addEventListener("unhandledrejection", function (e) {
           var r = e.reason;
-          log("rejection: " + (r && r.message ? r.message : String(r)));
+          log("rej: " + (r && r.message ? r.message : String(r)));
         });
 
-        try {
-          var islands = document.querySelectorAll("astro-island[client]");
-          log("islands: " + islands.length);
+        // 立刻做一遍检查，不延迟
+        function check(label) {
+          try {
+            log("--- " + label + " ---");
+            var form = document.querySelector("form");
+            var fk = form ? Object.keys(form).filter(function (k) { return k.indexOf("__react") === 0; }) : [];
+            log("form: " + (form ? "有" : "无") + " reactKeys: [" + fk.join(",") + "]");
 
-          for (var i = 0; i < islands.length; i++) {
-            var el = islands[i];
-            var componentUrl = el.getAttribute("component-url");
-            var rendererUrl = el.getAttribute("renderer-url");
-            var componentExport = el.getAttribute("component-export") || "default";
+            var input = document.querySelector("input");
+            var ik = input ? Object.keys(input).filter(function (k) { return k.indexOf("__react") === 0; }) : [];
+            log("input reactKeys: [" + ik.join(",") + "]");
 
-            try {
-              var rm = await import(rendererUrl);
-              var cm = await import(componentUrl);
-              el.hydrator = rm.default;
-              el.Component = cm[componentExport];
-              await el.hydrate();
-              log("hydrate " + i + " OK  " + componentUrl.split("/").pop());
-            } catch (err) {
-              log("hydrate " + i + " ERR: " + (err && err.message ? err.message : String(err)));
+            var capW = document.querySelector("cap-widget");
+            log("cap-widget: " + (capW ? "存在" : "不存在"));
+
+            var capS = document.querySelector('script[data-cap-script="true"]');
+            log("cap-script tag: " + (capS ? "已插入" : "未插入") + (capS ? " src=" + capS.src : ""));
+
+            log("cap customElement: " + (customElements.get("cap-widget") ? "已注册" : "未注册"));
+
+            var islands = document.querySelectorAll("astro-island[client]");
+            log("islands[client]: " + islands.length);
+            for (var i = 0; i < islands.length; i++) {
+              var el = islands[i];
+              var cu = el.getAttribute("component-url");
+              log("  " + i + ": " + (cu ? cu.split("/").pop() : "?") + " ssr=" + el.hasAttribute("ssr") + " hydrator=" + (typeof el.hydrator));
             }
+          } catch (e) {
+            log("check err: " + (e && e.message ? e.message : String(e)));
           }
-
-          // 等 React 接管
-          await new Promise(function (r) { setTimeout(r, 500); });
-
-          // 检查 React 是否接管了 DOM
-          function reactKeys(node) {
-            if (!node) return [];
-            return Object.keys(node).filter(function (k) {
-              return k.indexOf("__react") === 0;
-            });
-          }
-
-          var form = document.querySelector("form");
-          var firstInput = document.querySelector("input");
-          var signinBtn = document.querySelector('button[type="submit"]');
-          var langBtn = document.querySelector('button[aria-label="Change language"]');
-
-          log("--- React DOM control check ---");
-          log("form found: " + !!form);
-          log("form react keys: [" + reactKeys(form).join(",") + "]");
-          log("input react keys: [" + reactKeys(firstInput).join(",") + "]");
-          log("signin btn found: " + !!signinBtn);
-          log("signin btn react keys: [" + reactKeys(signinBtn).join(",") + "]");
-          log("lang btn found: " + !!langBtn);
-          log("lang btn react keys: [" + reactKeys(langBtn).join(",") + "]");
-
-          // 检查 Cap widget 是否创建
-          var capWidget = document.querySelector("cap-widget");
-          log("cap-widget element: " + (capWidget ? "EXISTS" : "MISSING"));
-          log("cap-script tag: " + (document.querySelector('script[data-cap-script="true"]') ? "LOADED" : "NOT LOADED"));
-
-          log("done v2");
-        } catch (err) {
-          log("FATAL: " + (err && err.message ? err.message : String(err)));
         }
+
+        // 现在检查一次
+        check("t0 立即");
+
+        // 500ms 后再检查一次（此时 React useEffect 应该跑过了）
+        setTimeout(function () { check("t1 500ms"); }, 500);
+
+        // 1500ms 再检查一次（Cap script 应该加载完了）
+        setTimeout(function () { check("t2 1500ms"); }, 1500);
+
       })();
     </script>
     </body>
