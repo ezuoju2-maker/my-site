@@ -135,8 +135,10 @@ export const SERVICE_ALIASES: Record<string, ServiceAlias> = {
  *   "tg"       → telegram（通过 pyi）
  */
 // ============================================================
-// 自动搜索键系统
+// 自动搜索键系统（带权重）
 // ============================================================
+
+type KeyEntry = { key: string; weight: number };
 
 function normalizeText(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, "");
@@ -150,44 +152,56 @@ function tokenize(s: string): string[] {
 }
 
 /**
- * 为一个服务生成搜索键数组。
+ * 为一个服务生成带权重的搜索键。
  *
- * 自动部分（对任何服务生效，无需配置）：
- *   slug 本身、name 小写、name 去符号连写、name 分词
+ * 权重设计：
+ *   slug 完全匹配 → 1000（最高，最精准）
+ *   name 完全匹配 → 900
+ *   中文名完全匹配 → 850
+ *   别名完全匹配   → 800
+ *   name 连写     → 700
+ *   分词          → 600
  *
- * 手动部分（SERVICE_ALIASES）：
- *   中文名、拼音全拼、拼音首字母、别名
+ * 前缀匹配减 100，子串匹配减 400。
  */
 export function buildSearchKeys(
   slug: string,
   name: string,
   manual?: ServiceAlias,
-): string[] {
-  const keys = new Set<string>();
+): KeyEntry[] {
+  const entries: KeyEntry[] = [];
+  const seen = new Set<string>();
 
-  keys.add(slug.toLowerCase());
-  keys.add(name.toLowerCase());
+  const add = (key: string, weight: number) => {
+    const k = key.toLowerCase().trim();
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    entries.push({ key: k, weight });
+  };
+
+  add(slug, 1000);
+  add(name, 900);
 
   const nameCompact = normalizeText(name);
-  if (nameCompact) keys.add(nameCompact);
-
-  for (const t of tokenize(name)) keys.add(t);
-
-  if (manual) {
-    if (manual.zh) keys.add(manual.zh.toLowerCase());
-    if (manual.py) keys.add(manual.py.toLowerCase());
-    if (manual.pyi) keys.add(manual.pyi.toLowerCase());
-    if (manual.aliases) {
-      for (const a of manual.aliases) keys.add(a.toLowerCase());
-    }
+  if (nameCompact && nameCompact !== name.toLowerCase()) {
+    add(nameCompact, 700);
   }
 
-  return Array.from(keys).filter((k) => k.length > 0);
+  for (const t of tokenize(name)) add(t, 600);
+
+  if (manual) {
+    if (manual.zh) add(manual.zh, 850);
+    if (manual.py) add(manual.py, 800);
+    if (manual.pyi) add(manual.pyi, 750);
+    for (const a of manual.aliases ?? []) add(a, 800);
+  }
+
+  return entries;
 }
 
-const keyCache = new Map<string, string[]>();
+const keyCache = new Map<string, KeyEntry[]>();
 
-function getSearchKeys(slug: string, name: string): string[] {
+function getSearchKeys(slug: string, name: string): KeyEntry[] {
   let keys = keyCache.get(slug);
   if (keys) return keys;
   keys = buildSearchKeys(slug, name, SERVICE_ALIASES[slug]);
@@ -195,25 +209,46 @@ function getSearchKeys(slug: string, name: string): string[] {
   return keys;
 }
 
+const POPULAR_HINT = new Set([
+  "whatsapp", "telegram", "google", "facebook", "instagram", "tiktok",
+  "youtube", "discord", "x", "snapchat", "reddit", "linkedin", "pinterest",
+  "wechat", "qq", "steam", "amazon", "paypal", "netflix", "spotify",
+  "gmail", "apple", "openai",
+]);
+
 /**
- * 判断一个服务是否匹配查询词（大小写不敏感的子串匹配）。
- *
- * 例：
- *   "t"    → Telegram / TikTok / Twitch / Twitter / Taobao / Temu...
- *   "goog" → Google / Google Pay（自动分词）
- *   "谷歌"  → Google（手动别名）
+ * 打分：返回 0 表示不匹配；否则返回分数，分越高越相关。
+ */
+export function scoreService(
+  slug: string,
+  name: string,
+  query: string,
+): number {
+  const q = query.trim().toLowerCase();
+  if (!q) return 0;
+
+  let best = 0;
+  for (const { key, weight } of getSearchKeys(slug, name)) {
+    if (key === q) {
+      best = Math.max(best, weight);
+    } else if (key.startsWith(q)) {
+      best = Math.max(best, weight - 100);
+    } else if (key.includes(q)) {
+      best = Math.max(best, weight - 400);
+    }
+  }
+
+  if (best > 0 && POPULAR_HINT.has(slug)) best += 30;
+  return best;
+}
+
+/**
+ * 兼容旧接口。内部用 scoreService。
  */
 export function matchService(
   slug: string,
   name: string,
   query: string,
 ): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-
-  const keys = getSearchKeys(slug, name);
-  for (const k of keys) {
-    if (k.includes(q)) return true;
-  }
-  return false;
+  return scoreService(slug, name, query) > 0;
 }
