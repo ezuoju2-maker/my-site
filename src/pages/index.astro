@@ -35,107 +35,12 @@ const MAIN_SITE_URL = "https://my-site-n7j.pages.dev/";
 
 {!isGitHubPages && (
   <Layout title="登录">
-
-<div id="loading-screen" aria-busy="true">
-  <main class="fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-white px-5">
-    <section class="w-full max-w-sm">
-      <div class="text-center">
-        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-sm font-semibold tracking-wide text-neutral-700">
-          LOGO
-        </div>
-        <h1 class="mt-5 text-xl font-semibold tracking-tight text-neutral-900">
-          网站名称
-        </h1>
-        <p class="mt-2 text-sm text-neutral-500">
-          欢迎使用网站名称
-        </p>
-      </div>
-
-      <div class="mt-16">
-        <div class="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
-          <div
-            id="loading-bar"
-            class="h-full rounded-full bg-neutral-900"
-            style="width: 0%; transition: width 80ms linear;"
-          >
-          </div>
-        </div>
-        <div
-          id="loading-pct"
-          class="mt-4 text-center text-sm font-medium tabular-nums text-neutral-700"
-        >
-          0%
-        </div>
-      </div>
-    </section>
-  </main>
-</div>
-
-<AutoLoginRedirect client:load />
-
-<div id="login-page" hidden>
+    <AutoLoginRedirect client:load />
     <section class="flex min-h-screen items-center justify-center px-5 py-10 sm:px-6">
       <div class="w-full max-w-md">
         <LoginBrand client:load />
         <LoginForm client:load />
       </div>
     </section>
-</div>
   </Layout>
 )}
-
-<script is:inline>
-  (function () {
-    var DURATION = 1200;
-    var HARD_TIMEOUT = 3000;
-
-    var start = performance.now();
-    var finished = false;
-    var bar = document.getElementById("loading-bar");
-    var pct = document.getElementById("loading-pct");
-    var screen = document.getElementById("loading-screen");
-    var login = document.getElementById("login-page");
-
-    function finish() {
-      if (finished) return;
-      finished = true;
-      if (bar) bar.style.width = "100%";
-      if (pct) pct.textContent = "100%";
-
-      window.setTimeout(function () {
-        if (screen && screen.parentNode) {
-          screen.parentNode.removeChild(screen);
-        }
-        if (login) login.removeAttribute("hidden");
-      }, 120);
-    }
-
-    function tick() {
-      if (finished) return;
-
-      var elapsed = performance.now() - start;
-      var ratio = Math.min(1, elapsed / DURATION);
-      var p = Math.min(99, Math.floor(ratio * 110));
-
-      if (bar) bar.style.width = p + "%";
-      if (pct) pct.textContent = p + "%";
-
-      if (ratio < 1) {
-        window.requestAnimationFrame(tick);
-      } else {
-        finish();
-      }
-    }
-
-    // 硬超时：无论主线程多忙，浏览器最后一定会执行这个
-    window.setTimeout(finish, HARD_TIMEOUT);
-
-    window.requestAnimationFrame(tick);
-
-    // 再兜底：DOMContentLoaded 和 load 事件也都触发一次检查
-    window.addEventListener("DOMContentLoaded", function () {
-      window.setTimeout(finish, DURATION);
-    });
-    window.addEventListener("load", finish);
-  })();
-</script>
