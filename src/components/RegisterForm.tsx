@@ -885,7 +885,9 @@ export default function RegisterForm() {
           <span>
             {t("register.agreement_prefix")}
             <a
-              href="#"
+              href={withBase("terms/")}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(event) => event.stopPropagation()}
               className="mx-1 font-medium text-neutral-800 underline underline-offset-4"
             >
