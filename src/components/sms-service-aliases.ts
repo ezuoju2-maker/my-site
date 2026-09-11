@@ -227,14 +227,24 @@ export function scoreService(
   const q = query.trim().toLowerCase();
   if (!q) return 0;
 
+  // 只有当查询长度 >= 3 时，才启用"短 key 优先"
+  // 长度 1-2 时按流行度和基础权重排序，否则会被 toss 这种短名搞乱
+  const useProximity = q.length >= 3;
+
   let best = 0;
   for (const { key, weight } of getSearchKeys(slug, name)) {
     if (key === q) {
       best = Math.max(best, weight);
     } else if (key.startsWith(q)) {
-      best = Math.max(best, weight - 100);
+      const ratio = useProximity
+        ? Math.round(100 * (q.length / key.length))
+        : 0;
+      best = Math.max(best, weight - 100 + ratio);
     } else if (key.includes(q)) {
-      best = Math.max(best, weight - 400);
+      const ratio = useProximity
+        ? Math.round(100 * (q.length / key.length))
+        : 0;
+      best = Math.max(best, weight - 400 + ratio);
     }
   }
 
