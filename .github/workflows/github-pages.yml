@@ -22,8 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
-
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Remove API routes for static GitHub Pages build
         run: |
           set -e
@@ -32,7 +31,7 @@ jobs:
           echo "API routes and server middleware removed for static build."
 
       - name: Install, build, and upload site
-        uses: withastro/action@v6
+        uses: withastro/action@e84f40bd8d2caa9e768ec82ad30dd81f0b280853 # v6
         env:
           GITHUB_PAGES: "true"
           PUBLIC_API_BASE_URL: "https://my-site-n7j.pages.dev"
@@ -48,4 +47,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
