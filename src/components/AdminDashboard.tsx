@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersError, setUsersError] = useState("");
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -179,6 +180,44 @@ export default function AdminDashboard() {
       cancelled = true;
     };
   }, []);
+
+  async function handleRoleChange(userId: string, newRole: "user" | "admin") {
+    if (updatingRoleId) return;
+    setUpdatingRoleId(userId);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/users/${encodeURIComponent(userId)}/role`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: newRole }),
+        },
+      );
+      const data = await parseApiResponse(response);
+
+      if (!response.ok || !data.ok) {
+        const err = (data as unknown as { error?: string }).error;
+        alert(
+          err === "CANNOT_CHANGE_SELF"
+            ? "不能修改自己的角色"
+            : "角色修改失败，请稍后重试",
+        );
+        return;
+      }
+
+      setUsers((prev) =>
+        prev
+          ? prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+          : prev,
+      );
+    } catch {
+      alert("网络错误，请重试");
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  }
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -336,7 +375,8 @@ export default function AdminDashboard() {
                     <th className="py-2 pr-4 font-medium">用户</th>
                     <th className="py-2 pr-4 font-medium">邮箱</th>
                     <th className="py-2 pr-4 font-medium">角色</th>
-                    <th className="py-2 font-medium">注册时间</th>
+                    <th className="py-2 pr-4 font-medium">注册时间</th>
+                    <th className="py-2 font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -357,8 +397,45 @@ export default function AdminDashboard() {
                           {u.role}
                         </span>
                       </td>
-                      <td className="py-2 text-xs text-neutral-500">
+                      <td className="py-2 pr-4 text-xs text-neutral-500">
                         {u.createdAt}
+                      </td>
+                      <td className="py-2 text-right">
+                        {u.role === "admin" ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `确认将 ${u.username} 降级为普通用户？`,
+                                )
+                              ) {
+                                void handleRoleChange(u.id, "user");
+                              }
+                            }}
+                            disabled={updatingRoleId === u.id}
+                            className="rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-300 disabled:opacity-50"
+                          >
+                            {updatingRoleId === u.id ? "…" : "降级"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `确认将 ${u.username} 提升为管理员？`,
+                                )
+                              ) {
+                                void handleRoleChange(u.id, "admin");
+                              }
+                            }}
+                            disabled={updatingRoleId === u.id}
+                            className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-1 text-xs text-red-300 disabled:opacity-50"
+                          >
+                            {updatingRoleId === u.id ? "…" : "提升"}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
