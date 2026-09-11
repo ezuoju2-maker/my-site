@@ -89,7 +89,7 @@ export default function SmsCountryDetail({
   const available = useMemo(
     () =>
       stock
-        .map((s) => ({ s, svc: serviceMap.get(s.countryCode as unknown as string) }))
+        .map((s) => ({ s, svc: serviceMap.get(s.serviceSlug) }))
         .filter((x): x is { s: typeof stock[0]; svc: SmsService } => Boolean(x.svc))
         .sort((a, b) => b.s.stock - a.s.stock),
     [stock, serviceMap],

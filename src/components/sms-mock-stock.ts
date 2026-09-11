@@ -58,6 +58,7 @@ export function hasCoverage(serviceSlug: string, countryCode: string): boolean {
 
 export type MockStock = {
   countryCode: string;
+  serviceSlug: string;
   price: number;
   stock: number;
 };
@@ -71,6 +72,7 @@ export function getStockForService(
     if (hasCoverage(slug, c.code)) {
       out.push({
         countryCode: c.code,
+        serviceSlug: slug,
         price: priceFor(slug, c.code),
         stock: stockFor(slug, c.code),
       });
@@ -88,6 +90,7 @@ export function getStockForCountry(
     if (hasCoverage(s.slug, code)) {
       out.push({
         countryCode: code,
+        serviceSlug: s.slug,
         price: priceFor(s.slug, code),
         stock: stockFor(s.slug, code),
       });
