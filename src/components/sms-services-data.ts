@@ -36,6 +36,8 @@ export type SmsService = {
   brand?: string;
 };
 
+import { EXTRA_SERVICES } from "./sms-services-extra";
+
 const s = (
   slug: string,
   name: string,
@@ -320,6 +322,7 @@ export const ALL_SERVICES: SmsService[] = [
   s("duolingo", "Duolingo", "productivity", "58CC02"),
   s("khanacademy", "Khan Academy", "productivity", "14BF96"),
   s("quizlet", "Quizlet", "productivity", "4255FF"),
+  ...EXTRA_SERVICES,
 ];
 
 export const POPULAR_SLUGS = [

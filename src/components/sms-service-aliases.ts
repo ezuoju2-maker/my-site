@@ -134,6 +134,75 @@ export const SERVICE_ALIASES: Record<string, ServiceAlias> = {
  *   "wx"       → wechat（通过 pyi）
  *   "tg"       → telegram（通过 pyi）
  */
+// ============================================================
+// 自动搜索键系统
+// ============================================================
+
+function normalizeText(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, "");
+}
+
+function tokenize(s: string): string[] {
+  return s
+    .toLowerCase()
+    .split(/[\s\-_.&+@/()]+/)
+    .filter((t) => t.length >= 2);
+}
+
+/**
+ * 为一个服务生成搜索键数组。
+ *
+ * 自动部分（对任何服务生效，无需配置）：
+ *   slug 本身、name 小写、name 去符号连写、name 分词
+ *
+ * 手动部分（SERVICE_ALIASES）：
+ *   中文名、拼音全拼、拼音首字母、别名
+ */
+export function buildSearchKeys(
+  slug: string,
+  name: string,
+  manual?: ServiceAlias,
+): string[] {
+  const keys = new Set<string>();
+
+  keys.add(slug.toLowerCase());
+  keys.add(name.toLowerCase());
+
+  const nameCompact = normalizeText(name);
+  if (nameCompact) keys.add(nameCompact);
+
+  for (const t of tokenize(name)) keys.add(t);
+
+  if (manual) {
+    if (manual.zh) keys.add(manual.zh.toLowerCase());
+    if (manual.py) keys.add(manual.py.toLowerCase());
+    if (manual.pyi) keys.add(manual.pyi.toLowerCase());
+    if (manual.aliases) {
+      for (const a of manual.aliases) keys.add(a.toLowerCase());
+    }
+  }
+
+  return Array.from(keys).filter((k) => k.length > 0);
+}
+
+const keyCache = new Map<string, string[]>();
+
+function getSearchKeys(slug: string, name: string): string[] {
+  let keys = keyCache.get(slug);
+  if (keys) return keys;
+  keys = buildSearchKeys(slug, name, SERVICE_ALIASES[slug]);
+  keyCache.set(slug, keys);
+  return keys;
+}
+
+/**
+ * 判断一个服务是否匹配查询词（大小写不敏感的子串匹配）。
+ *
+ * 例：
+ *   "t"    → Telegram / TikTok / Twitch / Twitter / Taobao / Temu...
+ *   "goog" → Google / Google Pay（自动分词）
+ *   "谷歌"  → Google（手动别名）
+ */
 export function matchService(
   slug: string,
   name: string,
@@ -142,19 +211,9 @@ export function matchService(
   const q = query.trim().toLowerCase();
   if (!q) return true;
 
-  if (slug.toLowerCase().includes(q)) return true;
-  if (name.toLowerCase().includes(q)) return true;
-
-  const alias = SERVICE_ALIASES[slug];
-  if (!alias) return false;
-
-  if (alias.zh && alias.zh.toLowerCase().includes(q)) return true;
-  if (alias.py && alias.py.toLowerCase().includes(q)) return true;
-  if (alias.pyi && alias.pyi.toLowerCase().includes(q)) return true;
-  if (alias.aliases) {
-    for (const a of alias.aliases) {
-      if (a.toLowerCase().includes(q)) return true;
-    }
+  const keys = getSearchKeys(slug, name);
+  for (const k of keys) {
+    if (k.includes(q)) return true;
   }
   return false;
 }
