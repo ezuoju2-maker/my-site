@@ -1,3 +1,4 @@
+import { recordUsage } from "../../../lib/usage-log";
 import { checkBudget, recordEmailOp } from "../../../lib/budget";
 import type { APIRoute } from "astro";
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
@@ -72,6 +73,7 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
   const budget = await checkBudget("forgot-password");
   if (!budget.ok) return budget.response;
+  await recordUsage("forgot-password").catch(() => {});
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
 

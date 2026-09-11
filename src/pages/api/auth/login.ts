@@ -1,4 +1,5 @@
 import { checkBudget } from "../../../lib/budget";
+import { recordUsage } from "../../../lib/usage-log";
 import type { APIRoute } from "astro";
 import { checkFormGuard } from "../../../lib/form-guard";
 import { env } from "cloudflare:workers";
@@ -82,6 +83,7 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
   const budget = await checkBudget("login");
   if (!budget.ok) return budget.response;
+  await recordUsage("login").catch(() => {});
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
   if (rejected) return rejected;
