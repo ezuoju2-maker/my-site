@@ -3,6 +3,24 @@ import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
 
+type AuditLog = {
+  id: string;
+  actorId: string;
+  actorUsername: string;
+  action: string;
+  targetId: string | null;
+  targetUsername: string | null;
+  details: string | null;
+  createdAt: string;
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  "role.change": "改角色",
+  "user.delete": "删用户",
+  "user.reset_password": "重置密码",
+  "config.update": "改配置",
+};
+
 type AdminUser = {
   id: string;
   username: string;
@@ -54,6 +72,8 @@ export default function AdminDashboard() {
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersError, setUsersError] = useState("");
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[] | null>(null);
+  const [auditError, setAuditError] = useState("");
 
 
   useEffect(() => {
@@ -176,6 +196,40 @@ export default function AdminDashboard() {
       }
     }
     void loadUsers();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAuditLogs() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/audit-logs?limit=20`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (cancelled) return;
+        if (!response.ok) {
+          setAuditError("加载失败");
+          return;
+        }
+        const data = (await response.json()) as {
+          ok?: boolean;
+          logs?: AuditLog[];
+        };
+        if (cancelled) return;
+        if (data.ok && data.logs) {
+          setAuditLogs(data.logs);
+        } else {
+          setAuditError("数据格式异常");
+        }
+      } catch {
+        if (!cancelled) setAuditError("网络错误");
+      }
+    }
+    void loadAuditLogs();
     return () => {
       cancelled = true;
     };
@@ -446,6 +500,63 @@ export default function AdminDashboard() {
 
           <p className="mt-4 text-xs text-neutral-500">
             只读展示，不含密码哈希等敏感字段。最多显示 50 条。
+          </p>
+        </div>
+
+        {/* 最近操作（审计日志） */}
+        <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-neutral-100">最近操作</h2>
+            <span className="text-xs text-neutral-400">
+              {auditLogs ? `最近 ${auditLogs.length} 条` : "加载中…"}
+            </span>
+          </div>
+
+          {auditError && (
+            <p className="mt-3 text-sm text-red-400">{auditError}</p>
+          )}
+
+          {auditLogs && auditLogs.length === 0 && (
+            <p className="mt-3 text-sm text-neutral-500">暂无审计记录</p>
+          )}
+
+          {auditLogs && auditLogs.length > 0 && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-800 text-left text-xs uppercase tracking-wide text-neutral-500">
+                    <th className="py-2 pr-4 font-medium">时间 (UTC)</th>
+                    <th className="py-2 pr-4 font-medium">操作人</th>
+                    <th className="py-2 pr-4 font-medium">操作</th>
+                    <th className="py-2 font-medium">详情</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.map((log) => (
+                    <tr key={log.id} className="border-b border-neutral-800/50">
+                      <td className="py-2 pr-4 text-xs text-neutral-500">
+                        {log.createdAt}
+                      </td>
+                      <td className="py-2 pr-4 text-neutral-200">
+                        {log.actorUsername}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300">
+                          {ACTION_LABELS[log.action] ?? log.action}
+                        </span>
+                      </td>
+                      <td className="py-2 text-xs text-neutral-400">
+                        {log.details ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <p className="mt-4 text-xs text-neutral-500">
+            审计日志只增不改。后续可扩展至删用户、重置密码等 admin 操作。
           </p>
         </div>
 
