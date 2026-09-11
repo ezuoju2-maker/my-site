@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
@@ -46,7 +46,7 @@ export default function LoginForm() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (loading) {

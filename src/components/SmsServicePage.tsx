@@ -6,7 +6,6 @@ import {
   groupByCategory as rawGroupByCategory,
   mergeWithAuto,
   type SmsService,
-  type SmsRegion,
 } from "./sms-services-data";
 import { AUTO_SERVICES } from "./sms-services-auto";
 import { scoreService } from "./sms-service-aliases";
@@ -16,6 +15,7 @@ import {
   groupByRegion as rawGroupByRegion,
   getFlag,
   type SmsCountry,
+  type SmsRegion,
   REGION_LABELS,
 } from "./sms-countries-data";
 import { AUTO_COUNTRIES } from "./sms-countries-auto";
