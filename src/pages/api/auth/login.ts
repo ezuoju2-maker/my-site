@@ -1,5 +1,6 @@
 import { checkBudget } from "../../../lib/budget";
 import { recordUsage } from "../../../lib/usage-log";
+import { recordLogin } from "../../../lib/login-log";
 import type { APIRoute } from "astro";
 import { checkFormGuard } from "../../../lib/form-guard";
 import { env } from "cloudflare:workers";
@@ -197,6 +198,9 @@ export const POST: APIRoute = async ({ request }) => {
       remember,
       Number.isInteger(user.session_version) ? user.session_version : 1,
     );
+
+    // Fire-and-forget: record login history
+    recordLogin(user.id, request).catch(() => {});
 
     return json(
       {
