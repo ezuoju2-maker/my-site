@@ -3,10 +3,10 @@ import Layout from "../layouts/Layout.astro";
 import AutoLoginRedirect from "../components/AutoLoginRedirect";
 import LoginForm from "../components/LoginForm";
 import LoginBrand from "../components/LoginBrand";
----
 
 const isGitHubPages = import.meta.env.GITHUB_PAGES === "true";
 const MAIN_SITE_URL = "https://my-site-n7j.pages.dev/";
+---
 
 {isGitHubPages && (
   <Layout title="请访问主站">
