@@ -31,7 +31,7 @@ export const CHANNELS: SmsChannel[] = [
     id: "ch-1",
     provider: "sms-activate",
     displayName: "通道一",
-    paymentMethods: ["wechat", "alipay"],
+    paymentMethods: ["wechat", "alipay", "usdt"],
     successRate: 0.92,
     markup: 1.0,
     enabled: true,
@@ -40,7 +40,7 @@ export const CHANNELS: SmsChannel[] = [
     id: "ch-2",
     provider: "5sim",
     displayName: "通道二",
-    paymentMethods: ["wechat", "alipay"],
+    paymentMethods: ["wechat", "alipay", "usdt"],
     successRate: 0.87,
     markup: 1.15,
     enabled: true,
@@ -63,11 +63,18 @@ export const CHANNELS: SmsChannel[] = [
     markup: 0.88,
     enabled: true,
   },
+  {
+    id: "ch-5",
+    provider: "cryptosms",
+    displayName: "通道五",
+    paymentMethods: ["usdt"],
+    successRate: 0.83,
+    markup: 0.95,
+    enabled: true,
+  },
 ];
 
 export function getChannelsForPayment(method: PaymentMethodId): SmsChannel[] {
-  // USDT 不支持任何供应商通道（业务约束）
-  if (method === "usdt") return [];
   return CHANNELS.filter(
     (c) => c.enabled && c.paymentMethods.includes(method),
   );

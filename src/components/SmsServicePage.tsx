@@ -595,17 +595,6 @@ export default function SmsServicePage() {
         country={c}
         onBack={back}
         onConfirm={(payment, quantity) => {
-          if (payment === "usdt") {
-            window.alert(
-              "USDT 订单已提交（演示模式）\n\n" +
-                "服务：" + svc.name + "\n" +
-                "国家：" + c.name + " " + c.dial + "\n" +
-                "数量：" + quantity + " 个\n" +
-                "支付方式：USDT (TRC20)\n\n" +
-                "接入真实支付后将显示 USDT 收款地址。",
-            );
-            return;
-          }
           openChannel(svc.slug, c.code, payment, quantity);
         }}
       />

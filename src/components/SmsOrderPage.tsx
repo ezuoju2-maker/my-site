@@ -12,7 +12,7 @@ type Props = {
   onConfirm: (payment: PaymentMethodId, quantity: number) => void;
 };
 
-const PAYMENT_ICONS: Record<PaymentMethodId, { color: string; path: string }> = {
+const PAYMENT_ICONS: Record<PaymentMethodId, { color: string; path: string; translate?: string }> = {
   wechat: {
     color: "#07C160",
     path: "M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.55 3.85 4.21 7.02 3.90 4.75.02 8.10-2.78 8.10-6.31 0-3.02-3.19-5.47-8.06-5.60zm-3.282 3.28c.542 0 .98.439.98.981a.978.978 0 0 1-.98.981.978.978 0 0 1-.98-.981c0-.542.439-.981.98-.981zm5.47 0c.543 0 .982.439.982.981a.978.978 0 0 1-.981.981.978.978 0 0 1-.98-.981c0-.542.439-.981.98-.981z",
@@ -24,6 +24,7 @@ const PAYMENT_ICONS: Record<PaymentMethodId, { color: string; path: string }> = 
   usdt: {
     color: "#26A17B",
     path: "M17.922 17.383v-.002c-.11.008-.677.042-1.942.042-1.01 0-1.721-.03-1.971-.042v.003c-3.888-.171-6.79-.848-6.79-1.658 0-.809 2.902-1.486 6.79-1.66v2.644c.254.018.982.061 1.988.061 1.207 0 1.812-.05 1.925-.06v-2.643c3.88.173 6.775.85 6.775 1.658 0 .81-2.895 1.485-6.775 1.657m0-3.59v-2.366h5.414V7.819H8.595v3.608h5.414v2.365c-4.4.202-7.709 1.074-7.709 2.118 0 1.044 3.309 1.915 7.709 2.118v7.582h3.913v-7.584c4.393-.202 7.694-1.073 7.694-2.116 0-1.043-3.301-1.914-7.694-2.117",
+    translate: "-3.3 -2.2",
   },
 };
 
@@ -103,7 +104,7 @@ export default function SmsOrderPage({ service, country, onBack, onConfirm }: Pr
                 <button key={p.id} type="button" onClick={() => setSelectedPayment(p.id)} className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (selected ? "border-neutral-900 bg-neutral-50" : "border-neutral-200 bg-white")}>
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: icon.color }}>
                     <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
-                      <path fill="#ffffff" d={icon.path} />
+                      <path fill="#ffffff" d={icon.path} transform={icon.translate ? "translate(" + icon.translate + ")" : undefined} />
                     </svg>
                   </span>
                   <div className="min-w-0 flex-1">
