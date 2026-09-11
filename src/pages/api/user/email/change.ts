@@ -7,6 +7,7 @@ import {
   rejectCrossSiteRequest,
 } from "../../../../lib/cors";
 import { verifyOtpDigest, OTP_TTL_SECONDS } from "../../../../lib/otp";
+import { notifyEmailChanged } from "../../../../lib/notify";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -170,6 +171,12 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ ok: false, error: "EMAIL_ALREADY_USED" }, 409, {}, origin);
     }
 
+    const before = await env.DB.prepare(
+      "SELECT email FROM users WHERE id = ?1 LIMIT 1",
+    )
+      .bind(auth.session.userId)
+      .first<{ email: string }>();
+
     const result = await env.DB.prepare(
       `UPDATE users
        SET email = ?1, updated_at = CURRENT_TIMESTAMP
@@ -180,6 +187,11 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (!result.success) {
       throw new Error("Email update failed");
+    }
+
+    // 通知旧邮箱（fire-and-forget，带 3 秒超时，失败不影响主流程）
+    if (before?.email && before.email !== newEmail) {
+      notifyEmailChanged(before.email).catch(() => {});
     }
 
     return json({ ok: true, email: newEmail }, 200, {}, origin);
