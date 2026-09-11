@@ -19,6 +19,7 @@ export default function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [capKey, setCapKey] = useState(0);
   const [agreement, setAgreement] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -206,6 +207,11 @@ export default function RegisterForm() {
                         : t("register.error.send_code_failed");
 
         setEmailCodeError(message);
+
+        if (data?.error === "CAPTCHA_FAILED") {
+          setCaptchaToken("");
+          setCapKey((k) => k + 1);
+        }
 
         if (data?.error === "TOO_MANY_REQUESTS") {
           setEmailCodeCooldown(retryAfter);
@@ -434,6 +440,7 @@ export default function RegisterForm() {
         }
 
         setCaptchaToken("");
+        setCapKey((k) => k + 1);
         return;
       }
 
@@ -441,6 +448,7 @@ export default function RegisterForm() {
     } catch {
       setUsernameError(t("common.network_error"));
       setCaptchaToken("");
+      setCapKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -818,6 +826,7 @@ export default function RegisterForm() {
 
         <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
           <CapWidget
+            key={capKey}
             onSolve={(token) => {
               setCaptchaToken(token);
               setCaptchaError("");

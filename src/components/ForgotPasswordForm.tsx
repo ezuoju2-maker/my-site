@@ -58,6 +58,7 @@ export default function ForgotPasswordForm() {
   const [success, setSuccess] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState("");
+  const [capKey, setCapKey] = useState(0);
 
   const emailRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
@@ -137,6 +138,10 @@ export default function ForgotPasswordForm() {
           ),
           emailRef,
         );
+        if (data?.error === "CAPTCHA_FAILED") {
+          setCaptchaToken("");
+          setCapKey((k) => k + 1);
+        }
         return;
       }
 
@@ -152,6 +157,8 @@ export default function ForgotPasswordForm() {
       }, 0);
     } catch {
       showError(t("forgot.error.NETWORK"), emailRef);
+      setCaptchaToken("");
+      setCapKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -176,7 +183,14 @@ export default function ForgotPasswordForm() {
       return;
     }
 
-    if (newPassword.length < 8 || newPassword.length > 128) {
+    if (
+      newPassword.length < 8 ||
+      newPassword.length > 128 ||
+      !/[a-z]/.test(newPassword) ||
+      !/[A-Z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) ||
+      !/[^A-Za-z0-9]/.test(newPassword)
+    ) {
       showError(t("forgot.error.INVALID_PASSWORD"), passwordRef);
       return;
     }
@@ -273,6 +287,7 @@ export default function ForgotPasswordForm() {
 
         <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border px-2 py-2">
           <CapWidget
+            key={capKey}
             onSolve={(token) => {
               setCaptchaToken(token);
               setCaptchaError("");
