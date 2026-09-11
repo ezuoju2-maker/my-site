@@ -14,6 +14,7 @@ import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
 } from "../../../lib/auth";
+import { notifyPasswordChanged } from "../../../lib/notify";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -107,6 +108,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     const newHash = await hashPassword(newPassword);
 
+    const userInfo = await env.DB.prepare(
+      "SELECT email FROM users WHERE id = ?1 LIMIT 1",
+    )
+      .bind(auth.session.userId)
+      .first<{ email: string }>();
+
     await env.DB.prepare(
       `UPDATE users
        SET password_hash = ?1,
@@ -116,6 +123,11 @@ export const POST: APIRoute = async ({ request }) => {
     )
       .bind(newHash, auth.session.userId)
       .run();
+
+    // 通知当前邮箱（fire-and-forget，带 3 秒超时）
+    if (userInfo?.email) {
+      notifyPasswordChanged(userInfo.email).catch(() => {});
+    }
 
     // 改密后让当前 session 也失效，强制重新登录。
     await deleteSession(request);
