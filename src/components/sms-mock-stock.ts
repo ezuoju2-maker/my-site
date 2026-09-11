@@ -54,14 +54,15 @@ export function hasCoverage(serviceSlug: string, countryCode: string): boolean {
   const servicePopular = POPULAR_SERVICES.has(serviceSlug);
   const countryPopular = HIGH_PRICE.has(countryCode);
 
-  let baseRate: number;
-  if (servicePopular && countryPopular) baseRate = 0.85;
-  else if (servicePopular) baseRate = 0.55;
-  else if (countryPopular) baseRate = 0.45;
-  else baseRate = 0.25;
+  // 主流服务 + 热门国家：100% 覆盖
+  // 真实接码平台上，WhatsApp 这类热门服务几乎覆盖全部高价区国家
+  if (servicePopular && countryPopular) return true;
 
   const noise = prand(serviceSlug + ":cov:" + countryCode);
-  return noise < baseRate;
+
+  if (servicePopular) return noise < 0.8;
+  if (countryPopular) return noise < 0.5;
+  return noise < 0.15;
 }
 
 export type MockStock = {
