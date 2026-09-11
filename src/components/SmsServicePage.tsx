@@ -8,6 +8,7 @@ import {
   type SmsService,
 } from "./sms-services-data";
 import { AUTO_SERVICES } from "./sms-services-auto";
+import { matchService } from "./sms-service-aliases";
 import {
   ALL_COUNTRIES as RAW_COUNTRIES,
   POPULAR_COUNTRIES as RAW_POPULAR_COUNTRIES,
@@ -289,13 +290,9 @@ export default function SmsServicePage() {
   const groupedCountries = useMemo(() => groupByRegion(), []);
 
   const searchedServices = useMemo(() => {
-    const q = serviceQuery.trim().toLowerCase();
+    const q = serviceQuery.trim();
     if (!q) return null;
-    return ALL_SERVICES.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.slug.toLowerCase().includes(q),
-    );
+    return ALL_SERVICES.filter((s) => matchService(s.slug, s.name, q));
   }, [serviceQuery]);
 
   const searchedCountries = useMemo(() => {
