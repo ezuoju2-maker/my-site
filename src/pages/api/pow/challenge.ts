@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { createChallenge } from "../../../lib/pow";
+import { createChallenge, extractClientIdentity } from "../../../lib/pow";
 import {
   corsHeaders,
   getAllowedOrigin,
@@ -28,7 +28,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (rejected) return rejected;
 
   try {
-    const c = await createChallenge();
+    const { ip, userAgent } = extractClientIdentity(request);
+    const c = await createChallenge(ip, userAgent);
     return new Response(JSON.stringify(c), {
       status: 200,
       headers: {
