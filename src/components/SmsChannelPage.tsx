@@ -16,6 +16,7 @@ type Props = {
   paymentMethod: PaymentMethodId;
   paymentLabel: string;
   quantity: number;
+  onQuantityChange: (q: number) => void;
   onBack: () => void;
 };
 
@@ -77,6 +78,7 @@ export default function SmsChannelPage({
   paymentMethod,
   paymentLabel,
   quantity,
+  onQuantityChange,
   onBack,
 }: Props) {
   const basePrice = priceFor(service.slug, country.code);
@@ -167,6 +169,21 @@ export default function SmsChannelPage({
             <div className="shrink-0 text-right text-xs text-neutral-500">
               <div>x{quantity}</div>
               <div className="mt-0.5">{paymentLabel}</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-neutral-100 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-neutral-900">购买数量</span>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => onQuantityChange(Math.max(1, quantity - 1))} disabled={quantity <= 1} className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 disabled:opacity-40">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14" /></svg>
+              </button>
+              <span className="w-10 text-center text-base font-semibold text-neutral-900">{quantity}</span>
+              <button type="button" onClick={() => onQuantityChange(Math.min(10, quantity + 1))} disabled={quantity >= 10} className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 disabled:opacity-40">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
+              </button>
             </div>
           </div>
         </section>

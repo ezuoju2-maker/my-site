@@ -496,7 +496,7 @@ export default function SmsServicePage() {
   useEffect(() => {
     const handler = (e: PopStateEvent) => {
       const state = e.state as View | null;
-      if (state && (state.type === "service" || state.type === "country")) {
+      if (state && typeof state === "object" && "type" in state) {
         setView(state);
       } else {
         setView({ type: "list" });
@@ -594,25 +594,19 @@ export default function SmsServicePage() {
         service={svc}
         country={c}
         onBack={back}
-        onConfirm={(payment) => {
-          const PAYMENT_LABELS: Record<PaymentMethodId, string> = {
-            wechat: "微信支付",
-            alipay: "支付宝",
-            usdt: "USDT (TRC20)",
-          };
-          // USDT 无通道可选，直接模拟下单
+        onConfirm={(payment, quantity) => {
           if (payment === "usdt") {
             window.alert(
               "USDT 订单已提交（演示模式）\n\n" +
                 "服务：" + svc.name + "\n" +
                 "国家：" + c.name + " " + c.dial + "\n" +
+                "数量：" + quantity + " 个\n" +
                 "支付方式：USDT (TRC20)\n\n" +
                 "接入真实支付后将显示 USDT 收款地址。",
             );
             return;
           }
-          void PAYMENT_LABELS;
-          openChannel(svc.slug, c.code, payment, 1);
+          openChannel(svc.slug, c.code, payment, quantity);
         }}
       />
     );
@@ -638,6 +632,11 @@ export default function SmsServicePage() {
         paymentMethod={view.payment}
         paymentLabel={PAYMENT_LABELS[view.payment]}
         quantity={view.quantity}
+        onQuantityChange={(q) => {
+          const next: View = { ...view, quantity: q };
+          window.history.replaceState(next, "");
+          setView(next);
+        }}
         onBack={back}
       />
     );
