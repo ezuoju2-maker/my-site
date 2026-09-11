@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getBase } from "../lib/url";
 import {
   ALL_SERVICES as RAW_SERVICES,
@@ -6,6 +6,7 @@ import {
   groupByCategory as rawGroupByCategory,
   mergeWithAuto,
   type SmsService,
+  type SmsRegion,
 } from "./sms-services-data";
 import { AUTO_SERVICES } from "./sms-services-auto";
 import { scoreService } from "./sms-service-aliases";
@@ -15,63 +16,35 @@ import {
   groupByRegion as rawGroupByRegion,
   getFlag,
   type SmsCountry,
-  type SmsRegion,
   REGION_LABELS,
 } from "./sms-countries-data";
 import { AUTO_COUNTRIES } from "./sms-countries-auto";
+import SmsServiceDetail from "./SmsServiceDetail";
+import SmsCountryDetail from "./SmsCountryDetail";
+
+const ALL_SERVICES = mergeWithAuto(RAW_SERVICES, AUTO_SERVICES);
 
 const ALL_COUNTRIES: SmsCountry[] = (() => {
   const existing = new Set(RAW_COUNTRIES.map((c) => c.code));
-  const extra = AUTO_COUNTRIES
-    .filter((a) => !existing.has(a.code))
-    .map((a) => ({
+  const extra = AUTO_COUNTRIES.filter((a) => !existing.has(a.code)).map(
+    (a) => ({
       code: a.code,
       name: a.name,
       nameEn: a.nameEn,
       dial: a.dial,
       region: a.region as SmsRegion,
-    }));
+    }),
+  );
   return [...RAW_COUNTRIES, ...extra];
 })();
 
-const POPULAR_COUNTRIES: SmsCountry[] = RAW_POPULAR_COUNTRIES
-  .map((p) => ALL_COUNTRIES.find((c) => c.code === p.code))
-  .filter((c): c is SmsCountry => Boolean(c));
+const POPULAR_SERVICES: SmsService[] = RAW_POPULAR.map((p) =>
+  ALL_SERVICES.find((s) => s.slug === p.slug),
+).filter((s): s is SmsService => Boolean(s));
 
-function groupByRegion() {
-  const groups = rawGroupByRegion();
-  const autoOnly = ALL_COUNTRIES.filter(
-    (c) => !RAW_COUNTRIES.some((r) => r.code === c.code),
-  );
-  if (autoOnly.length === 0) return groups;
-
-  const map = new Map(groups.map((g) => [g.region, g]));
-  for (const country of autoOnly) {
-    const existing = map.get(country.region);
-    if (existing) {
-      existing.items.push(country);
-    } else {
-      map.set(country.region, {
-        region: country.region,
-        label: REGION_LABELS[country.region] || country.region,
-        items: [country],
-      });
-    }
-  }
-  return Array.from(map.values());
-}
-
-const ALL_SERVICES = mergeWithAuto(RAW_SERVICES, AUTO_SERVICES);
-
-const POPULAR_SERVICES = (() => {
-  const known = new Map(ALL_SERVICES.map((s) => [s.slug, s]));
-  const out: SmsService[] = [];
-  for (const p of RAW_POPULAR) {
-    const fresh = known.get(p.slug);
-    if (fresh) out.push(fresh);
-  }
-  return out;
-})();
+const POPULAR_COUNTRIES: SmsCountry[] = RAW_POPULAR_COUNTRIES.map((p) =>
+  ALL_COUNTRIES.find((c) => c.code === p.code),
+).filter((c): c is SmsCountry => Boolean(c));
 
 const CATEGORY_LABEL_MAP: Record<string, string> = {
   social: "社交与通讯",
@@ -103,17 +76,36 @@ function groupByCategory() {
     (s) => !RAW_SERVICES.some((r) => r.slug === s.slug),
   );
   if (autoOnly.length === 0) return groups;
-
   const map = new Map(groups.map((g) => [g.category, g]));
   for (const svc of autoOnly) {
     const existing = map.get(svc.category);
-    if (existing) {
-      existing.items.push(svc);
-    } else {
+    if (existing) existing.items.push(svc);
+    else {
       map.set(svc.category, {
         category: svc.category,
         label: CATEGORY_LABEL_MAP[svc.category] || svc.category,
         items: [svc],
+      });
+    }
+  }
+  return Array.from(map.values());
+}
+
+function groupByRegion() {
+  const groups = rawGroupByRegion();
+  const autoOnly = ALL_COUNTRIES.filter(
+    (c) => !RAW_COUNTRIES.some((r) => r.code === c.code),
+  );
+  if (autoOnly.length === 0) return groups;
+  const map = new Map(groups.map((g) => [g.region, g]));
+  for (const country of autoOnly) {
+    const existing = map.get(country.region);
+    if (existing) existing.items.push(country);
+    else {
+      map.set(country.region, {
+        region: country.region,
+        label: REGION_LABELS[country.region] || country.region,
+        items: [country],
       });
     }
   }
@@ -134,8 +126,6 @@ function BrandIcon({ service, size = 36 }: { service: SmsService; size?: number 
   const brandHex = service.brand || "737373";
   const bg = `#${brandHex}`;
   const light = isLightHex(brandHex);
-  const initial = service.name.charAt(0).toUpperCase();
-
   if (failed) {
     return (
       <span
@@ -149,11 +139,10 @@ function BrandIcon({ service, size = 36 }: { service: SmsService; size?: number 
         }}
         aria-hidden="true"
       >
-        {initial}
+        {service.name.charAt(0).toUpperCase()}
       </span>
     );
   }
-
   return (
     <span
       className="flex shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -176,111 +165,44 @@ function BrandIcon({ service, size = 36 }: { service: SmsService; size?: number 
 }
 
 const ChevronRight = () => (
-  <svg
-    className="h-4 w-4 shrink-0 text-neutral-300"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
+  <svg className="h-4 w-4 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
 
 const ArrowLeft = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="22"
-    height="22"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M19 12H5" />
     <path d="M12 19l-7-7 7-7" />
   </svg>
 );
 
 const SearchIcon = () => (
-  <svg
-    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
+  <svg className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="11" cy="11" r="8" />
     <path d="m21 21-4.3-4.3" />
   </svg>
 );
 
 const GlobeIcon = () => (
-  <svg
-    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
+  <svg className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r="10" />
     <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
     <path d="M2 12h20" />
   </svg>
 );
 
-function ServiceRow({ service }: { service: SmsService }) {
-  return (
-    <button
-      type="button"
-      className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3 text-left"
-    >
-      <BrandIcon service={service} />
-      <span className="min-w-0 flex-1 truncate text-sm text-neutral-900">
-        {service.name}
-      </span>
-      <ChevronRight />
-    </button>
-  );
-}
+type View =
+  | { type: "list" }
+  | { type: "service"; slug: string }
+  | { type: "country"; code: string };
 
-function CountryRow({ country }: { country: SmsCountry }) {
-  return (
-    <button
-      type="button"
-      className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3 text-left"
-    >
-      <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center text-2xl leading-none"
-        aria-hidden="true"
-      >
-        {getFlag(country.code)}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm text-neutral-900">
-          {country.name}
-        </div>
-        <div className="truncate text-xs text-neutral-400">
-          {country.dial}
-        </div>
-      </div>
-      <ChevronRight />
-    </button>
-  );
-}
+type ListProps = {
+  onOpenService: (svc: SmsService) => void;
+  onOpenCountry: (c: SmsCountry) => void;
+};
 
-export default function SmsServicePage() {
+function ListView({ onOpenService, onOpenCountry }: ListProps) {
   const [serviceQuery, setServiceQuery] = useState("");
   const [countryQuery, setCountryQuery] = useState("");
   const [showAllServices, setShowAllServices] = useState(false);
@@ -292,11 +214,10 @@ export default function SmsServicePage() {
   const searchedServices = useMemo(() => {
     const q = serviceQuery.trim();
     if (!q) return null;
-    const scored = ALL_SERVICES
-      .map((s) => ({ svc: s, score: scoreService(s.slug, s.name, q) }))
+    return ALL_SERVICES.map((s) => ({ svc: s, score: scoreService(s.slug, s.name, q) }))
       .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score);
-    return scored.map((x) => x.svc);
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.svc);
   }, [serviceQuery]);
 
   const searchedCountries = useMemo(() => {
@@ -313,6 +234,41 @@ export default function SmsServicePage() {
 
   function goBack() {
     window.location.href = getBase() + "dashboard/";
+  }
+
+  function ServiceRow({ service }: { service: SmsService }) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenService(service)}
+        className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3 text-left active:bg-neutral-50"
+      >
+        <BrandIcon service={service} />
+        <span className="min-w-0 flex-1 truncate text-sm text-neutral-900">
+          {service.name}
+        </span>
+        <ChevronRight />
+      </button>
+    );
+  }
+
+  function CountryRow({ country }: { country: SmsCountry }) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenCountry(country)}
+        className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3 text-left active:bg-neutral-50"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-2xl leading-none" aria-hidden="true">
+          {getFlag(country.code)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm text-neutral-900">{country.name}</div>
+          <div className="truncate text-xs text-neutral-400">{country.dial}</div>
+        </div>
+        <ChevronRight />
+      </button>
+    );
   }
 
   return (
@@ -332,7 +288,6 @@ export default function SmsServicePage() {
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-5 py-6">
-        {/* 搜索服务 */}
         <div className="relative">
           <SearchIcon />
           <input
@@ -367,9 +322,7 @@ export default function SmsServicePage() {
         ) : (
           <>
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-neutral-900">
-                热门服务
-              </h2>
+              <h2 className="mb-3 text-lg font-semibold text-neutral-900">热门服务</h2>
               <div className="grid grid-cols-2 gap-3">
                 {POPULAR_SERVICES.slice(0, 8).map((s) => (
                   <ServiceRow key={s.slug} service={s} />
@@ -393,7 +346,6 @@ export default function SmsServicePage() {
           </>
         )}
 
-        {/* 搜索国家 */}
         <div className="relative">
           <GlobeIcon />
           <input
@@ -428,9 +380,7 @@ export default function SmsServicePage() {
         ) : (
           <>
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-neutral-900">
-                热门国家
-              </h2>
+              <h2 className="mb-3 text-lg font-semibold text-neutral-900">热门国家</h2>
               <div className="grid grid-cols-2 gap-3">
                 {POPULAR_COUNTRIES.slice(0, 8).map((c) => (
                   <CountryRow key={c.code} country={c} />
@@ -455,7 +405,6 @@ export default function SmsServicePage() {
         )}
       </main>
 
-      {/* 全部服务 overlay */}
       {showAllServices && (
         <div className="fixed inset-0 z-50 flex flex-col bg-neutral-50">
           <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-neutral-100 bg-white px-5">
@@ -469,7 +418,6 @@ export default function SmsServicePage() {
             </button>
             <h1 className="text-lg font-semibold text-neutral-900">全部服务</h1>
           </header>
-
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-3xl space-y-8 px-5 py-6">
               {groupedServices.map(({ category, label, items }) => (
@@ -492,7 +440,6 @@ export default function SmsServicePage() {
         </div>
       )}
 
-      {/* 全部国家 overlay */}
       {showAllCountries && (
         <div className="fixed inset-0 z-50 flex flex-col bg-neutral-50">
           <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-neutral-100 bg-white px-5">
@@ -504,11 +451,8 @@ export default function SmsServicePage() {
             >
               <ArrowLeft />
             </button>
-            <h1 className="text-lg font-semibold text-neutral-900">
-              全部国家 / 地区
-            </h1>
+            <h1 className="text-lg font-semibold text-neutral-900">全部国家 / 地区</h1>
           </header>
-
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-3xl space-y-8 px-5 py-6">
               {groupedCountries.map(({ region, label, items }) => (
@@ -532,4 +476,82 @@ export default function SmsServicePage() {
       )}
     </div>
   );
+}
+
+export default function SmsServicePage() {
+  const [view, setView] = useState<View>({ type: "list" });
+
+  // 让浏览器后退键可以回到列表
+  useEffect(() => {
+    const handler = (e: PopStateEvent) => {
+      const state = e.state as View | null;
+      if (state && (state.type === "service" || state.type === "country")) {
+        setView(state);
+      } else {
+        setView({ type: "list" });
+      }
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
+
+  function openService(svc: SmsService) {
+    const next: View = { type: "service", slug: svc.slug };
+    window.history.pushState(next, "");
+    setView(next);
+  }
+
+  function openCountry(c: SmsCountry) {
+    const next: View = { type: "country", code: c.code };
+    window.history.pushState(next, "");
+    setView(next);
+  }
+
+  function back() {
+    window.history.back();
+  }
+
+  if (view.type === "service") {
+    const svc = ALL_SERVICES.find((s) => s.slug === view.slug);
+    if (!svc) {
+      return (
+        <ListView onOpenService={openService} onOpenCountry={openCountry} />
+      );
+    }
+    return (
+      <SmsServiceDetail
+        serviceSlug={svc.slug}
+        serviceName={svc.name}
+        allCountries={ALL_COUNTRIES}
+        onBack={back}
+        onPickCountry={(code) => {
+          const c = ALL_COUNTRIES.find((x) => x.code === code);
+          if (c) openCountry(c);
+        }}
+      />
+    );
+  }
+
+  if (view.type === "country") {
+    const c = ALL_COUNTRIES.find((x) => x.code === view.code);
+    if (!c) {
+      return (
+        <ListView onOpenService={openService} onOpenCountry={openCountry} />
+      );
+    }
+    return (
+      <SmsCountryDetail
+        countryCode={c.code}
+        country={c}
+        allServices={ALL_SERVICES}
+        onBack={back}
+        onPickService={(slug) => {
+          const svc = ALL_SERVICES.find((s) => s.slug === slug);
+          if (svc) openService(svc);
+        }}
+      />
+    );
+  }
+
+  return <ListView onOpenService={openService} onOpenCountry={openCountry} />;
 }
