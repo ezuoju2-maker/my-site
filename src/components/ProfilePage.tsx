@@ -102,6 +102,11 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState("");
 
   const [toast, setToast] = useState("");
+  const [showDeleteForm, setShowDeleteForm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -402,6 +407,63 @@ export default function ProfilePage() {
       }, 1200);
     } catch {
       notify("网络错误，请重试");
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError("");
+
+    if (!deletePassword) {
+      setDeleteError("请输入密码");
+      return;
+    }
+
+    if (deleteConfirm !== "DELETE") {
+      setDeleteError('请准确输入 DELETE（区分大小写）');
+      return;
+    }
+
+    if (deleting) return;
+    setDeleting(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/user/account`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: deletePassword,
+            confirm: deleteConfirm,
+          }),
+        },
+      );
+
+      const data = await parseApiResponse(response);
+
+      if (!response.ok || !data.ok) {
+        const err = (data as unknown as { error?: string }).error;
+        setDeleteError(
+          err === "INVALID_PASSWORD"
+            ? "密码错误"
+            : err === "INVALID_CONFIRM"
+              ? '确认字符串必须准确输入 "DELETE"'
+              : err === "PASSWORD_REQUIRED"
+                ? "请输入密码"
+                : "删除失败，请稍后重试",
+        );
+        return;
+      }
+
+      notify("账号已删除，正在跳转…");
+      window.setTimeout(() => {
+        window.location.href = getBase();
+      }, 1200);
+    } catch {
+      setDeleteError("网络错误，请重试");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -922,6 +984,83 @@ export default function ProfilePage() {
               {profile.createdAt || "—"}
             </span>
           </div>
+        </section>
+        {/* 危险操作 */}
+        <section className="rounded-2xl border border-red-200 bg-red-50/40 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-base font-medium text-red-700">
+                删除账号
+              </div>
+              <p className="mt-1 text-xs text-red-600">
+                永久删除账号及全部数据，无法恢复
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteForm((v) => !v);
+                setDeleteError("");
+              }}
+              className="shrink-0 rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700"
+            >
+              {showDeleteForm ? "取消" : "删除账号"}
+            </button>
+          </div>
+
+          {showDeleteForm && (
+            <div className="mt-4 space-y-3 border-t border-red-200 pt-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-red-700">
+                  请输入当前密码
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => {
+                    setDeletePassword(e.target.value);
+                    setDeleteError("");
+                  }}
+                  placeholder="当前密码"
+                  autoComplete="current-password"
+                  className="h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-base outline-none focus:border-red-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-red-700">
+                  输入 DELETE 确认（区分大小写）
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={(e) => {
+                    setDeleteConfirm(e.target.value);
+                    setDeleteError("");
+                  }}
+                  placeholder="DELETE"
+                  className="h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-base outline-none focus:border-red-400 font-mono"
+                />
+              </div>
+
+              {deleteError && (
+                <p className="text-sm text-red-600">{deleteError}</p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="h-11 w-full rounded-xl bg-red-600 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {deleting ? "删除中…" : "确认删除账号"}
+              </button>
+
+              <p className="text-xs text-red-500">
+                ⚠️ 此操作不可逆。所有个人数据将被永久删除。
+              </p>
+            </div>
+          )}
         </section>
       </main>
 
