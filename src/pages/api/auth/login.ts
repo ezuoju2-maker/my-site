@@ -201,10 +201,6 @@ export const POST: APIRoute = async ({ request }) => {
       200,
       {
         "Set-Cookie": sessionCookie(session.token, session.maxAge),
-        // 兜底：Cloudflare Pages Functions 转发时可能丢失 set-cookie，
-        // 前端读这个头手动设置 Cookie。
-        "X-Session-Token": session.token,
-        "X-Session-MaxAge": String(session.maxAge ?? 0),
       },
       origin,
     );

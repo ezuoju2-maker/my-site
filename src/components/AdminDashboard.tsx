@@ -80,7 +80,6 @@ export default function AdminDashboard() {
     }
 
     // 兜底：清掉手动设置的 Cookie
-    document.cookie = "session=; Path=/; Max-Age=0; Secure; SameSite=Lax";
 
     window.location.replace(getBasePath());
   }
