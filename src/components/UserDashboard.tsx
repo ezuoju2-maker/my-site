@@ -1,4 +1,9 @@
 import { API_BASE_URL } from "../lib/api";
+
+// 功能卡片跳转 URL 映射（未映射的显示"开发中"）
+const FEATURE_URLS: Record<string, string> = {
+  "接码系统": "dashboard/services/sms/",
+};
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
@@ -372,7 +377,14 @@ export default function UserDashboard() {
               <button
                 key={feature.title}
                 type="button"
-                onClick={() => notify(`${feature.title}正在开发中`)}
+                onClick={() => {
+                  const target = FEATURE_URLS[feature.title];
+                  if (target) {
+                    window.location.href = `${getBase()}${target}`;
+                  } else {
+                    notify(`${feature.title}正在开发中`);
+                  }
+                }}
                 className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
