@@ -1,3 +1,19 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+FILE="src/components/SmsServicePage.tsx"
+BACKUP="${FILE}.bak.$(date +%s)"
+
+echo "================================================"
+echo "【阶段 1｜接码页面 UI 修复脚本】"
+echo "================================================"
+
+echo "========== 【步骤 1/3：备份原有文件】 =========="
+cp "$FILE" "$BACKUP"
+echo "OK: 已备份至 $BACKUP"
+
+echo "========== 【步骤 2/3：写入新的页面代码】 =========="
+cat << 'TSX' > "$FILE"
 import { useState } from "react";
 import { getBase } from "../lib/url";
 
@@ -197,3 +213,32 @@ export default function SmsServicePage() {
     </div>
   );
 }
+TSX
+
+echo "OK: 成功写入 src/components/SmsServicePage.tsx"
+
+echo "========== 【步骤 3/3：验证代码并构建】 =========="
+# 1. 检查文件大小
+echo "文件大小：$(wc -c < "$FILE") bytes"
+echo "文件行数：$(wc -l < "$FILE")"
+
+# 2. 尝试执行 TypeScript 类型检查
+echo "正在执行类型检查..."
+npx astro check || true
+echo "类型检查完成（若有警告请忽略或反馈）"
+
+# 3. 执行生产构建
+echo "正在执行生产构建..."
+npm run build
+BUILD_EXIT=$?
+
+if [ "$BUILD_EXIT" -eq 0 ]; then
+  echo "OK: npm run build 执行成功，UI 已更新！"
+else
+  echo "ERROR: 构建失败，退出码 $BUILD_EXIT"
+fi
+
+echo "================================================"
+echo "【接码页面 UI 修复完成】"
+echo "================================================"
+echo "下一步：请把完整的构建输出原样发送给我，我来检查是否有隐藏报错。"
