@@ -128,13 +128,23 @@ export type Challenge = {
 export async function createChallenge(
   ip: string,
   userAgent: string,
+  behaviorScore: number = -1,
 ): Promise<Challenge | null> {
   const kv = env.SESSION;
   if (!kv) throw new Error("KV unavailable");
 
-  const difficulty = await getDifficultyForIp(ip);
-  if (difficulty === null) {
+  const baseDifficulty = await getDifficultyForIp(ip);
+  if (baseDifficulty === null) {
     return null; // 拒绝：临时封禁
+  }
+
+  // 行为信号加分：
+  // - behaviorScore = -1：未提供（老客户端 / curl），不惩罚
+  // - behaviorScore >= 1：有交互，正常
+  // - behaviorScore = 0：完全无交互（无头/脚本），难度 +1
+  let difficulty = baseDifficulty;
+  if (behaviorScore === 0) {
+    difficulty = Math.min(6, difficulty + 1);
   }
 
   const challenge_id = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
