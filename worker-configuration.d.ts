@@ -28,6 +28,7 @@ declare namespace Cloudflare {
     // ============ Vars（wrangler.toml [vars]）============
     CAP_WORKER_URL?: string;
     CAPTCHA_MODE?: string;
+    BUDGET_MODE?: "normal" | "throttled" | "degraded" | "emergency";
   }
 }
 

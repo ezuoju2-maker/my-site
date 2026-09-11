@@ -1,3 +1,4 @@
+import { recordUsage } from "../../../lib/budget";
 import type { APIRoute } from "astro";
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -69,6 +70,7 @@ export const OPTIONS: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
+  recordUsage("forgot-password").catch(() => {});
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
 
