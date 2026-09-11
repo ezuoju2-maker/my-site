@@ -18,6 +18,7 @@ const ACTION_LABELS: Record<string, string> = {
   "role.change": "改角色",
   "user.delete": "删用户",
   "user.reset_password": "重置密码",
+  "session.revoke": "踢下线",
   "config.update": "改配置",
 };
 
@@ -273,6 +274,46 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleRevokeSessions(userId: string, username: string) {
+    if (updatingRoleId) return;
+    if (
+      !window.confirm(
+        `确认踢出 ${username} 的所有登录设备？\n该用户需要重新登录。`,
+      )
+    ) {
+      return;
+    }
+
+    setUpdatingRoleId(userId);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/users/${encodeURIComponent(userId)}/revoke`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+      const data = await parseApiResponse(response);
+
+      if (!response.ok || !data.ok) {
+        const err = (data as unknown as { error?: string }).error;
+        alert(
+          err === "CANNOT_REVOKE_SELF"
+            ? "不能踢出自己"
+            : "踢出失败，请稍后重试",
+        );
+        return;
+      }
+
+      alert(`已踢出 ${username} 的所有登录设备`);
+    } catch {
+      alert("网络错误，请重试");
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  }
+
   async function handleLogout() {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -490,6 +531,14 @@ export default function AdminDashboard() {
                             {updatingRoleId === u.id ? "…" : "提升"}
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => handleRevokeSessions(u.id, u.username)}
+                          disabled={updatingRoleId === u.id}
+                          className="ml-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-300 disabled:opacity-50"
+                        >
+                          踢出
+                        </button>
                       </td>
                     </tr>
                   ))}

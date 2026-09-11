@@ -4,6 +4,7 @@ export type AuditAction =
   | "role.change"
   | "user.delete"
   | "user.reset_password"
+  | "session.revoke"
   | "config.update";
 
 export type AuditEntry = {
