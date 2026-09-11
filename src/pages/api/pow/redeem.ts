@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { redeemChallenge } from "../../../lib/pow";
+import { redeemChallenge, extractClientIdentity } from "../../../lib/pow";
 import {
   corsHeaders,
   getAllowedOrigin,
@@ -42,10 +42,13 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
+    const { ip, userAgent } = extractClientIdentity(request);
     const token = await redeemChallenge(
       body.challenge_id,
       body.nonce,
       body.signature,
+      ip,
+      userAgent,
     );
 
     if (!token) {

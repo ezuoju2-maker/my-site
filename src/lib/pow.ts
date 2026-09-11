@@ -46,35 +46,6 @@ async function hmac(message: string): Promise<Uint8Array> {
   return new Uint8Array(sig);
 }
 
-export type Challenge = {
-  challenge_id: string;
-  salt: string;
-  difficulty: number;
-  expires_at: number;
-  signature: string;
-};
-
-export async function createChallenge(): Promise<Challenge> {
-  const kv = env.SESSION;
-  if (!kv) throw new Error("KV unavailable");
-
-  const challenge_id = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
-  const salt = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
-  const difficulty = DEFAULT_DIFFICULTY;
-  const expires_at = Date.now() + CHALLENGE_TTL * 1000;
-
-  const message = `${POW_PREFIX}:challenge:${challenge_id}:${salt}:${difficulty}:${expires_at}`;
-  const signature = bytesToBase64Url(await hmac(message));
-
-  await kv.put(
-    `${POW_PREFIX}:challenge:${challenge_id}`,
-    JSON.stringify({ salt, difficulty, expires_at }),
-    { expirationTtl: CHALLENGE_TTL },
-  );
-
-  return { challenge_id, salt, difficulty, expires_at, signature };
-}
-
 async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", textEncoder.encode(input));
   return Array.from(new Uint8Array(buf))
@@ -82,10 +53,69 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
+/**
+ * 客户端绑定：IP + UA 与 secret 混合。
+ * 攻击者拿到 challenge 后无法在其他 IP/UA 下 redeem。
+ */
+async function computeClientBinding(
+  ip: string,
+  userAgent: string,
+): Promise<{ ipHash: string; uaHash: string }> {
+  const secret = getSecret();
+  const ipHash = (await sha256Hex(`${secret}:ip:${ip}`)).slice(0, 32);
+  const uaHash = (await sha256Hex(`${secret}:ua:${userAgent}`)).slice(0, 32);
+  return { ipHash, uaHash };
+}
+
+export type Challenge = {
+  challenge_id: string;
+  salt: string;
+  difficulty: number;
+  expires_at: number;
+  ip_hash: string;
+  ua_hash: string;
+  signature: string;
+};
+
+export async function createChallenge(
+  ip: string,
+  userAgent: string,
+): Promise<Challenge> {
+  const kv = env.SESSION;
+  if (!kv) throw new Error("KV unavailable");
+
+  const challenge_id = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
+  const salt = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
+  const difficulty = DEFAULT_DIFFICULTY;
+  const expires_at = Date.now() + CHALLENGE_TTL * 1000;
+  const { ipHash, uaHash } = await computeClientBinding(ip, userAgent);
+
+  const message = `${POW_PREFIX}:challenge:${challenge_id}:${salt}:${difficulty}:${expires_at}:${ipHash}:${uaHash}`;
+  const signature = bytesToBase64Url(await hmac(message));
+
+  await kv.put(
+    `${POW_PREFIX}:challenge:${challenge_id}`,
+    JSON.stringify({ salt, difficulty, expires_at, ipHash, uaHash }),
+    { expirationTtl: CHALLENGE_TTL },
+  );
+
+  return {
+    challenge_id,
+    salt,
+    difficulty,
+    expires_at,
+    ip_hash: ipHash,
+    ua_hash: uaHash,
+    signature,
+  };
+}
+
 export async function redeemChallenge(
   challenge_id: unknown,
   nonce: unknown,
   signature: unknown,
+  ip: string,
+  userAgent: string,
 ): Promise<string | null> {
   if (
     typeof challenge_id !== "string" || !challenge_id || challenge_id.length > 64 ||
@@ -104,7 +134,13 @@ export async function redeemChallenge(
 
   await kv.delete(key);
 
-  let stored: { salt: string; difficulty: number; expires_at: number };
+  let stored: {
+    salt: string;
+    difficulty: number;
+    expires_at: number;
+    ipHash: string;
+    uaHash: string;
+  };
   try {
     stored = JSON.parse(raw);
   } catch {
@@ -113,7 +149,12 @@ export async function redeemChallenge(
 
   if (Date.now() > stored.expires_at) return null;
 
-  const message = `${POW_PREFIX}:challenge:${challenge_id}:${stored.salt}:${stored.difficulty}:${stored.expires_at}`;
+  const { ipHash, uaHash } = await computeClientBinding(ip, userAgent);
+  if (ipHash !== stored.ipHash || uaHash !== stored.uaHash) {
+    return null;
+  }
+
+  const message = `${POW_PREFIX}:challenge:${challenge_id}:${stored.salt}:${stored.difficulty}:${stored.expires_at}:${stored.ipHash}:${stored.uaHash}`;
   const expectedSig = await hmac(message);
 
   let providedSig: Uint8Array;
@@ -155,4 +196,13 @@ export async function verifyPowToken(token: unknown): Promise<boolean> {
 
   await kv.delete(key);
   return true;
+}
+
+export function extractClientIdentity(request: Request): {
+  ip: string;
+  userAgent: string;
+} {
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const userAgent = request.headers.get("User-Agent") || "unknown";
+  return { ip, userAgent };
 }
