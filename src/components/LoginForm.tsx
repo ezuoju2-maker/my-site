@@ -63,7 +63,7 @@ export default function LoginForm() {
       hasError = true;
     }
 
-    if (ENABLE_CAP && !captchaToken) {
+    if (ENABLE_CAP_FOR_TEST && !captchaToken) {
       setCaptchaError(t("login.captcha_required"));
       hasError = true;
     }
