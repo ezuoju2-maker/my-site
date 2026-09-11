@@ -10,6 +10,7 @@ type Props = {
   service: SmsService;
   country: SmsCountry;
   onBack: () => void;
+  onConfirm: (payment: PaymentMethod) => void;
 };
 
 const PAYMENTS: {
@@ -105,7 +106,7 @@ function BrandCircle({
   );
 }
 
-export default function SmsOrderPage({ service, country, onBack }: Props) {
+export default function SmsOrderPage({ service, country, onBack, onConfirm }: Props) {
   const [selectedPayment, setSelectedPayment] =
     useState<PaymentMethod | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -126,20 +127,10 @@ export default function SmsOrderPage({ service, country, onBack }: Props) {
     }
 
     setSubmitting(true);
-
     setTimeout(() => {
       setSubmitting(false);
-      const method = PAYMENTS.find((p) => p.id === selectedPayment);
-      window.alert(
-        "订单已提交（演示模式）\n\n" +
-          "服务：" + service.name + "\n" +
-          "国家：" + country.name + " " + country.dial + "\n" +
-          "数量：" + quantity + " 个\n" +
-          "合计：$" + total.toFixed(2) + "\n" +
-          "支付方式：" + (method ? method.name : "-") + "\n\n" +
-          "接入真实 API 后将创建订单并返回号码。",
-      );
-    }, 600);
+      onConfirm(selectedPayment);
+    }, 200);
   }
 
   return (
