@@ -25,50 +25,64 @@ const { title = "登录" } = Astro.props;
       <slot />
     </main>
 
-    {/* Workaround: Astro 7 未自动注入 island boot 脚本，手动触发 hydration */}
+    {/* DEBUG: island boot with on-page logging */}
     <script is:inline>
-      (function () {
-        async function boot(el) {
-          if (!el.hasAttribute("client")) return;
-          if (!el.hasAttribute("ssr")) return;
+      (async function () {
+        var out = document.createElement("pre");
+        out.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#000;color:#0f0;font-size:10px;padding:6px;max-height:60vh;overflow:auto;white-space:pre-wrap;margin:0;font-family:monospace;line-height:1.3";
+        out.textContent = "[boot] starting\n";
+        document.body.appendChild(out);
 
-          var rendererUrl = el.getAttribute("renderer-url");
-          var componentUrl = el.getAttribute("component-url");
-          var componentExport = el.getAttribute("component-export") || "default";
-          if (!rendererUrl || !componentUrl) return;
-
-          try {
-            var mods = await Promise.all([
-              import(rendererUrl),
-              import(componentUrl),
-            ]);
-            var hydrator = mods[0].default;
-            var Component = mods[1][componentExport];
-
-            if (typeof hydrator !== "function" || !Component) {
-              console.error("[island] invalid hydrator/component", componentUrl);
-              return;
-            }
-
-            el.Component = Component;
-            el.hydrator = hydrator;
-            await el.hydrate();
-          } catch (err) {
-            console.error("[island] boot failed", componentUrl, err);
-          }
+        function log(msg) {
+          out.textContent += msg + "\n";
+          try { console.log("[boot]", msg); } catch (e) {}
         }
 
-        function bootAll() {
+        try {
+          log("customElement astro-island defined: " + !!customElements.get("astro-island"));
+
           var islands = document.querySelectorAll("astro-island[client]");
-          islands.forEach(boot);
-        }
+          log("islands found: " + islands.length);
 
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", bootAll, { once: true });
-        } else {
-          bootAll();
+          for (var i = 0; i < islands.length; i++) {
+            var el = islands[i];
+            log("--- island " + i + " ---");
+            log("  client: " + el.getAttribute("client") + "  ssr: " + el.hasAttribute("ssr"));
+            log("  hydrate fn: " + (typeof el.hydrate));
+            log("  hydrator: " + (typeof el.hydrator));
+
+            var rendererUrl = el.getAttribute("renderer-url");
+            var componentUrl = el.getAttribute("component-url");
+            var componentExport = el.getAttribute("component-export") || "default";
+
+            try {
+              log("  importing renderer: " + rendererUrl);
+              var rendererMod = await import(rendererUrl);
+              log("  renderer keys: " + Object.keys(rendererMod).join(","));
+              log("  renderer default type: " + typeof rendererMod.default);
+
+              log("  importing component: " + componentUrl);
+              var componentMod = await import(componentUrl);
+              log("  component keys: " + Object.keys(componentMod).join(","));
+              log("  component[" + componentExport + "] type: " + typeof componentMod[componentExport]);
+
+              el.hydrator = rendererMod.default;
+              el.Component = componentMod[componentExport];
+
+              log("  calling hydrate()...");
+              await el.hydrate();
+              log("  hydrate OK");
+            } catch (err) {
+              log("  ERROR: " + (err && err.message ? err.message : String(err)));
+              log("  STACK: " + (err && err.stack ? err.stack.split("\n").slice(0, 4).join(" || ") : "n/a"));
+            }
+          }
+
+          log("done");
+        } catch (err) {
+          log("FATAL: " + (err && err.message ? err.message : String(err)));
         }
       })();
     </script>
-  </body>
+    </body>
 </html>
