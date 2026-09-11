@@ -422,6 +422,11 @@ export default function ProfilePage() {
     }
 
     if (changingPassword) return;
+
+    if (!window.confirm("确认修改密码？修改后需要重新登录。")) {
+      return;
+    }
+
     setChangingPassword(true);
 
     try {
