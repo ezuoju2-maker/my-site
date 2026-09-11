@@ -16,6 +16,12 @@ export default function RegisterForm() {
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
   const [emailCodeError, setEmailCodeError] = useState("");
+  const [website, setWebsite] = useState("");
+  const mountTimeRef = useRef(0);
+
+  useEffect(() => {
+    mountTimeRef.current = Date.now();
+  }, []);
   const [emailCodeCooldown, setEmailCodeCooldown] = useState(0);
   const sendingEmailCodeRef = useRef(false);
   const [password, setPassword] = useState("");
@@ -457,6 +463,24 @@ export default function RegisterForm() {
   }
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      {/* 蜜罐字段（bot 会填，真人看不见） */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+        aria-hidden="true"
+      />
       <div>
         <label
           htmlFor="register-username"

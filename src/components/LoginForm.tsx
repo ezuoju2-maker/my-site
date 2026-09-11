@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
@@ -25,6 +25,12 @@ export default function LoginForm() {
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [captchaError, setCaptchaError] = useState("");
+  const [website, setWebsite] = useState("");
+  const mountTimeRef = useRef(0);
+
+  useEffect(() => {
+    mountTimeRef.current = Date.now();
+  }, []);
 
   function handleUsernameChange(value: string) {
     setUsername(value);
@@ -138,6 +144,24 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      {/* 蜜罐字段（bot 会填，真人看不见） */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+        aria-hidden="true"
+      />
       {/* 用户名 */}
       <div>
         <label
