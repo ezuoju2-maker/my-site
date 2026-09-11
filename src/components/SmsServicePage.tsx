@@ -8,6 +8,13 @@ import {
   type SmsService,
 } from "./sms-services-data";
 import { AUTO_SERVICES } from "./sms-services-auto";
+import {
+  ALL_COUNTRIES,
+  POPULAR_COUNTRIES,
+  groupByRegion,
+  getFlag,
+  type SmsCountry,
+} from "./sms-countries-data";
 
 const ALL_SERVICES = mergeWithAuto(RAW_SERVICES, AUTO_SERVICES);
 
@@ -20,6 +27,30 @@ const POPULAR_SERVICES = (() => {
   }
   return out;
 })();
+
+const CATEGORY_LABEL_MAP: Record<string, string> = {
+  social: "社交与通讯",
+  china: "中国平台",
+  japan_korea: "日本 · 韩国",
+  sea: "东南亚",
+  south_asia: "南亚",
+  tw_hk_mo: "港澳台",
+  russia: "俄罗斯 · 独联体",
+  europe: "欧洲",
+  north_america: "北美",
+  latam: "拉美",
+  mena_africa: "中东 · 非洲",
+  oceania: "大洋洲",
+  ai: "AI 工具",
+  dev: "开发者服务",
+  ecommerce: "电商购物",
+  entertainment: "影音娱乐",
+  gaming: "游戏",
+  travel: "出行旅游",
+  fintech: "金融科技",
+  productivity: "效率工具",
+  other: "其他",
+};
 
 function groupByCategory() {
   const groups = rawGroupByCategory();
@@ -36,53 +67,13 @@ function groupByCategory() {
     } else {
       map.set(svc.category, {
         category: svc.category,
-        label: categoryLabel(svc.category),
+        label: CATEGORY_LABEL_MAP[svc.category] || svc.category,
         items: [svc],
       });
     }
   }
   return Array.from(map.values());
 }
-
-function categoryLabel(cat: string): string {
-  const labels: Record<string, string> = {
-    social: "社交与通讯",
-    china: "中国平台",
-    japan_korea: "日本 · 韩国",
-    sea: "东南亚",
-    south_asia: "南亚",
-    tw_hk_mo: "港澳台",
-    russia: "俄罗斯 · 独联体",
-    europe: "欧洲",
-    north_america: "北美",
-    latam: "拉美",
-    mena_africa: "中东 · 非洲",
-    oceania: "大洋洲",
-    ai: "AI 工具",
-    dev: "开发者服务",
-    ecommerce: "电商购物",
-    entertainment: "影音娱乐",
-    gaming: "游戏",
-    travel: "出行旅游",
-    fintech: "金融科技",
-    productivity: "效率工具",
-    other: "其他",
-  };
-  return labels[cat] || cat;
-}
-
-type SmsCountry = { id: string; name: string; code: string; flag: string };
-
-const COUNTRIES: SmsCountry[] = [
-  { id: "us", name: "美国",     code: "+1",  flag: "\u{1F1FA}\u{1F1F8}" },
-  { id: "gb", name: "英国",     code: "+44", flag: "\u{1F1EC}\u{1F1E7}" },
-  { id: "ca", name: "加拿大",   code: "+1",  flag: "\u{1F1E8}\u{1F1E6}" },
-  { id: "au", name: "澳大利亚", code: "+61", flag: "\u{1F1E6}\u{1F1FA}" },
-  { id: "sg", name: "新加坡",   code: "+65", flag: "\u{1F1F8}\u{1F1EC}" },
-  { id: "jp", name: "日本",     code: "+81", flag: "\u{1F1EF}\u{1F1F5}" },
-  { id: "kr", name: "韩国",     code: "+82", flag: "\u{1F1F0}\u{1F1F7}" },
-  { id: "de", name: "德国",     code: "+49", flag: "\u{1F1E9}\u{1F1EA}" },
-];
 
 function isLightHex(hex: string): boolean {
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
@@ -154,6 +145,56 @@ const ChevronRight = () => (
   </svg>
 );
 
+const ArrowLeft = () => (
+  <svg
+    viewBox="0 0 24 24"
+    width="22"
+    height="22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M19 12H5" />
+    <path d="M12 19l-7-7 7-7" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg
+    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
+
+const GlobeIcon = () => (
+  <svg
+    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+    <path d="M2 12h20" />
+  </svg>
+);
+
 function ServiceRow({ service }: { service: SmsService }) {
   return (
     <button
@@ -169,14 +210,41 @@ function ServiceRow({ service }: { service: SmsService }) {
   );
 }
 
+function CountryRow({ country }: { country: SmsCountry }) {
+  return (
+    <button
+      type="button"
+      className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3 text-left"
+    >
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center text-2xl leading-none"
+        aria-hidden="true"
+      >
+        {getFlag(country.code)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm text-neutral-900">
+          {country.name}
+        </div>
+        <div className="truncate text-xs text-neutral-400">
+          {country.dial}
+        </div>
+      </div>
+      <ChevronRight />
+    </button>
+  );
+}
+
 export default function SmsServicePage() {
   const [serviceQuery, setServiceQuery] = useState("");
   const [countryQuery, setCountryQuery] = useState("");
   const [showAllServices, setShowAllServices] = useState(false);
+  const [showAllCountries, setShowAllCountries] = useState(false);
 
-  const grouped = useMemo(() => groupByCategory(), []);
+  const groupedServices = useMemo(() => groupByCategory(), []);
+  const groupedCountries = useMemo(() => groupByRegion(), []);
 
-  const searchResults = useMemo(() => {
+  const searchedServices = useMemo(() => {
     const q = serviceQuery.trim().toLowerCase();
     if (!q) return null;
     return ALL_SERVICES.filter(
@@ -186,11 +254,17 @@ export default function SmsServicePage() {
     );
   }, [serviceQuery]);
 
-  const filteredCountries = COUNTRIES.filter(
-    (c) =>
-      c.name.includes(countryQuery.trim()) ||
-      c.code.includes(countryQuery.trim()),
-  );
+  const searchedCountries = useMemo(() => {
+    const q = countryQuery.trim().toLowerCase();
+    if (!q) return null;
+    return ALL_COUNTRIES.filter(
+      (c) =>
+        c.name.includes(q) ||
+        c.nameEn.toLowerCase().includes(q) ||
+        c.dial.includes(q) ||
+        c.code.toLowerCase() === q,
+    );
+  }, [countryQuery]);
 
   function goBack() {
     window.location.href = getBase() + "dashboard/";
@@ -206,40 +280,16 @@ export default function SmsServicePage() {
             className="flex h-9 w-9 items-center justify-center text-neutral-700"
             aria-label="返回"
           >
-            <svg
-              viewBox="0 0 24 24"
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M19 12H5" />
-              <path d="M12 19l-7-7 7-7" />
-            </svg>
+            <ArrowLeft />
           </button>
           <h1 className="text-lg font-semibold text-neutral-900">接码系统</h1>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-5 py-6">
+        {/* 搜索服务 */}
         <div className="relative">
-          <svg
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
+          <SearchIcon />
           <input
             type="text"
             value={serviceQuery}
@@ -249,21 +299,21 @@ export default function SmsServicePage() {
           />
         </div>
 
-        {searchResults ? (
+        {searchedServices ? (
           <section>
             <h2 className="mb-3 text-lg font-semibold text-neutral-900">
               搜索结果
               <span className="ml-2 text-sm font-normal text-neutral-400">
-                {searchResults.length} 项
+                {searchedServices.length} 项
               </span>
             </h2>
-            {searchResults.length === 0 ? (
+            {searchedServices.length === 0 ? (
               <p className="rounded-xl border border-neutral-100 bg-white p-4 text-sm text-neutral-500">
                 未找到匹配的服务
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {searchResults.map((s) => (
+                {searchedServices.map((s) => (
                   <ServiceRow key={s.slug} service={s} />
                 ))}
               </div>
@@ -298,21 +348,9 @@ export default function SmsServicePage() {
           </>
         )}
 
+        {/* 搜索国家 */}
         <div className="relative">
-          <svg
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-            <path d="M2 12h20" />
-          </svg>
+          <GlobeIcon />
           <input
             type="text"
             value={countryQuery}
@@ -322,46 +360,57 @@ export default function SmsServicePage() {
           />
         </div>
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-neutral-900">
-            热门国家
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {filteredCountries.map((country) => (
-              <button
-                key={country.id}
-                type="button"
-                className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3 text-left"
-              >
-                <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center text-2xl leading-none"
-                  aria-hidden="true"
-                >
-                  {country.flag}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm text-neutral-900">
-                    {country.name}
-                  </div>
-                  <div className="text-xs text-neutral-400">
-                    {country.code}
-                  </div>
-                </div>
-                <ChevronRight />
-              </button>
-            ))}
-          </div>
-        </section>
+        {searchedCountries ? (
+          <section>
+            <h2 className="mb-3 text-lg font-semibold text-neutral-900">
+              搜索结果
+              <span className="ml-2 text-sm font-normal text-neutral-400">
+                {searchedCountries.length} 项
+              </span>
+            </h2>
+            {searchedCountries.length === 0 ? (
+              <p className="rounded-xl border border-neutral-100 bg-white p-4 text-sm text-neutral-500">
+                未找到匹配的国家 / 地区
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {searchedCountries.map((c) => (
+                  <CountryRow key={c.code} country={c} />
+                ))}
+              </div>
+            )}
+          </section>
+        ) : (
+          <>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-neutral-900">
+                热门国家
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {POPULAR_COUNTRIES.slice(0, 8).map((c) => (
+                  <CountryRow key={c.code} country={c} />
+                ))}
+              </div>
+            </section>
 
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 text-left"
-        >
-          <span className="text-sm text-neutral-900">其他国家</span>
-          <ChevronRight />
-        </button>
+            <button
+              type="button"
+              onClick={() => setShowAllCountries(true)}
+              className="flex w-full items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 text-left"
+            >
+              <span className="text-sm text-neutral-900">
+                全部国家 / 地区
+                <span className="ml-2 text-xs text-neutral-400">
+                  {ALL_COUNTRIES.length} 个
+                </span>
+              </span>
+              <ChevronRight />
+            </button>
+          </>
+        )}
       </main>
 
+      {/* 全部服务 overlay */}
       {showAllServices && (
         <div className="fixed inset-0 z-50 flex flex-col bg-neutral-50">
           <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-neutral-100 bg-white px-5">
@@ -371,29 +420,14 @@ export default function SmsServicePage() {
               className="flex h-9 w-9 items-center justify-center text-neutral-700"
               aria-label="关闭"
             >
-              <svg
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M19 12H5" />
-                <path d="M12 19l-7-7 7-7" />
-              </svg>
+              <ArrowLeft />
             </button>
-            <h1 className="text-lg font-semibold text-neutral-900">
-              全部服务
-            </h1>
+            <h1 className="text-lg font-semibold text-neutral-900">全部服务</h1>
           </header>
 
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-3xl space-y-8 px-5 py-6">
-              {grouped.map(({ category, label, items }) => (
+              {groupedServices.map(({ category, label, items }) => (
                 <section key={category}>
                   <h2 className="mb-3 text-base font-semibold text-neutral-900">
                     {label}
@@ -404,6 +438,45 @@ export default function SmsServicePage() {
                   <div className="grid grid-cols-2 gap-3">
                     {items.map((s) => (
                       <ServiceRow key={s.slug} service={s} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 全部国家 overlay */}
+      {showAllCountries && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-neutral-50">
+          <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-neutral-100 bg-white px-5">
+            <button
+              type="button"
+              onClick={() => setShowAllCountries(false)}
+              className="flex h-9 w-9 items-center justify-center text-neutral-700"
+              aria-label="关闭"
+            >
+              <ArrowLeft />
+            </button>
+            <h1 className="text-lg font-semibold text-neutral-900">
+              全部国家 / 地区
+            </h1>
+          </header>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-3xl space-y-8 px-5 py-6">
+              {groupedCountries.map(({ region, label, items }) => (
+                <section key={region}>
+                  <h2 className="mb-3 text-base font-semibold text-neutral-900">
+                    {label}
+                    <span className="ml-2 text-xs font-normal text-neutral-400">
+                      {items.length}
+                    </span>
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {items.map((c) => (
+                      <CountryRow key={c.code} country={c} />
                     ))}
                   </div>
                 </section>
