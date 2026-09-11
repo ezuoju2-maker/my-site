@@ -20,6 +20,7 @@ declare namespace Cloudflare {
     // ============ Vars（wrangler.toml [vars]）============
     CAPTCHA_MODE?: string;
     BUDGET_MODE?: "normal" | "throttled" | "degraded" | "emergency";
+    CSP_MODE?: "report-only" | "enforce";
   }
 }
 
