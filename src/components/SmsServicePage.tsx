@@ -21,6 +21,7 @@ import {
 import { AUTO_COUNTRIES } from "./sms-countries-auto";
 import SmsServiceDetail from "./SmsServiceDetail";
 import SmsCountryDetail from "./SmsCountryDetail";
+import SmsOrderPage from "./SmsOrderPage";
 
 const ALL_SERVICES = mergeWithAuto(RAW_SERVICES, AUTO_SERVICES);
 
@@ -195,7 +196,8 @@ const GlobeIcon = () => (
 type View =
   | { type: "list" }
   | { type: "service"; slug: string }
-  | { type: "country"; code: string };
+  | { type: "country"; code: string }
+  | { type: "order"; serviceSlug: string; countryCode: string };
 
 type ListProps = {
   onOpenService: (svc: SmsService) => void;
@@ -507,6 +509,12 @@ export default function SmsServicePage() {
     setView(next);
   }
 
+  function openOrder(serviceSlug: string, countryCode: string) {
+    const next: View = { type: "order", serviceSlug, countryCode };
+    window.history.pushState(next, "");
+    setView(next);
+  }
+
   function back() {
     window.history.back();
   }
@@ -524,10 +532,7 @@ export default function SmsServicePage() {
         serviceName={svc.name}
         allCountries={ALL_COUNTRIES}
         onBack={back}
-        onPickCountry={(code) => {
-          const c = ALL_COUNTRIES.find((x) => x.code === code);
-          if (c) openCountry(c);
-        }}
+        onPickCountry={(code) => openOrder(svc.slug, code)}
       />
     );
   }
@@ -545,10 +550,24 @@ export default function SmsServicePage() {
         country={c}
         allServices={ALL_SERVICES}
         onBack={back}
-        onPickService={(slug) => {
-          const svc = ALL_SERVICES.find((s) => s.slug === slug);
-          if (svc) openService(svc);
-        }}
+        onPickService={(slug) => openOrder(slug, c.code)}
+      />
+    );
+  }
+
+  if (view.type === "order") {
+    const svc = ALL_SERVICES.find((s) => s.slug === view.serviceSlug);
+    const c = ALL_COUNTRIES.find((x) => x.code === view.countryCode);
+    if (!svc || !c) {
+      return (
+        <ListView onOpenService={openService} onOpenCountry={openCountry} />
+      );
+    }
+    return (
+      <SmsOrderPage
+        service={svc}
+        country={c}
+        onBack={back}
       />
     );
   }
