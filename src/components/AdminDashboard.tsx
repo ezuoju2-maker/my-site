@@ -87,6 +87,10 @@ export default function AdminDashboard() {
 
     void check();
 
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,11 +109,17 @@ export default function AdminDashboard() {
         const data = await parseApiResponse(response);
         if (cancelled) return;
         if (data?.ok) {
+          const d = data as unknown as {
+            date?: string;
+            mode?: string;
+            counts?: Record<string, number>;
+            total?: number;
+          };
           setUsage({
-            date: (data as any).date ?? "",
-            mode: (data as any).mode ?? "normal",
-            counts: (data as any).counts ?? {},
-            total: (data as any).total ?? 0,
+            date: d.date ?? "",
+            mode: d.mode ?? "normal",
+            counts: d.counts ?? {},
+            total: d.total ?? 0,
           });
         }
       } catch {
@@ -117,10 +127,6 @@ export default function AdminDashboard() {
       }
     }
     void loadUsage();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
     return () => {
       cancelled = true;
     };
