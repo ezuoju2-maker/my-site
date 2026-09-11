@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { getBase } from "../lib/url";
 import { getFlag, type SmsCountry } from "./sms-countries-data";
 import { getStockForService } from "./sms-mock-stock";
+import { getPriceRange, getTotalStock } from "./sms-pricing";
 
 type Props = {
   serviceSlug: string;
@@ -34,10 +35,14 @@ export default function SmsServiceDetail({
   const available = useMemo(
     () =>
       stock
-        .map((s) => ({ s, c: countryMap.get(s.countryCode) }))
-        .filter((x): x is { s: typeof stock[0]; c: SmsCountry } => Boolean(x.c))
-        .sort((a, b) => b.s.stock - a.s.stock),
-    [stock, countryMap],
+        .map((s) => {
+          const priceRange = getPriceRange(s.price);
+          const totalStock = getTotalStock(serviceSlug, s.countryCode, s.stock);
+          return { s, c: countryMap.get(s.countryCode), priceRange, totalStock };
+        })
+        .filter((x): x is { s: typeof stock[0]; c: SmsCountry; priceRange: { min: number; max: number }; totalStock: number } => Boolean(x.c))
+        .sort((a, b) => b.totalStock - a.totalStock),
+    [stock, countryMap, serviceSlug],
   );
 
   const filtered = useMemo(() => {
@@ -112,8 +117,11 @@ export default function SmsServiceDetail({
           </p>
         ) : (
           <div className="space-y-2">
-            {filtered.map(({ s, c }) => {
-              const inStock = s.stock > 0;
+            {filtered.map(({ s, c, priceRange, totalStock }) => {
+              const inStock = totalStock > 0;
+              const priceText = priceRange.min === priceRange.max
+                ? "$" + priceRange.min.toFixed(2)
+                : "$" + priceRange.min.toFixed(2) + " ~ $" + priceRange.max.toFixed(2);
               return (
                 <button
                   key={c.code}
@@ -134,7 +142,7 @@ export default function SmsServiceDetail({
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="text-sm font-semibold text-neutral-900">
-                      ${s.price.toFixed(2)}
+                      {priceText}
                     </div>
                     <div
                       className={
@@ -142,7 +150,7 @@ export default function SmsServiceDetail({
                         (inStock ? "text-green-600" : "text-neutral-400")
                       }
                     >
-                      {inStock ? `库存 ${s.stock}` : "无货"}
+                      {inStock ? "库存 " + totalStock : "无货"}
                     </div>
                   </div>
                   <svg className="h-4 w-4 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
