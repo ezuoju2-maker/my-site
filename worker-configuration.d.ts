@@ -17,16 +17,7 @@ declare namespace Cloudflare {
     RESEND_API_KEY: string;
     OTP_SECRET: string;
 
-    // ============ Service Binding（wrangler.toml [[services]]）============
-    CAP_WORKER?: {
-      fetch: (
-        input: RequestInfo | URL,
-        init?: RequestInit,
-      ) => Promise<Response>;
-    };
-
     // ============ Vars（wrangler.toml [vars]）============
-    CAP_WORKER_URL?: string;
     CAPTCHA_MODE?: string;
     BUDGET_MODE?: "normal" | "throttled" | "degraded" | "emergency";
   }
