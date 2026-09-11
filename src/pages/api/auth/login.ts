@@ -1,5 +1,6 @@
 import { recordUsage } from "../../../lib/budget";
 import type { APIRoute } from "astro";
+import { checkFormGuard } from "../../../lib/form-guard";
 import { env } from "cloudflare:workers";
 import {
   corsHeaders,
@@ -89,6 +90,11 @@ export const POST: APIRoute = async ({ request }) => {
     body = await request.json();
   } catch {
     return json({ ok: false, error: "INVALID_JSON" }, 400, {}, origin);
+  }
+
+  const guard = checkFormGuard(body);
+  if (!guard.ok) {
+    return json({ ok: false, error: guard.error }, 400, {}, origin);
   }
 
   const identifier = normalizeIdentifier(body.identifier);

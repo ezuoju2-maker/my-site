@@ -1,5 +1,6 @@
 import { recordUsage } from "../../../lib/budget";
 import type { APIRoute } from "astro";
+import { checkFormGuard } from "../../../lib/form-guard";
 import { env } from "cloudflare:workers";
 import {
   hashPassword,
@@ -105,6 +106,11 @@ export const POST: APIRoute = async ({ request }) => {
       {},
       origin,
     );
+  }
+
+  const guard = checkFormGuard(body);
+  if (!guard.ok) {
+    return json({ ok: false, error: guard.error }, 400, {}, origin);
   }
 
   const username = normalizeUsername(body.username);
