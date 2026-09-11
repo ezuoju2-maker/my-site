@@ -19,4 +19,3 @@ id = "e38baa95fa0640498a127ba6d154671d"
 [vars]
 CAPTCHA_MODE = "enabled"
 BUDGET_MODE = "normal"
-CSP_MODE = "report-only"
