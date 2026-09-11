@@ -375,6 +375,36 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleRevokeAll() {
+    if (!window.confirm("确认退出所有设备？包括当前设备在内的所有登录状态将被清除。")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/user/sessions/revoke-all`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+
+      const data = await parseApiResponse(response);
+
+      if (!response.ok || !data.ok) {
+        notify("操作失败，请稍后重试");
+        return;
+      }
+
+      notify("已退出所有设备，正在跳转…");
+      window.setTimeout(() => {
+        window.location.href = getBase();
+      }, 1200);
+    } catch {
+      notify("网络错误，请重试");
+    }
+  }
+
   async function handleChangePassword() {
     setPasswordError("");
 
@@ -852,6 +882,27 @@ export default function ProfilePage() {
               </button>
             </div>
           )}
+        </section>
+
+        {/* 安全操作 */}
+        <section className="rounded-2xl border border-neutral-100 bg-white p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-base font-medium text-neutral-900">
+                退出所有设备
+              </div>
+              <p className="mt-1 text-xs text-neutral-500">
+                若账号在陌生设备登录，可一键使所有登录态失效
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRevokeAll}
+              className="shrink-0 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600"
+            >
+              退出全部
+            </button>
+          </div>
         </section>
 
         {/* 账户信息 */}
