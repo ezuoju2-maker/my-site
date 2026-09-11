@@ -22,6 +22,8 @@ import { AUTO_COUNTRIES } from "./sms-countries-auto";
 import SmsServiceDetail from "./SmsServiceDetail";
 import SmsCountryDetail from "./SmsCountryDetail";
 import SmsOrderPage from "./SmsOrderPage";
+import SmsChannelPage from "./SmsChannelPage";
+import type { PaymentMethodId } from "./sms-channels";
 
 const ALL_SERVICES = mergeWithAuto(RAW_SERVICES, AUTO_SERVICES);
 
@@ -197,7 +199,14 @@ type View =
   | { type: "list" }
   | { type: "service"; slug: string }
   | { type: "country"; code: string }
-  | { type: "order"; serviceSlug: string; countryCode: string };
+  | { type: "order"; serviceSlug: string; countryCode: string }
+  | {
+      type: "channel";
+      serviceSlug: string;
+      countryCode: string;
+      payment: PaymentMethodId;
+      quantity: number;
+    };
 
 type ListProps = {
   onOpenService: (svc: SmsService) => void;
@@ -515,6 +524,23 @@ export default function SmsServicePage() {
     setView(next);
   }
 
+  function openChannel(
+    serviceSlug: string,
+    countryCode: string,
+    payment: PaymentMethodId,
+    quantity: number,
+  ) {
+    const next: View = {
+      type: "channel",
+      serviceSlug,
+      countryCode,
+      payment,
+      quantity,
+    };
+    window.history.pushState(next, "");
+    setView(next);
+  }
+
   function back() {
     window.history.back();
   }
@@ -567,6 +593,51 @@ export default function SmsServicePage() {
       <SmsOrderPage
         service={svc}
         country={c}
+        onBack={back}
+        onConfirm={(payment) => {
+          const PAYMENT_LABELS: Record<PaymentMethodId, string> = {
+            wechat: "微信支付",
+            alipay: "支付宝",
+            usdt: "USDT (TRC20)",
+          };
+          // USDT 无通道可选，直接模拟下单
+          if (payment === "usdt") {
+            window.alert(
+              "USDT 订单已提交（演示模式）\n\n" +
+                "服务：" + svc.name + "\n" +
+                "国家：" + c.name + " " + c.dial + "\n" +
+                "支付方式：USDT (TRC20)\n\n" +
+                "接入真实支付后将显示 USDT 收款地址。",
+            );
+            return;
+          }
+          void PAYMENT_LABELS;
+          openChannel(svc.slug, c.code, payment, 1);
+        }}
+      />
+    );
+  }
+
+  if (view.type === "channel") {
+    const svc = ALL_SERVICES.find((s) => s.slug === view.serviceSlug);
+    const c = ALL_COUNTRIES.find((x) => x.code === view.countryCode);
+    if (!svc || !c) {
+      return (
+        <ListView onOpenService={openService} onOpenCountry={openCountry} />
+      );
+    }
+    const PAYMENT_LABELS: Record<PaymentMethodId, string> = {
+      wechat: "微信支付",
+      alipay: "支付宝",
+      usdt: "USDT (TRC20)",
+    };
+    return (
+      <SmsChannelPage
+        service={svc}
+        country={c}
+        paymentMethod={view.payment}
+        paymentLabel={PAYMENT_LABELS[view.payment]}
+        quantity={view.quantity}
         onBack={back}
       />
     );
