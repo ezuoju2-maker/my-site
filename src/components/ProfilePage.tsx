@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { IconChevronRight } from "./icons/dashboard-icons";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
+import CapWidget from "./CapWidget";
 
 type Profile = {
   id: string;
@@ -84,6 +85,9 @@ export default function ProfilePage() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailCooldown, setEmailCooldown] = useState(0);
   const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
+  const [capKey, setCapKey] = useState(0);
 
   const [saving, setSaving] = useState(false);
 
@@ -194,6 +198,7 @@ export default function ProfilePage() {
 
   async function handleSendEmailCode() {
     setEmailFormError("");
+    setCaptchaError("");
 
     if (!newEmail.trim()) {
       setEmailFormError("请输入新邮箱");
@@ -201,6 +206,10 @@ export default function ProfilePage() {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
       setEmailFormError("邮箱格式不正确");
+      return;
+    }
+    if (!captchaToken) {
+      setCaptchaError("请先完成人机验证");
       return;
     }
     if (emailCooldown > 0 || emailSending) return;
@@ -215,7 +224,10 @@ export default function ProfilePage() {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ newEmail: newEmail.trim() }),
+          body: JSON.stringify({
+            newEmail: newEmail.trim(),
+            captchaToken,
+          }),
         },
       );
       const data = await parseApiResponse(response);
@@ -245,6 +257,8 @@ export default function ProfilePage() {
       setEmailCooldown(0);
     } finally {
       setEmailSending(false);
+      setCaptchaToken("");
+      setCapKey((k) => k + 1);
     }
   }
 
@@ -408,6 +422,18 @@ export default function ProfilePage() {
       setNewPassword("");
       setConfirmPassword("");
       setShowPasswordForm(false);
+
+      const relogin = (data as unknown as { relogin?: boolean }).relogin === true;
+
+      if (relogin) {
+        notify("密码修改成功，正在跳转重新登录…");
+        document.cookie = "session=; Path=/; Max-Age=0; Secure; SameSite=Lax";
+        window.setTimeout(() => {
+          window.location.href = getBase();
+        }, 1200);
+        return;
+      }
+
       notify("密码修改成功");
     } catch {
       setPasswordError("网络错误，请重试");
@@ -645,6 +671,25 @@ export default function ProfilePage() {
                           : "获取验证码"}
                     </button>
                   </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                    人机验证
+                  </label>
+                  <div className="flex min-h-[78px] w-full items-center justify-center rounded-xl border border-neutral-200 bg-white px-2 py-2">
+                    <CapWidget
+                      key={capKey}
+                      onSolve={(token) => {
+                        setCaptchaToken(token);
+                        setCaptchaError("");
+                      }}
+                      onReset={() => setCaptchaToken("")}
+                    />
+                  </div>
+                  {captchaError && (
+                    <p className="mt-1.5 text-sm text-red-500">{captchaError}</p>
+                  )}
                 </div>
 
                 {emailFormError && (

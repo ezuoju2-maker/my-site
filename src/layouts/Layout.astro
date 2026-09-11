@@ -17,27 +17,6 @@ const { title = "登录" } = Astro.props;
     <meta name="description" content="用户登录" />
     <title>{title}</title>
 
-    {/* 调试模式：URL 带 ?debug=1 时加载 Eruda 移动端 Console */}
-    <script is:inline>
-      (function () {
-        try {
-          var params = new URLSearchParams(window.location.search);
-          if (!params.has("debug")) return;
-          var script = document.createElement("script");
-          script.src = "https://cdn.jsdelivr.net/npm/eruda@3.4.1/eruda.min.js";
-          script.async = true;
-          script.onload = function () {
-            if (window.eruda) {
-              window.eruda.init();
-              console.log("[Eruda] Debug console ready");
-            }
-          };
-          document.head.appendChild(script);
-        } catch (err) {
-          console.error("Eruda load error", err);
-        }
-      })();
-    </script>
   </head>
 
   <body>

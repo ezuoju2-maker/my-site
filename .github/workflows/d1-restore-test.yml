@@ -286,10 +286,12 @@ jobs:
           cat backup-restore-work/migration-count.json
 
           jq -e '
-            .[0].results[0].migration_count == 2
+            (.[0].results[0].migration_count | type) == "number"
+            and
+            .[0].results[0].migration_count >= 2
           ' backup-restore-work/migration-count.json >/dev/null
 
-          echo "Migration count: PASS"
+          echo "Migration count: PASS (>= 2)"
 
           echo
           echo "=== Migration versions ==="
@@ -312,9 +314,19 @@ jobs:
               [.[0].results[].name]
               | index("0002_security_session_version.sql") != null
             )
+            and
+            (
+              [.[0].results[].name]
+              | index("0003_add_user_role.sql") != null
+            )
+            and
+            (
+              [.[0].results[].name]
+              | index("0004_add_user_profile.sql") != null
+            )
           ' backup-restore-work/migrations.json >/dev/null
 
-          echo "Migration versions: PASS"
+          echo "Migration versions: PASS (0001-0004)"
 
           echo
           echo "=== User count ==="

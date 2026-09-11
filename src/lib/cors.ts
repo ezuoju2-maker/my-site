@@ -1,6 +1,16 @@
-const ALLOWED_ORIGINS = new Set([
+const PROD_ORIGINS = [
   "https://ezuoju2-maker.github.io",
   "https://my-site-n7j.pages.dev",
+];
+
+const DEV_ORIGINS = [
+  "http://localhost:4321",
+  "http://127.0.0.1:4321",
+];
+
+const ALLOWED_ORIGINS = new Set([
+  ...PROD_ORIGINS,
+  ...(import.meta.env.DEV ? DEV_ORIGINS : []),
 ]);
 
 export function getAllowedOrigin(request: Request) {

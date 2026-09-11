@@ -9,6 +9,8 @@ import {
 import {
   hashPassword,
   verifyPassword,
+  clearSessionCookie,
+  deleteSession,
   PASSWORD_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
 } from "../../../lib/auth";
@@ -107,16 +109,29 @@ export const POST: APIRoute = async ({ request }) => {
 
     await env.DB.prepare(
       `UPDATE users
-       SET password_hash = ?1, updated_at = CURRENT_TIMESTAMP
+       SET password_hash = ?1,
+           session_version = session_version + 1,
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = ?2`,
     )
       .bind(newHash, auth.session.userId)
       .run();
 
-    // 说明：当前 session 保持有效，其他设备的 session 也保持有效。
-    // 未来可以增加"退出其他所有设备"选项（递增 session_version）。
+    // 改密后让当前 session 也失效，强制重新登录。
+    await deleteSession(request);
 
-    return json({ ok: true }, 200, origin);
+    return new Response(
+      JSON.stringify({ ok: true, relogin: true }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+          "Set-Cookie": clearSessionCookie(),
+          ...(origin ? corsHeaders(origin) : {}),
+        },
+      },
+    );
   } catch (error) {
     console.error("Password change error", error);
     return json({ ok: false, error: "INTERNAL_ERROR" }, 500, origin);

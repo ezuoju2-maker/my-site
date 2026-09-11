@@ -35,6 +35,15 @@ jobs:
         run: npx astro check
         continue-on-error: false
 
+      - name: Build (GitHub Pages static mode)
+        env:
+          GITHUB_PAGES: "true"
+          PUBLIC_API_BASE_URL: "https://my-site-n7j.pages.dev"
+        run: |
+          rm -rf src/pages/api
+          rm -rf src/middleware.ts
+          npm run build
+
       - name: npm audit (high and above, non-blocking)
         run: npm audit --audit-level=high
         continue-on-error: true

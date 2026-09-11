@@ -110,9 +110,13 @@ export const PATCH: APIRoute = async ({ request }) => {
     return json({ ok: false, error: "INVALID_JSON" }, 400, origin);
   }
 
-  // displayName：可选，字符串，去空白后 1-30 字符
+  // displayName：可选，字符串，去空白后 0-30 字符；未传表示不改，空串表示清空
+  const hasDisplayName = "displayName" in body;
   let displayName: string | null = null;
-  if (typeof body.displayName === "string") {
+  if (hasDisplayName) {
+    if (typeof body.displayName !== "string") {
+      return json({ ok: false, error: "INVALID_DISPLAY_NAME" }, 400, origin);
+    }
     const trimmed = body.displayName.trim();
     if (trimmed.length > DISPLAY_NAME_MAX) {
       return json({ ok: false, error: "DISPLAY_NAME_TOO_LONG" }, 400, origin);
@@ -133,7 +137,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     } else if (trimmed.length > 120_000) {
       return json({ ok: false, error: "AVATAR_TOO_LARGE" }, 400, origin);
     } else if (
-      /^https?:\/\//i.test(trimmed) ||
+      /^https:\/\//i.test(trimmed) ||
       /^data:image\/(jpeg|png|webp|gif);base64,/i.test(trimmed)
     ) {
       avatarUrl = trimmed;
@@ -144,9 +148,13 @@ export const PATCH: APIRoute = async ({ request }) => {
     avatarUrl = null;
   }
 
-  // bio：可选，字符串，去空白后 0-200 字符
+  // bio：可选，字符串，去空白后 0-200 字符；未传表示不改，空串表示清空
+  const hasBio = "bio" in body;
   let bio: string | null = null;
-  if (typeof body.bio === "string") {
+  if (hasBio) {
+    if (typeof body.bio !== "string") {
+      return json({ ok: false, error: "INVALID_BIO" }, 400, origin);
+    }
     const trimmed = body.bio.trim();
     if (trimmed.length > BIO_MAX) {
       return json({ ok: false, error: "BIO_TOO_LONG" }, 400, origin);
@@ -155,24 +163,36 @@ export const PATCH: APIRoute = async ({ request }) => {
   }
 
   try {
-    // avatarUrl === undefined 表示不修改；null 表示清空
-    if (avatarUrl === undefined) {
-      await env.DB.prepare(
-        `UPDATE users
-         SET display_name = ?1, bio = ?2, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?3`,
-      )
-        .bind(displayName, bio, auth.session.userId)
-        .run();
-    } else {
-      await env.DB.prepare(
-        `UPDATE users
-         SET display_name = ?1, bio = ?2, avatar_url = ?3, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?4`,
-      )
-        .bind(displayName, bio, avatarUrl, auth.session.userId)
-        .run();
+    const sets: string[] = [];
+    const binds: unknown[] = [];
+
+    if (hasDisplayName) {
+      sets.push(`display_name = ?${binds.length + 1}`);
+      binds.push(displayName);
     }
+
+    if (hasBio) {
+      sets.push(`bio = ?${binds.length + 1}`);
+      binds.push(bio);
+    }
+
+    if (avatarUrl !== undefined) {
+      sets.push(`avatar_url = ?${binds.length + 1}`);
+      binds.push(avatarUrl);
+    }
+
+    if (sets.length === 0) {
+      return json({ ok: true }, 200, origin);
+    }
+
+    sets.push("updated_at = CURRENT_TIMESTAMP");
+    binds.push(auth.session.userId);
+
+    await env.DB.prepare(
+      `UPDATE users SET ${sets.join(", ")} WHERE id = ?${binds.length}`,
+    )
+      .bind(...binds)
+      .run();
 
     return json({ ok: true }, 200, origin);
   } catch (error) {
