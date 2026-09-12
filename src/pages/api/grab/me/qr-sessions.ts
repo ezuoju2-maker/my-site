@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { requireAuth } from "../../../../lib/permissions";
 import { corsHeaders, getAllowedOrigin, rejectCrossSiteRequest } from "../../../../lib/cors";
+import { decryptCredential } from "../../../../lib/grab/crypto";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -22,6 +23,7 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const result = await env.DB.prepare(
       `SELECT q.id, q.platform_code, q.status, q.created_at, q.expires_at, q.consumed_at,
+              q.token_encrypted,
               p.name AS platform_name, p.brand AS platform_brand, p.icon_slug AS platform_icon,
               a.id AS account_id, a.nickname AS account_nickname, a.external_id AS account_external
        FROM grab_qr_sessions q
@@ -37,6 +39,7 @@ export const GET: APIRoute = async ({ request }) => {
       created_at: string;
       expires_at: string;
       consumed_at: string | null;
+      token_encrypted: string | null;
       platform_name: string | null;
       platform_brand: string | null;
       platform_icon: string | null;
@@ -45,20 +48,33 @@ export const GET: APIRoute = async ({ request }) => {
       account_external: string | null;
     }>();
 
-    const sessions = (result.results ?? []).map((r) => ({
-      id: r.id,
-      platform: r.platform_code,
-      platformName: r.platform_name || r.platform_code,
-      platformBrand: r.platform_brand || "737373",
-      platformIcon: r.platform_icon || r.platform_code,
-      status: r.status,
-      createdAt: r.created_at,
-      expiresAt: r.expires_at,
-      consumedAt: r.consumed_at,
-      account: r.account_id
-        ? { id: r.account_id, nickname: r.account_nickname, externalId: r.account_external }
-        : null,
-    }));
+    const otpSecret = (env as any).OTP_SECRET as string | undefined;
+
+    const sessions = await Promise.all(
+      (result.results ?? []).map(async (r) => {
+        let token: string | null = null;
+        if (r.status === "waiting" && r.token_encrypted && otpSecret) {
+          try {
+            token = await decryptCredential(r.token_encrypted, otpSecret);
+          } catch {}
+        }
+        return {
+          id: r.id,
+          platform: r.platform_code,
+          platformName: r.platform_name || r.platform_code,
+          platformBrand: r.platform_brand || "737373",
+          platformIcon: r.platform_icon || r.platform_code,
+          status: r.status,
+          createdAt: r.created_at,
+          expiresAt: r.expires_at,
+          consumedAt: r.consumed_at,
+          token,
+          account: r.account_id
+            ? { id: r.account_id, nickname: r.account_nickname, externalId: r.account_external }
+            : null,
+        };
+      })
+    );
 
     return new Response(JSON.stringify({ ok: true, sessions }), {
       status: 200,
