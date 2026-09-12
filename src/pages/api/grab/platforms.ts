@@ -18,13 +18,17 @@ export const GET: APIRoute = async ({ request }) => {
 
   try {
     const result = await env.DB.prepare(
-      "SELECT code, name FROM grab_platforms WHERE enabled = 1 ORDER BY created_at ASC"
-    ).all<{ code: string; name: string }>();
+      "SELECT code, name, brand, icon_slug FROM grab_platforms WHERE enabled = 1 ORDER BY created_at ASC"
+    ).all<{ code: string; name: string; brand: string | null; icon_slug: string | null }>();
 
-    return new Response(JSON.stringify({
-      ok: true,
-      platforms: (result.results ?? []).map((r) => ({ code: r.code, name: r.name })),
-    }), {
+    const platforms = (result.results ?? []).map((r) => ({
+      code: r.code,
+      name: r.name,
+      brand: r.brand || "737373",
+      iconSlug: r.icon_slug || r.code,
+    }));
+
+    return new Response(JSON.stringify({ ok: true, platforms }), {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",

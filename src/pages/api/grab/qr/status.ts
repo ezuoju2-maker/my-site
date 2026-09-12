@@ -68,10 +68,10 @@ export const GET: APIRoute = async ({ request }) => {
       return json({ ok: false, error: "FORBIDDEN" }, 403, origin);
     }
 
-    let account: { id: string; nickname: string | null; external_id: string; avatar: string | null; authorization_code: string; expires_at: string } | null = null;
+    let account: { id: string; nickname: string | null; external_id: string; avatar: string | null; authorization_code: string; expires_at: string; device_id: string | null } | null = null;
     if (qr.result_account_id) {
       account = await env.DB.prepare(
-        "SELECT id, nickname, external_id, avatar, authorization_code, expires_at FROM grab_accounts WHERE id = ?1 LIMIT 1"
+        "SELECT id, nickname, external_id, avatar, authorization_code, expires_at, device_id FROM grab_accounts WHERE id = ?1 LIMIT 1"
       ).bind(qr.result_account_id).first();
     }
 
@@ -92,6 +92,7 @@ export const GET: APIRoute = async ({ request }) => {
             externalId: account.external_id,
             avatar: account.avatar,
             authorizationCode: account.authorization_code,
+            deviceId: account.device_id,
             expiresAt: account.expires_at,
           }
         : null,
