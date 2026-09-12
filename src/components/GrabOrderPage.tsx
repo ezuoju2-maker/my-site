@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getBase } from "../lib/url";
+import { API_BASE_URL } from "../lib/api";
 
 type Platform = {
   code: string;
@@ -101,8 +102,26 @@ function PlatformLogo({ code, brand, size = 56 }: { code: string; brand: string;
 
 export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: Props) {
   const [payment, setPayment] = useState<PaymentId>("wechat");
+  const [balance, setBalance] = useState<number>(0);
+  const [balanceLoaded, setBalanceLoaded] = useState(false);
   const theme = "#" + p.brand;
-  const balance = 36.42;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/api/user/balance`, { credentials: "include", cache: "no-store" })
+      .then((r) => r.json() as Promise<{ ok?: boolean; balance?: number }>)
+      .then((d) => {
+        if (cancelled) return;
+        if (d.ok && typeof d.balance === "number") {
+          setBalance(d.balance);
+        }
+        setBalanceLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setBalanceLoaded(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const wechat = PAYMENT_ICONS.wechat;
   const alipay = PAYMENT_ICONS.alipay;
@@ -253,7 +272,7 @@ export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: P
                 <div className="mt-0.5 text-xs text-neutral-500">使用当前账户余额进行支付</div>
                 <div className="mt-1 flex items-center gap-1 text-xs text-neutral-500">
                   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1" /><rect x="16" y="10" width="6" height="4" rx="1" /></svg>
-                  当前账户余额 <span className="font-medium text-blue-500">¥{balance.toFixed(2)}</span>
+                  当前账户余额 <span className="font-medium text-blue-500">¥{balanceLoaded ? balance.toFixed(3) : "—.———"}</span>
                 </div>
               </div>
               <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " + (payment === "balance" ? "border-blue-500" : "border-neutral-300")}>
