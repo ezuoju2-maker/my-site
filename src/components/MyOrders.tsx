@@ -4,6 +4,7 @@ import { API_BASE_URL } from "../lib/api";
 import GrabOrders from "./GrabOrders";
 import GrabOrderDetail from "./GrabOrderDetail";
 import GrabAuthorizePage from "./GrabAuthorizePage";
+import GrabAuthorizationInfo from "./GrabAuthorizationInfo";
 
 type OrderType = "sms" | "grab" | "card";
 
@@ -24,6 +25,7 @@ export default function MyOrders({ onBack }: Props) {
   const [qrData, setQrData] = useState<{ token: string; platform: { code: string; name: string; brand: string } } | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState("");
+  const [authInfoOrder, setAuthInfoOrder] = useState<any>(null);
 
   useEffect(() => {
     if (!viewQrOrderId) return;
@@ -57,6 +59,18 @@ export default function MyOrders({ onBack }: Props) {
     } else {
       window.location.href = getBase() + "dashboard/";
     }
+  }
+
+  if (authInfoOrder) {
+    return (
+      <GrabAuthorizationInfo
+        order={authInfoOrder}
+        onBack={() => setAuthInfoOrder(null)}
+        onAddToGrabber={() => {
+          window.location.href = getBase() + "dashboard/grab/use/";
+        }}
+      />
+    );
   }
 
   if (viewQrOrderId) {
@@ -105,6 +119,7 @@ export default function MyOrders({ onBack }: Props) {
         orderId={detailOrderId}
         onBack={() => setDetailOrderId(null)}
         onViewQr={(id) => setViewQrOrderId(id)}
+        onViewAuthInfo={(order) => setAuthInfoOrder(order)}
       />
     );
   }
