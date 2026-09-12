@@ -29,7 +29,7 @@ type MyAccount = {
   accountStatus: string;
   accountExpiresAt: string;
 };
-type View = "picker" | "qr" | "accounts";
+type View = "picker" | "qr" | "accounts" | "more";
 
 function isLightHex(hex: string): boolean {
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
@@ -329,26 +329,30 @@ export default function GrabSystem() {
               {platforms.map((p) => (
                 <button key={p.code} type="button" disabled={loading}
                   onClick={() => generateQr(p)}
-                  className="flex items-center gap-2 rounded-2xl border border-neutral-100 bg-white p-3 text-left active:bg-neutral-50 disabled:opacity-50">
-                  <PlatformLogo code={p.code} size={48} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-900">{p.name}</span>
-                  <svg className="h-4 w-4 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
+                  className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-2 py-3 active:bg-neutral-50 disabled:opacity-50">
+                  <PlatformLogo code={p.code} size={52} />
+                  <div className="flex items-center gap-0.5">
+                    <span className="truncate text-sm text-neutral-900">{p.name}</span>
+                    <svg className="h-3.5 w-3.5 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </div>
                 </button>
               ))}
-              <button type="button" onClick={() => showToast("更多平台即将上线")}
-                className="flex items-center gap-2 rounded-2xl border border-neutral-100 bg-white p-3 text-left active:bg-neutral-50">
-                <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <button type="button" onClick={() => setView("more")}
+                className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-2 py-3 active:bg-neutral-50">
+                <svg width="52" height="52" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                   <rect width="48" height="48" rx="12" fill="#F5F5F5" />
                   <circle cx="16" cy="24" r="2.5" fill="#9CA3AF" />
                   <circle cx="24" cy="24" r="2.5" fill="#9CA3AF" />
                   <circle cx="32" cy="24" r="2.5" fill="#9CA3AF" />
                 </svg>
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-900">更多平台</span>
-                <svg className="h-4 w-4 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
+                <div className="flex items-center gap-0.5">
+                  <span className="truncate text-sm text-neutral-900">更多平台</span>
+                  <svg className="h-3.5 w-3.5 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </div>
               </button>
             </div>
           </section>
@@ -357,7 +361,8 @@ export default function GrabSystem() {
 
           {/* 底部横幅 */}
           <section className="mt-6">
-            <div className="flex items-center gap-3 rounded-2xl bg-neutral-100 px-4 py-4">
+            <button type="button" onClick={() => showToast("敬请期待")}
+              className="flex w-full items-center gap-3 rounded-2xl bg-neutral-100 px-4 py-4 text-left active:bg-neutral-200">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -368,7 +373,10 @@ export default function GrabSystem() {
                 <div className="text-sm font-medium text-neutral-800">支持多个平台的账号授权</div>
                 <div className="mt-0.5 text-xs text-neutral-500">安全 · 稳定 · 便捷</div>
               </div>
-            </div>
+              <svg className="h-4 w-4 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
           </section>
 
         </main>
