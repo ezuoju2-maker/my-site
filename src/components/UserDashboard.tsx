@@ -346,64 +346,6 @@ export default function UserDashboard() {
           <IconChevronRight className="h-4 w-4 shrink-0 text-neutral-300" />
         </button>
 
-        {/* 订单入口 */}
-        <button
-          type="button"
-          onClick={() => { window.location.href = getBase() + "dashboard/orders/"; }}
-          className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left active:bg-neutral-50"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-            <svg className="h-6 w-6 text-neutral-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <path d="M14 2v6h6" />
-              <path d="M9 13h6" />
-              <path d="M9 17h6" />
-            </svg>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold text-neutral-900">订单</div>
-            <div className="mt-1 text-sm text-neutral-500">接码订单 · 抓号订单 · 卡券订单</div>
-          </div>
-          <IconChevronRight className="h-5 w-5 shrink-0 text-neutral-300" />
-        </button>
-
-        {/* 功能列表 */}
-        <div className="space-y-3">
-          {FEATURES.map((feature) => {
-            const FeatureIcon = FEATURE_ICONS[feature.icon];
-            const SubtitleIcon = SUBTITLE_ICONS[feature.subtitleIcon];
-            return (
-              <button
-                key={feature.title}
-                type="button"
-                onClick={() => {
-                  const target = FEATURE_URLS[feature.title];
-                  if (target) {
-                    window.location.href = `${getBase()}${target}`;
-                  } else {
-                    notify(`${feature.title}正在开发中`);
-                  }
-                }}
-                className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                  <FeatureIcon className="h-6 w-6 text-neutral-900" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-base font-semibold text-neutral-900">
-                    {feature.title}
-                  </div>
-                  <div className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
-                    <SubtitleIcon className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{feature.subtitle}</span>
-                  </div>
-                </div>
-                <IconChevronRight className="h-5 w-5 shrink-0 text-neutral-300" />
-              </button>
-            );
-          })}
-        </div>
-
         {/* Tab 导航 */}
         <div className="rounded-2xl border border-neutral-100 bg-white py-2">
           <div className="grid grid-cols-4">
@@ -447,6 +389,44 @@ export default function UserDashboard() {
               );
             })}
           </div>
+        </div>
+
+
+        {/* 功能列表 */}
+        <div className="space-y-3">
+          {FEATURES.map((feature) => {
+            const FeatureIcon = FEATURE_ICONS[feature.icon];
+            const SubtitleIcon = SUBTITLE_ICONS[feature.subtitleIcon];
+            return (
+              <button
+                key={feature.title}
+                type="button"
+                onClick={() => {
+                  const target = FEATURE_URLS[feature.title];
+                  if (target) {
+                    window.location.href = `${getBase()}${target}`;
+                  } else {
+                    notify(`${feature.title}正在开发中`);
+                  }
+                }}
+                className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                  <FeatureIcon className="h-6 w-6 text-neutral-900" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-base font-semibold text-neutral-900">
+                    {feature.title}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
+                    <SubtitleIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{feature.subtitle}</span>
+                  </div>
+                </div>
+                <IconChevronRight className="h-5 w-5 shrink-0 text-neutral-300" />
+              </button>
+            );
+          })}
         </div>
 
         {/* 退出 */}
