@@ -14,6 +14,7 @@ declare namespace Cloudflare {
     SESSION: KVNamespace;
 
     // ============ Secrets（wrangler secret put）============
+    AGENTMAIL_API_KEY?: string;
     RESEND_API_KEY: string;
     BREVO_API_KEY?: string;
     SMTP2GO_API_KEY?: string;
