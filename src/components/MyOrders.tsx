@@ -90,6 +90,7 @@ export default function MyOrders({ onBack }: Props) {
       <GrabAuthorizePage
         platform={qrData.platform}
         qrContent={API_BASE_URL + "/scan/" + qrData.token}
+        qrToken={qrData.token}
         mode="order"
         onBack={() => setViewQrOrderId(null)}
         onBackToDetail={() => setViewQrOrderId(null)}

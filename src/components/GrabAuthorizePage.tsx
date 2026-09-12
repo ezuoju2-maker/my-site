@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { getBase } from "../lib/url";
+import { API_BASE_URL } from "../lib/api";
 
 type Platform = { code: string; name: string; brand: string };
+
+type AccountInfo = {
+  nickname: string | null;
+  externalId: string;
+  authorizationCode: string | null;
+  consumedAt: string | null;
+};
 
 type Props = {
   platform: Platform;
   qrContent: string;
+  qrToken?: string;
   onBack: () => void;
   onViewOrders: () => void;
   // mode = "order"：从订单详情进来，底部显示"返回授权详情"
@@ -77,10 +86,59 @@ function PlatformLogo({ code, brand, size = 88 }: { code: string; brand: string;
   );
 }
 
-export default function GrabAuthorizePage({ platform, qrContent, onBack, onViewOrders, mode = "default", onBackToDetail }: Props) {
+export default function GrabAuthorizePage({ platform, qrContent, qrToken, onBack, onViewOrders, mode = "default", onBackToDetail }: Props) {
   const [toast, setToast] = useState("");
+  const [account, setAccount] = useState<AccountInfo | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const theme = "#" + platform.brand;
+
+  // 轮询授权状态：等待抓号层提交 → 切换到成功视图
+  useEffect(() => {
+    if (!qrToken) return;
+    let cancelled = false;
+    let timer: number | null = null;
+
+    const poll = async () => {
+      try {
+        const r = await fetch(
+          `${API_BASE_URL}/api/grab/qr/status?token=${encodeURIComponent(qrToken)}`,
+          { credentials: "include", cache: "no-store" },
+        );
+        const d = (await r.json()) as {
+          ok?: boolean;
+          qr?: { status?: string; consumedAt?: string | null };
+          account?: {
+            id?: string;
+            nickname?: string | null;
+            externalId?: string | null;
+            authorizationCode?: string | null;
+          };
+        };
+        if (cancelled) return;
+        if (d.ok && d.qr?.status === "consumed" && d.account?.externalId) {
+          setAccount({
+            nickname: d.account.nickname ?? null,
+            externalId: d.account.externalId,
+            authorizationCode: d.account.authorizationCode ?? null,
+            consumedAt: d.qr.consumedAt ?? new Date().toISOString(),
+          });
+          if (timer !== null) window.clearInterval(timer);
+        }
+      } catch {}
+    };
+
+    void poll();
+    timer = window.setInterval(poll, 3000);
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearInterval(timer);
+    };
+  }, [qrToken]);
+
+  function fmtTime(iso: string | null): string {
+    if (!iso) return "—";
+    return iso.replace("T", " ").slice(0, 16);
+  }
 
   function showToast(msg: string) {
     setToast(msg);
@@ -138,6 +196,75 @@ export default function GrabAuthorizePage({ platform, qrContent, onBack, onViewO
     } catch {
       showToast("保存失败");
     }
+  }
+
+  // ==================== 授权成功视图 ====================
+  if (account) {
+    return (
+      <div className="min-h-screen bg-neutral-50 pb-10">
+        <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white">
+          <div className="mx-auto flex h-14 max-w-2xl items-center gap-3 px-4">
+            <button type="button" onClick={onBack}
+              className="flex h-9 w-9 items-center justify-center text-neutral-700" aria-label="返回">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-base font-semibold text-neutral-900">{platform.name}账号授权</h1>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-2xl px-5 py-6">
+          <section className="rounded-2xl border border-neutral-100 bg-white px-6 py-10 flex flex-col items-center">
+            {/* 成功图标 */}
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 shadow-lg shadow-emerald-200">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m5 12 5 5L20 7" />
+              </svg>
+            </div>
+
+            <h2 className="mt-5 text-2xl font-bold text-neutral-900">抓号成功</h2>
+            <p className="mt-2 text-sm text-neutral-500">{platform.name}账号授权成功</p>
+
+            <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              当前状态：成功授权
+            </span>
+
+            {/* 分隔 */}
+            <div className="mt-8 w-full border-t border-neutral-100" />
+
+            {/* 授权信息 */}
+            <div className="mt-6 w-full space-y-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <span className="shrink-0 text-neutral-500">昵称</span>
+                <span className="min-w-0 flex-1 break-all text-right text-neutral-900">
+                  {account.nickname || "—"}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <span className="shrink-0 text-neutral-500">账号ID</span>
+                <span className="min-w-0 flex-1 break-all text-right font-mono text-neutral-900">
+                  {account.externalId}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <span className="shrink-0 text-neutral-500">授权时间</span>
+                <span className="min-w-0 flex-1 break-all text-right text-neutral-900">
+                  {fmtTime(account.consumedAt)}
+                </span>
+              </div>
+            </div>
+
+            {/* 底部按钮 */}
+            <button type="button" onClick={onBackToDetail || onBack}
+              className="mt-8 flex h-11 w-full max-w-xs items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-medium text-neutral-700">
+              返回授权详情
+            </button>
+          </section>
+        </main>
+      </div>
+    );
   }
 
   return (

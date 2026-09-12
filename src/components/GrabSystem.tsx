@@ -486,6 +486,7 @@ export default function GrabSystem() {
       <GrabAuthorizePage
         platform={detailPlatform}
         qrContent={scanUrl}
+        qrToken={currentQr.token || undefined}
         onBack={() => { setView("picker"); setCurrentQr(null); setDetailPlatform(null); }}
         onViewOrders={() => { window.location.href = getBase() + "dashboard/orders/"; }}
       />
