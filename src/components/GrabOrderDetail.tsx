@@ -26,6 +26,7 @@ type Props = {
   orderId: string;
   onBack: () => void;
   onViewQr: (orderId: string) => void;
+  onViewAuthInfo?: (order: Order) => void;
 };
 
 function PlatformLogo({ code, brand, size = 88 }: { code: string; brand: string; size?: number }) {
@@ -95,7 +96,7 @@ function fmtTime(iso: string): string {
   return iso.replace("T", " ").slice(0, 16);
 }
 
-export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
+export default function GrabOrderDetail({ orderId, onBack, onViewQr, onViewAuthInfo }: Props) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -280,16 +281,9 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
 
             <button type="button"
               onClick={() => {
-                const info = [
-                  "平台：" + order.platformName,
-                  "账号昵称：" + (acc.nickname || "—"),
-                  "平台账号ID：" + acc.externalId,
-                  "授权ID：" + (acc.authorizationCode || "—"),
-                  "授权状态：有效",
-                  "授权时间：" + fmtTime(order.consumedAt || order.createdAt),
-                  "授权有效期：" + (acc.expiresAt ? fmtTime(acc.expiresAt) : "以平台规则为准"),
-                ].join("\n");
-                copyText(info, "授权信息已复制");
+                if (onViewAuthInfo) {
+                  onViewAuthInfo(order);
+                }
               }}
               className="mt-6 flex h-12 w-full items-center justify-center gap-1.5 rounded-xl text-base font-medium text-white"
               style={{ background: theme }}>
