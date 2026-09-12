@@ -73,18 +73,6 @@ function formatTtl(seconds: number | null): string {
   return Math.round(seconds / 2592000) + "个月";
 }
 
-function ttlRange(minSec: number | null, maxSec: number | null): string {
-  if (minSec === null && maxSec === null) return "以平台规则为准";
-  if (minSec === 0 && maxSec === 0) return "永久有效";
-  const min = formatTtl(minSec);
-  const max = formatTtl(maxSec);
-  if (!min && !max) return "以平台规则为准";
-  if (!min) return "最长 " + max;
-  if (!max) return "至少 " + min;
-  if (min === max) return min;
-  return min + " ~ " + max;
-}
-
 /* ============================================================
    平台官方 App 风格图标（圆角方形 + 品牌色 + 白色图形）
    支持 26 个平台
@@ -189,12 +177,6 @@ function PlatformLogo({ code, size = 52 }: { code: string; size?: number }) {
   );
 }
 
-function statusLabel(status: string): { text: string; cls: string } {
-  if (status === "waiting") return { text: "未使用", cls: "text-green-600" };
-  if (status === "consumed") return { text: "已使用", cls: "text-neutral-400" };
-  return { text: "已过期", cls: "text-red-500" };
-}
-
 function fmtTime(iso: string): string {
   if (!iso) return "—";
   return iso.replace("T", " ").slice(0, 16);
@@ -203,7 +185,6 @@ function fmtTime(iso: string): string {
 export default function GrabSystem() {
   const [view, setView] = useState<View>("picker");
   const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [history, setHistory] = useState<QrSession[]>([]);
   const [currentQr, setCurrentQr] = useState<QrSession | null>(null);
   const [myAccounts, setMyAccounts] = useState<MyAccount[]>([]);
   const [loading, setLoading] = useState(false);
@@ -222,15 +203,6 @@ export default function GrabSystem() {
       .catch(() => {});
   }, []);
 
-  const loadHistory = useCallback(async () => {
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/grab/me/qr-sessions`, { credentials: "include" });
-      const d = (await r.json()) as { ok?: boolean; sessions?: QrSession[] };
-      if (d.ok && d.sessions) setHistory(d.sessions);
-    } catch {}
-  }, []);
-
-  useEffect(() => { if (view === "picker") void loadHistory(); }, [view, loadHistory]);
 
   const loadMyAccounts = useCallback(async () => {
     try {
@@ -307,13 +279,6 @@ export default function GrabSystem() {
         }
       } catch {}
     }, 3000);
-  }
-
-  function openHistoryItem(s: QrSession) {
-    if (pollTimer.current) window.clearInterval(pollTimer.current);
-    setCurrentQr(s);
-    setView("qr");
-    if (s.status === "waiting" && s.token) startPolling(s);
   }
 
   async function useAccount(accountId: string) {

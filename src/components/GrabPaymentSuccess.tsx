@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getBase } from "../lib/url";
 
 type PaymentId = "wechat" | "alipay" | "usdt" | "balance";
 
@@ -51,7 +50,6 @@ function formatNow(): string {
 export default function GrabPaymentSuccess({ platform, orderNo, payment, amount, onDone }: Props) {
   const [count, setCount] = useState(3);
   const [timeStr] = useState(formatNow);
-  const theme = "#" + platform.brand;
   const icon = PAYMENT_ICONS[payment] || PAYMENT_ICONS.wechat;
 
   useEffect(() => {
