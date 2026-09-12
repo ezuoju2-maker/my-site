@@ -16,6 +16,7 @@ import {
   extractCaptchaToken,
   verifyCaptcha,
 } from "../../../lib/captcha";
+import { sendEmail } from "../../../lib/email";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const EMAIL_DAILY_LIMIT = 5;
@@ -53,11 +54,9 @@ function getClientKey(request: Request, email: string) {
 
 export const OPTIONS: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
-
   if (!origin) {
     return new Response(null, { status: 403 });
   }
-
   return new Response(null, {
     status: 204,
     headers: {
@@ -74,7 +73,6 @@ export const POST: APIRoute = async ({ request }) => {
   await recordUsage("send-code").catch(() => {});
   const origin = getAllowedOrigin(request);
   const rejected = rejectCrossSiteRequest(request);
-
   if (rejected) {
     return rejected;
   }
@@ -84,54 +82,25 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     body = await request.json();
   } catch {
-    return json(
-      { ok: false, error: "INVALID_JSON" },
-      400,
-      {},
-      origin,
-    );
+    return json({ ok: false, error: "INVALID_JSON" }, 400, {}, origin);
   }
 
   const captchaToken = extractCaptchaToken(body);
   const captchaOk = await verifyCaptcha(captchaToken);
   if (!captchaOk) {
-    return json(
-      { ok: false, error: "CAPTCHA_FAILED" },
-      403,
-      {},
-      origin,
-    );
+    return json({ ok: false, error: "CAPTCHA_FAILED" }, 403, {}, origin);
   }
 
   const email = normalizeEmail(body.email);
 
   if (!isValidEmail(email)) {
-    return json(
-      { ok: false, error: "INVALID_EMAIL" },
-      400,
-      {},
-      origin,
-    );
-  }
-
-  const resendApiKey = env.RESEND_API_KEY;
-
-  if (!resendApiKey) {
-    console.error("RESEND_API_KEY is not configured");
-
-    return json(
-      { ok: false, error: "EMAIL_SERVICE_NOT_CONFIGURED" },
-      500,
-      {},
-      origin,
-    );
+    return json({ ok: false, error: "INVALID_EMAIL" }, 400, {}, origin);
   }
 
   const kv = env.SESSION;
 
   if (!kv) {
     console.error("SESSION KV binding is not configured");
-
     return json(
       { ok: false, error: "SESSION_SERVICE_NOT_CONFIGURED" },
       500,
@@ -160,9 +129,7 @@ export const POST: APIRoute = async ({ request }) => {
         retryAfter: RESEND_COOLDOWN_SECONDS,
       },
       429,
-      {
-        "Retry-After": String(RESEND_COOLDOWN_SECONDS),
-      },
+      { "Retry-After": String(RESEND_COOLDOWN_SECONDS) },
       origin,
     );
   }
@@ -172,15 +139,9 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (dailyCount >= EMAIL_DAILY_LIMIT) {
     return json(
-      {
-        ok: false,
-        error: "TOO_MANY_REQUESTS",
-        retryAfter: 86400,
-      },
+      { ok: false, error: "TOO_MANY_REQUESTS", retryAfter: 86400 },
       429,
-      {
-        "Retry-After": "86400",
-      },
+      { "Retry-After": "86400" },
       origin,
     );
   }
@@ -190,54 +151,32 @@ export const POST: APIRoute = async ({ request }) => {
   let digest: string;
 
   try {
-    digest = await createOtpDigest(
-      OTP_PURPOSE,
-      email,
-      code,
-    );
+    digest = await createOtpDigest(OTP_PURPOSE, email, code);
   } catch (error) {
     console.error("OTP digest creation failed", error);
-
-    return json(
-      { ok: false, error: "OTP_SERVICE_ERROR" },
-      500,
-      {},
-      origin,
-    );
+    return json({ ok: false, error: "OTP_SERVICE_ERROR" }, 500, {}, origin);
   }
 
-  let response: Response;
+  const sendResult = await sendEmail({
+    to: email,
+    subject: "my-site 注册验证码",
+    html: `<p>您的 my-site 注册验证码是：</p><p style="font-size:24px;font-weight:bold;">${code}</p><p>验证码 10 分钟内有效。</p>`,
+    text: `您的 my-site 注册验证码是：${code}，10 分钟内有效。`,
+  });
 
-  try {
-    response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${resendApiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "my-site <noreply@ezuoju.dynv6.net>",
-        to: [email],
-        subject: "my-site 注册验证码",
-        html: `<p>您的 my-site 注册验证码是：</p><p style="font-size:24px;font-weight:bold;">${code}</p><p>验证码 10 分钟内有效。</p>`,
-        text: `您的 my-site 注册验证码是：${code}，10 分钟内有效。`,
-      }),
-    });
-  } catch (error) {
-    console.error("Resend fetch exception", error);
-
-    return json(
-      { ok: false, error: "EMAIL_PROVIDER_UNREACHABLE" },
-      502,
-      {},
-      origin,
-    );
-  }
-
-  if (!response.ok) {
-    console.error("Resend API error", response.status);
-
+  if (!sendResult.ok) {
+    if (sendResult.error === "ALL_EMAIL_PROVIDERS_EXHAUSTED") {
+      return json(
+        {
+          ok: false,
+          error: "EMAIL_QUOTA_EXHAUSTED",
+          message: "今日注册邮箱配额已满，请明日再试",
+        },
+        503,
+        { "Retry-After": "86400" },
+        origin,
+      );
+    }
     return json(
       { ok: false, error: "EMAIL_PROVIDER_ERROR" },
       502,
@@ -247,33 +186,22 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    await kv.put(codeKey, digest, {
-      expirationTtl: OTP_TTL_SECONDS,
-    });
-
+    await kv.put(codeKey, digest, { expirationTtl: OTP_TTL_SECONDS });
     await kv.delete(attemptsKey);
-
     await kv.put(ipCooldownKey, "1", {
       expirationTtl: RESEND_COOLDOWN_SECONDS,
     });
-
     await kv.put(emailCooldownKey, "1", {
       expirationTtl: RESEND_COOLDOWN_SECONDS,
     });
-
     await kv.put(dailyKey, String(dailyCount + 1), {
       expirationTtl: 86400,
     });
   } catch (error) {
     console.error("OTP KV storage error", error);
-
-    return json(
-      { ok: false, error: "OTP_SERVICE_ERROR" },
-      500,
-      {},
-      origin,
-    );
+    return json({ ok: false, error: "OTP_SERVICE_ERROR" }, 500, {}, origin);
   }
+
   recordEmailOp().catch(() => {});
 
   return json(
