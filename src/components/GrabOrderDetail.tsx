@@ -95,34 +95,56 @@ function fmtTime(iso: string): string {
   return iso.replace("T", " ").slice(0, 16);
 }
 
-function fmtDate(iso: string): string {
-  if (!iso) return "—";
-  return iso.replace("T", " ").slice(0, 10);
-}
-
 export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
 
+  // 拉订单数据（含轮询）
   useEffect(() => {
     let cancelled = false;
-    fetch(`${API_BASE_URL}/api/grab/me/orders`, { credentials: "include", cache: "no-store" })
-      .then((r) => r.json() as Promise<{ ok?: boolean; orders?: Order[] }>)
-      .then((d) => {
+    let timer: number | null = null;
+
+    const fetchOrder = async () => {
+      try {
+        const r = await fetch(`${API_BASE_URL}/api/grab/me/orders`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const d = (await r.json()) as { ok?: boolean; orders?: Order[] };
         if (cancelled) return;
         if (d.ok && d.orders) {
           const found = d.orders.find((o) => o.id === orderId);
-          if (found) setOrder(found);
-          else setError("订单不存在");
+          if (found) {
+            setOrder(found);
+            setError("");
+            // 状态不再 waiting 时停止轮询
+            if (found.status !== "waiting" && timer !== null) {
+              window.clearInterval(timer);
+              timer = null;
+            }
+          } else {
+            setError("订单不存在");
+          }
         } else {
           setError("加载失败");
         }
-      })
-      .catch(() => { if (!cancelled) setError("网络错误"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      } catch {
+        if (!cancelled) setError("网络错误");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void fetchOrder();
+    // 每 3 秒轮询（授权成功后停止）
+    timer = window.setInterval(fetchOrder, 3000);
+
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearInterval(timer);
+    };
   }, [orderId]);
 
   function showToast(msg: string) {
@@ -142,7 +164,7 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
-        <Header onBack={onBack} />
+        <Header platformName={null} onBack={onBack} />
         <div className="py-20 text-center text-sm text-neutral-400">加载中…</div>
       </div>
     );
@@ -151,7 +173,7 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
   if (error || !order) {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
-        <Header onBack={onBack} />
+        <Header platformName={null} onBack={onBack} />
         <div className="py-20 text-center text-sm text-red-500">{error || "订单不存在"}</div>
       </div>
     );
@@ -159,14 +181,13 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
 
   const theme = "#" + order.platformBrand;
   const isWaiting = order.status === "waiting";
-  const isSuccess = order.status === "consumed";
-  const isExpired = order.status === "expired";
+  const isSuccess = order.status === "consumed" && order.account;
 
-  // ============ 待扫码视图 ============
+  // ============ 待扫码 ============
   if (isWaiting) {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
-        <Header onBack={onBack} />
+        <Header platformName={order.platformName} onBack={onBack} />
 
         <main className="mx-auto max-w-2xl space-y-3 px-5 py-4">
           {/* 头部卡 */}
@@ -175,7 +196,7 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
             <h2 className="mt-5 text-xl font-bold text-neutral-900">{order.platformName}账号授权</h2>
             <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-600">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-              等待扫码
+              当前状态：等待扫码中
             </span>
           </section>
 
@@ -206,29 +227,18 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
           </button>
         </main>
 
-        {toast && (
-          <div className="pointer-events-none fixed inset-x-0 bottom-10 z-50 flex justify-center px-4">
-            <div className="rounded-full bg-neutral-900/90 px-4 py-2 text-sm text-white shadow-lg">{toast}</div>
-          </div>
-        )}
+        {toast && <Toast text={toast} />}
       </div>
     );
   }
 
-  // ============ 授权成功视图 ============
+  // ============ 已授权成功 ============
   if (isSuccess && order.account) {
     const acc = order.account;
-    const infoText = [
-      "平台：" + order.platformName,
-      "昵称：" + (acc.nickname || "—"),
-      "账号 ID：" + acc.externalId,
-      "授权ID：" + (acc.authorizationCode || "—"),
-      "授权状态：有效",
-    ].join("\n");
 
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
-        <Header onBack={onBack} />
+        <Header platformName={order.platformName} onBack={onBack} />
 
         <main className="mx-auto max-w-2xl space-y-3 px-5 py-4">
           {/* 头部卡 */}
@@ -239,70 +249,56 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m5 12 5 5L20 7" />
               </svg>
-              成功授权
+              当前状态：成功授权
             </span>
           </section>
 
-          {/* 授权账号 */}
+          {/* 订单信息 */}
           <section className="rounded-2xl border border-neutral-100 bg-white p-5">
-            <h3 className="mb-4 text-base font-bold text-neutral-900">授权账号</h3>
+            <h3 className="mb-4 text-base font-bold text-neutral-900">订单信息</h3>
             <div className="space-y-3 text-sm">
-              <Row label="昵称" value={acc.nickname || "—"} />
-              <Row label="平台账号ID" value={acc.externalId} mono />
-              <Row label="授权状态" value="有效" valueClass="text-emerald-600" />
-              <Row label="授权时间" value={fmtDate(order.consumedAt || order.createdAt)} />
-              <Row label="有效期" value={acc.expiresAt ? fmtDate(acc.expiresAt) : "以平台规则为准"} />
+              <Row label="服务名称" value={order.platformName + "账号授权服务"} />
+              <Row label="支付金额" value={"¥" + order.price.toFixed(2)} />
+              <Row label="订单编号" value={order.id.slice(0, 12).toUpperCase()} mono />
+              <Row label="创建时间" value={fmtTime(order.createdAt)} />
             </div>
           </section>
 
-          {/* 上号所需信息 */}
+          {/* 授权信息 */}
           <section className="rounded-2xl border border-neutral-100 bg-white p-5">
-            <h3 className="mb-4 text-base font-bold text-neutral-900">上号所需信息</h3>
-
-            {/* 授权ID */}
-            <div className="mb-3">
-              <div className="mb-1.5 text-xs text-neutral-500">授权ID</div>
-              <div className="flex items-center gap-2 rounded-lg bg-neutral-50 p-3">
-                <span className="min-w-0 flex-1 truncate font-mono text-sm text-neutral-800">
-                  {acc.authorizationCode || order.id.slice(0, 16).toUpperCase()}
-                </span>
-                <button type="button"
-                  onClick={() => copyText(acc.authorizationCode || order.id.slice(0, 16).toUpperCase(), "授权ID 已复制")}
-                  className="shrink-0 rounded-md px-2.5 py-1 text-xs font-medium text-white"
-                  style={{ background: theme }}>
-                  复制
-                </button>
-              </div>
-            </div>
-
-            {/* 授权状态 */}
-            <div className="mb-4">
-              <div className="mb-1.5 text-xs text-neutral-500">授权状态</div>
-              <div className="flex items-center gap-2 rounded-lg bg-neutral-50 p-3">
-                <span className="min-w-0 flex-1 text-sm font-medium text-emerald-600">有效</span>
-                <button type="button"
-                  onClick={() => copyText("有效", "授权状态已复制")}
-                  className="shrink-0 rounded-md px-2.5 py-1 text-xs font-medium text-white"
-                  style={{ background: theme }}>
-                  复制
-                </button>
-              </div>
+            <h3 className="mb-4 text-base font-bold text-neutral-900">授权信息</h3>
+            <div className="space-y-3 text-sm">
+              <Row label="账号昵称" value={acc.nickname || "—"} />
+              <Row label="平台账号ID" value={acc.externalId} mono />
+              <Row label="授权状态" value="有效" valueClass="text-emerald-600" />
+              <Row label="授权时间" value={fmtTime(order.consumedAt || order.createdAt)} />
+              <Row
+                label="授权有效期"
+                value={acc.expiresAt ? fmtTime(acc.expiresAt) : "以平台规则为准"}
+              />
             </div>
 
             <button type="button"
-              onClick={() => copyText(infoText, "授权信息已复制")}
-              className="flex h-12 w-full items-center justify-center gap-1.5 rounded-xl text-base font-medium text-white"
+              onClick={() => {
+                const info = [
+                  "平台：" + order.platformName,
+                  "账号昵称：" + (acc.nickname || "—"),
+                  "平台账号ID：" + acc.externalId,
+                  "授权ID：" + (acc.authorizationCode || "—"),
+                  "授权状态：有效",
+                  "授权时间：" + fmtTime(order.consumedAt || order.createdAt),
+                  "授权有效期：" + (acc.expiresAt ? fmtTime(acc.expiresAt) : "以平台规则为准"),
+                ].join("\n");
+                copyText(info, "授权信息已复制");
+              }}
+              className="mt-6 flex h-12 w-full items-center justify-center gap-1.5 rounded-xl text-base font-medium text-white"
               style={{ background: theme }}>
-              复制授权信息
+              查看授权信息
             </button>
           </section>
         </main>
 
-        {toast && (
-          <div className="pointer-events-none fixed inset-x-0 bottom-10 z-50 flex justify-center px-4">
-            <div className="rounded-full bg-neutral-900/90 px-4 py-2 text-sm text-white shadow-lg">{toast}</div>
-          </div>
-        )}
+        {toast && <Toast text={toast} />}
       </div>
     );
   }
@@ -310,7 +306,7 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
   // ============ 已过期 ============
   return (
     <div className="min-h-screen bg-neutral-50 pb-10">
-      <Header onBack={onBack} />
+      <Header platformName={order.platformName} onBack={onBack} />
       <main className="mx-auto max-w-2xl space-y-3 px-5 py-4">
         <section className="flex flex-col items-center rounded-2xl border border-neutral-100 bg-white py-8">
           <PlatformLogo code={order.platform} brand={order.platformBrand} size={88} />
@@ -329,11 +325,12 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
           </div>
         </section>
       </main>
+      {toast && <Toast text={toast} />}
     </div>
   );
 }
 
-function Header({ onBack }: { onBack: () => void }) {
+function Header({ platformName, onBack }: { platformName: string | null; onBack: () => void }) {
   return (
     <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white">
       <div className="mx-auto flex h-14 max-w-2xl items-center gap-3 px-4">
@@ -343,7 +340,9 @@ function Header({ onBack }: { onBack: () => void }) {
             <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-base font-semibold text-neutral-900">授权详情</h1>
+        <h1 className="text-base font-semibold text-neutral-900">
+          {platformName ? platformName + "账号授权" : "授权详情"}
+        </h1>
       </div>
     </header>
   );
@@ -356,6 +355,14 @@ function Row({ label, value, mono, valueClass }: { label: string; value: string;
       <span className={"min-w-0 flex-1 break-all text-right " + (mono ? "font-mono " : "") + (valueClass || "text-neutral-900")}>
         {value}
       </span>
+    </div>
+  );
+}
+
+function Toast({ text }: { text: string }) {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-10 z-50 flex justify-center px-4">
+      <div className="rounded-full bg-neutral-900/90 px-4 py-2 text-sm text-white shadow-lg">{text}</div>
     </div>
   );
 }
