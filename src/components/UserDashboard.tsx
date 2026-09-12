@@ -346,50 +346,26 @@ export default function UserDashboard() {
           <IconChevronRight className="h-4 w-4 shrink-0 text-neutral-300" />
         </button>
 
-        {/* Tab 导航 */}
-        <div className="rounded-2xl border border-neutral-100 bg-white py-2">
-          <div className="grid grid-cols-4">
-            {TABS.map((tab) => {
-              const active = activeTab === tab.key;
-              const TabIcon = TAB_ICONS[tab.key];
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(tab.key);
-                    if (tab.key === "orders") {
-                      window.location.href = getBase() + "dashboard/orders/";
-                    } else if (tab.key !== "home") {
-                      notify(`${tab.label}开发中`);
-                    }
-                  }}
-                  className="relative flex flex-col items-center gap-1.5 py-2"
-                >
-                  <TabIcon
-                    className={
-                      active
-                        ? "h-6 w-6 text-neutral-900"
-                        : "h-6 w-6 text-neutral-500"
-                    }
-                  />
-                  <span
-                    className={
-                      active
-                        ? "text-xs font-medium text-neutral-900"
-                        : "text-xs text-neutral-500"
-                    }
-                  >
-                    {tab.label}
-                  </span>
-                  {active && (
-                    <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-neutral-900" />
-                  )}
-                </button>
-              );
-            })}
+        {/* 订单入口 */}
+        <button
+          type="button"
+          onClick={() => { window.location.href = getBase() + "dashboard/orders/"; }}
+          className="flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-4 text-left active:bg-neutral-50"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+            <svg className="h-6 w-6 text-neutral-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <path d="M14 2v6h6" />
+              <path d="M9 13h6" />
+              <path d="M9 17h6" />
+            </svg>
           </div>
-        </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-base font-semibold text-neutral-900">我的订单</div>
+            <div className="mt-1 text-sm text-neutral-500">接码订单 · 抓号订单 · 卡券订单</div>
+          </div>
+          <IconChevronRight className="h-5 w-5 shrink-0 text-neutral-300" />
+        </button>
 
         {/* 功能列表 */}
         <div className="space-y-3">
