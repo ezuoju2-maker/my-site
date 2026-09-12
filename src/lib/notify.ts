@@ -1,49 +1,23 @@
-import { env } from "cloudflare:workers";
+import { sendEmail } from "./email";
 
-const FROM = "my-site <noreply@ezuoju.dynv6.net>";
+const FROM_LABEL = "my-site";
 const NOTIFY_TIMEOUT_MS = 3000;
-
-async function sendEmail(
-  to: string,
-  subject: string,
-  html: string,
-  text: string,
-): Promise<void> {
-  const key = env.RESEND_API_KEY;
-  if (!key) throw new Error("RESEND_API_KEY not configured");
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      authorization: `Bearer ${key}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      from: FROM,
-      to: [to],
-      subject,
-      html,
-      text,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`resend failed: ${response.status}`);
-  }
-}
 
 /**
  * 带超时的发送：主流程不愿为通知邮件阻塞太久。
- * 超时后仍然继续，邮件可能已发（fire-and-forget 语义）。
+ * 超时后仍继续（fire-and-forget 语义），邮件可能已发。
  */
-async function sendWithTimeout(p: Promise<void>): Promise<void> {
+async function sendWithTimeout(p: Promise<unknown>): Promise<void> {
   await Promise.race([
     p,
     new Promise<void>((resolve) =>
       setTimeout(() => resolve(), NOTIFY_TIMEOUT_MS),
     ),
   ]);
+}
+
+function subjectFor(kind: string): string {
+  return `${FROM_LABEL} ${kind}`;
 }
 
 /**
@@ -75,7 +49,14 @@ export async function notifyEmailChanged(oldEmail: string): Promise<void> {
     `</ol>` +
     `<p>—— my-site</p>`;
 
-  await sendWithTimeout(sendEmail(oldEmail, "my-site 邮箱变更通知", html, text));
+  await sendWithTimeout(
+    sendEmail({
+      to: oldEmail,
+      subject: subjectFor("邮箱变更通知"),
+      html,
+      text,
+    }),
+  );
 }
 
 /**
@@ -101,6 +82,11 @@ export async function notifyPasswordChanged(email: string): Promise<void> {
     `<p>—— my-site</p>`;
 
   await sendWithTimeout(
-    sendEmail(email, "my-site 密码变更通知", html, text),
+    sendEmail({
+      to: email,
+      subject: subjectFor("密码变更通知"),
+      html,
+      text,
+    }),
   );
 }

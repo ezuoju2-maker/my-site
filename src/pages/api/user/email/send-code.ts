@@ -14,6 +14,7 @@ import {
   OTP_TTL_SECONDS,
 } from "../../../../lib/otp";
 import { extractCaptchaToken, verifyCaptcha } from "../../../../lib/captcha";
+import { sendEmail } from "../../../../lib/email";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -49,7 +50,6 @@ function isValidEmail(e: string) {
 export const OPTIONS: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
   if (!origin) return new Response(null, { status: 403 });
-
   return new Response(null, {
     status: 204,
     headers: {
@@ -90,18 +90,16 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ ok: false, error: "CAPTCHA_FAILED" }, 403, {}, origin);
   }
 
-  const resendApiKey = env.RESEND_API_KEY;
-  if (!resendApiKey) {
-    console.error("RESEND_API_KEY is not configured");
-    return json({ ok: false, error: "EMAIL_SERVICE_NOT_CONFIGURED" }, 500, {}, origin);
-  }
-
   const kv = env.SESSION;
   if (!kv) {
-    return json({ ok: false, error: "SESSION_SERVICE_NOT_CONFIGURED" }, 500, {}, origin);
+    return json(
+      { ok: false, error: "SESSION_SERVICE_NOT_CONFIGURED" },
+      500,
+      {},
+      origin,
+    );
   }
 
-  // 检查新邮箱是否已被使用
   try {
     const existing = await env.DB.prepare(
       "SELECT id FROM users WHERE lower(email) = ?1 AND id != ?2 LIMIT 1",
@@ -124,7 +122,6 @@ export const POST: APIRoute = async ({ request }) => {
   const codeKey = `email-change-code:${newEmail}`;
   const attemptsKey = `email-change-attempts:${newEmail}`;
 
-  // 冷却检查
   const [ipCooldown, emailCooldown] = await Promise.all([
     kv.get(ipCooldownKey),
     kv.get(emailCooldownKey),
@@ -132,14 +129,17 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (ipCooldown || emailCooldown) {
     return json(
-      { ok: false, error: "TOO_MANY_REQUESTS", retryAfter: RESEND_COOLDOWN_SECONDS },
+      {
+        ok: false,
+        error: "TOO_MANY_REQUESTS",
+        retryAfter: RESEND_COOLDOWN_SECONDS,
+      },
       429,
       { "Retry-After": String(RESEND_COOLDOWN_SECONDS) },
       origin,
     );
   }
 
-  // 每日上限
   const dailyCount = Number.parseInt((await kv.get(dailyKey)) ?? "0", 10) || 0;
   if (dailyCount >= DAILY_LIMIT) {
     return json(
@@ -160,30 +160,26 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ ok: false, error: "OTP_SERVICE_ERROR" }, 500, {}, origin);
   }
 
-  let response: Response;
-  try {
-    response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${resendApiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "my-site <noreply@ezuoju.dynv6.net>",
-        to: [newEmail],
-        subject: "my-site 邮箱修改验证码",
-        html: `<p>您的 my-site 邮箱修改验证码是：</p><p style="font-size:24px;font-weight:bold;">${code}</p><p>验证码 10 分钟内有效。</p>`,
-        text: `您的 my-site 邮箱修改验证码是：${code}，10 分钟内有效。`,
-      }),
-    });
-  } catch (error) {
-    console.error("Resend fetch failed", error);
-    return json({ ok: false, error: "EMAIL_PROVIDER_UNREACHABLE" }, 502, {}, origin);
-  }
+  const sendResult = await sendEmail({
+    to: newEmail,
+    subject: "my-site 邮箱修改验证码",
+    html: `<p>您的 my-site 邮箱修改验证码是：</p><p style="font-size:24px;font-weight:bold;">${code}</p><p>验证码 10 分钟内有效。</p>`,
+    text: `您的 my-site 邮箱修改验证码是：${code}，10 分钟内有效。`,
+  });
 
-  if (!response.ok) {
-    console.error("Resend error", response.status);
+  if (!sendResult.ok) {
+    if (sendResult.error === "ALL_EMAIL_PROVIDERS_EXHAUSTED") {
+      return json(
+        {
+          ok: false,
+          error: "EMAIL_QUOTA_EXHAUSTED",
+          message: "今日邮箱配额已满，请明日再试",
+        },
+        503,
+        { "Retry-After": "86400" },
+        origin,
+      );
+    }
     return json({ ok: false, error: "EMAIL_PROVIDER_ERROR" }, 502, {}, origin);
   }
 
@@ -191,16 +187,23 @@ export const POST: APIRoute = async ({ request }) => {
     await kv.put(codeKey, digest, { expirationTtl: OTP_TTL_SECONDS });
     await kv.delete(attemptsKey);
     await kv.put(ipCooldownKey, "1", { expirationTtl: RESEND_COOLDOWN_SECONDS });
-    await kv.put(emailCooldownKey, "1", { expirationTtl: RESEND_COOLDOWN_SECONDS });
+    await kv.put(emailCooldownKey, "1", {
+      expirationTtl: RESEND_COOLDOWN_SECONDS,
+    });
     await kv.put(dailyKey, String(dailyCount + 1), { expirationTtl: 86400 });
   } catch (error) {
     console.error("KV write failed", error);
     return json({ ok: false, error: "OTP_SERVICE_ERROR" }, 500, {}, origin);
   }
+
   recordEmailOp().catch(() => {});
 
   return json(
-    { ok: true, expiresIn: OTP_TTL_SECONDS, retryAfter: RESEND_COOLDOWN_SECONDS },
+    {
+      ok: true,
+      expiresIn: OTP_TTL_SECONDS,
+      retryAfter: RESEND_COOLDOWN_SECONDS,
+    },
     200,
     {},
     origin,

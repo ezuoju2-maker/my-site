@@ -15,6 +15,10 @@ declare namespace Cloudflare {
 
     // ============ Secrets（wrangler secret put）============
     RESEND_API_KEY: string;
+    BREVO_API_KEY?: string;
+    SMTP2GO_API_KEY?: string;
+    MAILERSEND_API_KEY?: string;
+    ELASTICEMAIL_API_KEY?: string;
     OTP_SECRET: string;
 
     // ============ Vars（wrangler.toml [vars]）============
