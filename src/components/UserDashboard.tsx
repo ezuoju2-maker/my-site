@@ -11,6 +11,7 @@ import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
 import {
   FEATURES,
+  TABS,
   SITE_NAME,
   ANNOUNCEMENT,
   type TabKey,
@@ -61,6 +62,13 @@ const FEATURE_ICONS: Record<IconName, React.FC<{ className?: string }>> = {
   ticket: IconTicket,
 };
 
+const TAB_ICONS: Record<TabKey, React.FC<{ className?: string }>> = {
+  home: IconHome,
+  orders: IconClipboard,
+  support: IconHeadphones,
+  me: IconUser,
+};
+
 const SUBTITLE_ICONS: Record<string, React.FC<{ className?: string }>> = {
   globe: IconGlobe,
   zap: IconZap,
@@ -70,6 +78,7 @@ const SUBTITLE_ICONS: Record<string, React.FC<{ className?: string }>> = {
 
 export default function UserDashboard() {
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [status, setStatus] = useState<"loading" | "ok">("loading");
   const [toast, setToast] = useState("");
   const [langPickerOpen, setLangPickerOpen] = useState(false);
@@ -352,7 +361,7 @@ export default function UserDashboard() {
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold text-neutral-900">我的订单</div>
+            <div className="text-base font-semibold text-neutral-900">订单</div>
             <div className="mt-1 text-sm text-neutral-500">接码订单 · 抓号订单 · 卡券订单</div>
           </div>
           <IconChevronRight className="h-5 w-5 shrink-0 text-neutral-300" />
@@ -393,6 +402,51 @@ export default function UserDashboard() {
               </button>
             );
           })}
+        </div>
+
+        {/* Tab 导航 */}
+        <div className="rounded-2xl border border-neutral-100 bg-white py-2">
+          <div className="grid grid-cols-4">
+            {TABS.map((tab) => {
+              const active = activeTab === tab.key;
+              const TabIcon = TAB_ICONS[tab.key];
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    if (tab.key === "orders") {
+                      window.location.href = getBase() + "dashboard/orders/";
+                    } else if (tab.key !== "home") {
+                      notify(`${tab.label}开发中`);
+                    }
+                  }}
+                  className="relative flex flex-col items-center gap-1.5 py-2"
+                >
+                  <TabIcon
+                    className={
+                      active
+                        ? "h-6 w-6 text-neutral-900"
+                        : "h-6 w-6 text-neutral-500"
+                    }
+                  />
+                  <span
+                    className={
+                      active
+                        ? "text-xs font-medium text-neutral-900"
+                        : "text-xs text-neutral-500"
+                    }
+                  >
+                    {tab.label}
+                  </span>
+                  {active && (
+                    <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-neutral-900" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* 退出 */}
