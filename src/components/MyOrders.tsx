@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getBase } from "../lib/url";
+import GrabOrders from "./GrabOrders";
 
 type OrderType = "sms" | "grab" | "card";
 
@@ -77,7 +78,7 @@ export default function MyOrders({ onBack }: Props) {
       {/* 内容区 */}
       <main className="mx-auto max-w-2xl px-4 py-6">
         {activeTab === "sms" && <EmptyState text="暂无接码订单" />}
-        {activeTab === "grab" && <EmptyState text="暂无抓号订单" />}
+        {activeTab === "grab" && <GrabOrders embedded />}
         {activeTab === "card" && <EmptyState text="暂无卡券订单" />}
       </main>
     </div>
