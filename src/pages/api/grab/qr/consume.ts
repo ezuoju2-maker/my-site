@@ -39,6 +39,7 @@ export const POST: APIRoute = async ({ request }) => {
     externalId?: unknown;
     avatar?: unknown;
     credential?: unknown;
+    deviceId?: unknown;
     ttlDays?: unknown;
   };
   try { body = await request.json(); } catch {
@@ -50,6 +51,7 @@ export const POST: APIRoute = async ({ request }) => {
   const externalId = typeof body.externalId === "string" ? body.externalId.slice(0, 200) : "";
   const avatar = typeof body.avatar === "string" ? body.avatar.slice(0, 500) : null;
   const credential = typeof body.credential === "string" ? body.credential : "";
+  const deviceId = typeof body.deviceId === "string" ? body.deviceId.slice(0, 100) : null;
   const ttlDays = typeof body.ttlDays === "number" && body.ttlDays > 0 && body.ttlDays <= 30
     ? Math.floor(body.ttlDays) : 30;
 
@@ -92,8 +94,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 事务性插入：先建账号，再标记二维码
     await env.DB.prepare(
-      "INSERT INTO grab_accounts (id, platform_code, nickname, external_id, avatar, credential, authorization_code, status, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'active', ?8)"
-    ).bind(accountId, qr.platform_code, nickname, externalId, avatar, credentialEnc, authCode, accountExpiresAt).run();
+      "INSERT INTO grab_accounts (id, platform_code, nickname, external_id, avatar, credential, authorization_code, status, device_id, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'active', ?8, ?9)"
+    ).bind(accountId, qr.platform_code, nickname, externalId, avatar, credentialEnc, authCode, deviceId, accountExpiresAt).run();
 
     await env.DB.prepare(
       "UPDATE grab_qr_sessions SET status='consumed', result_account_id=?1, consumed_at=CURRENT_TIMESTAMP WHERE id=?2"
