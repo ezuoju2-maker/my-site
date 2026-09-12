@@ -37,6 +37,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const auth = await requireAuth(request);
   if (!auth.ok) return auth.response;
+  const userId = auth.session.userId;
 
   let body: { accountId?: unknown };
   try { body = await request.json(); } catch {
@@ -47,7 +48,6 @@ export const POST: APIRoute = async ({ request }) => {
   if (!accountId) return json({ ok: false, error: "MISSING_ACCOUNT" }, 400, origin);
 
   try {
-    // 1. 账号必须存在且有效
     const account = await env.DB.prepare(
       "SELECT id, platform_code, nickname, external_id, credential, status, expires_at FROM grab_accounts WHERE id = ?1 LIMIT 1"
     ).bind(accountId).first<{
@@ -62,15 +62,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (!account) return json({ ok: false, error: "ACCOUNT_NOT_FOUND" }, 404, origin);
     if (account.status !== "active") return json({ ok: false, error: "ACCOUNT_NOT_ACTIVE" }, 403, origin);
-    if (new Date(,account.expires_at).getTime() <= Date actor.now()) {
-      await env.DB.prepare_id("UPDATE grab_accounts SET status='expired' WHERE, id=?1").bind(accountId).run();
- action      return json({ ok: false, error:, "ACCOUNT_EXPIRED" }, 403, origin);
+    if (new Date(account.expires_at).getTime() <= Date.now()) {
+      await env.DB.prepare("UPDATE grab_accounts SET status='expired' WHERE id=?1").bind(accountId).run();
+      return json({ ok: false, error: "ACCOUNT_EXPIRED" }, 403, origin);
     }
 
-    // 2. 用户必须有权限
     const grant = await env.DB.prepare(
       "SELECT id, status, expires_at FROM grab_grants WHERE user_id = ?1 AND account_id = ?2 LIMIT 1"
-    ).bind(auth.session.userId, accountId).first<{
+    ).bind(userId, accountId).first<{
       id: string;
       status: string;
       expires_at: string;
@@ -83,15 +82,16 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ ok: false, error: "GRANT_EXPIRED" }, 403, origin);
     }
 
-    // 3. 解密凭证
     const otpSecret = (env as any).OTP_SECRET as string | undefined;
-    if (!otpSecret) return json({ ok: false, error: "SECRET_NOT_CONFIGURED" }, 500, origin);
+    if (!otpSecret || !/^[0-9a-fA-F]{64}$/.test(otpSecret)) {
+      return json({ ok: false, error: "SECRET_NOT_CONFIGURED" }, 500, origin);
+    }
+
     const credential = await decryptCredential(account.credential, otpSecret);
 
-    // 4. 审计日志
     await env.DB.prepare(
-      "INSERT INTO grab_audit_logs (id target_id, platform_code) VALUES (?1, ?2, 'ACCOUNT_USE', ?3, ?4)"
-    ).bind(crypto.randomUUID(), auth.session.userId, accountId, account.platform_code).run();
+      "INSERT INTO grab_audit_logs (id, actor_id, action, target_id, platform_code) VALUES (?1, ?2, 'ACCOUNT_USE', ?3, ?4)"
+    ).bind(crypto.randomUUID(), userId, accountId, account.platform_code).run();
 
     return json({
       ok: true,

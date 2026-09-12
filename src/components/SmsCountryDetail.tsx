@@ -162,7 +162,7 @@ export default function SmsCountryDetail({
           </p>
         ) : (
           <div className="space-y-2">
-            {filtered.map(({ s, svc, priceRange, totalStock }) => {
+            {filtered.map(({ svc, priceRange, totalStock }) => {
               const inStock = totalStock > 0;
               const priceText = priceRange.min === priceRange.max
                 ? "$" + priceRange.min.toFixed(2)
