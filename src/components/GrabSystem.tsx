@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
-type Platform = { code: string; name: string; brand: string; iconSlug: string; enabled: number; price: number };
+type Platform = { code: string; name: string; brand: string; iconSlug: string; enabled: number; price: number; ttlMinSeconds: number | null; ttlMaxSeconds: number | null; ttlNote: string | null };
 type AccountInfo = { id: string; platform: string; nickname: string | null; externalId: string; authorizationCode: string; deviceId: string | null; expiresAt: string };
 type QrSession = {
   id: string;
@@ -57,6 +57,28 @@ function PlatformIcon({ brand, iconSlug, size = 48 }: { brand: string; iconSlug:
         style={{ filter: light ? "brightness(0)" : "brightness(0) invert(1)" }} />
     </span>
   );
+}
+
+function formatTtl(seconds: number | null): string {
+  if (seconds === null) return "";
+  if (seconds === 0) return "永久";
+  if (seconds < 60) return seconds + "秒";
+  if (seconds < 3600) return Math.round(seconds / 60) + "分钟";
+  if (seconds < 86400) return Math.round(seconds / 3600) + "小时";
+  if (seconds < 2592000) return Math.round(seconds / 86400) + "天";
+  return Math.round(seconds / 2592000) + "个月";
+}
+
+function ttlRange(minSec: number | null, maxSec: number | null): string {
+  if (minSec === null && maxSec === null) return "以平台规则为准";
+  if (minSec === 0 && maxSec === 0) return "永久有效";
+  const min = formatTtl(minSec);
+  const max = formatTtl(maxSec);
+  if (!min && !max) return "以平台规则为准";
+  if (!min) return "最长 " + max;
+  if (!max) return "至少 " + min;
+  if (min === max) return min;
+  return min + " ~ " + max;
 }
 
 /* ============================================================
@@ -539,10 +561,10 @@ export default function GrabSystem() {
                 <div className="mt-0.5 text-lg font-bold text-neutral-900">以平台规则为准</div>
                 <span className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium"
                   style={{ background: theme + "18", color: theme }}>
-                  预计：数小时 ~ 数十天
+                  预计：{ttlRange(p.ttlMinSeconds, p.ttlMaxSeconds)}
                 </span>
                 <p className="mt-2 text-xs leading-5 text-neutral-500">
-                  不同平台及账号情况可能有所不同，实际有效期以平台官方规则及授权结果为准。
+                  {p.ttlNote ? p.ttlNote + "。" : ""}实际有效期以平台官方规则及授权结果为准。
                 </p>
               </div>
             </div>
