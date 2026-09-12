@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import GrabPlatformDetail from "./GrabPlatformDetail";
+import GrabOrderPage from "./GrabOrderPage";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
@@ -30,7 +31,7 @@ type MyAccount = {
   accountStatus: string;
   accountExpiresAt: string;
 };
-type View = "picker" | "qr" | "accounts" | "more" | "detail";
+type View = "picker" | "qr" | "accounts" | "more" | "detail" | "order";
 
 function isLightHex(hex: string): boolean {
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
@@ -328,9 +329,22 @@ export default function GrabSystem() {
   function goBack() {
     if (pollTimer.current) window.clearInterval(pollTimer.current);
     if (view === "picker") { window.location.href = getBase() + "dashboard/"; return; }
+    if (view === "order") { setView("detail"); return; }
     setView("picker");
     setCurrentQr(null);
     setDetailPlatform(null);
+  }
+
+  // ==================== 视图：确认订单 ====================
+  if (view === "order" && detailPlatform) {
+    return (
+      <GrabOrderPage
+        platform={detailPlatform}
+        onBack={() => setView("detail")}
+        onPay={() => generateQr(detailPlatform)}
+        loading={loading}
+      />
+    );
   }
 
   const platformMap = new Map(platforms.map((p) => [p.code, p]));
@@ -452,7 +466,7 @@ export default function GrabSystem() {
       <GrabPlatformDetail
         platform={detailPlatform}
         onBack={goBack}
-        onBuy={() => generateQr(detailPlatform)}
+        onBuy={() => setView("order")}
         loading={loading}
       />
     );
