@@ -12,7 +12,8 @@ export async function hashToken(token: string): Promise<string> {
 
 export async function encryptCredential(plaintext: string, secret: string): Promise<string> {
   const keyBytes = hexToBytes(secret);
-  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["encrypt"]);
+  const keyData = new Uint8Array(keyBytes).buffer;
+  const key = await crypto.subtle.importKey("raw", keyData, { name: "AES-GCM" }, false, ["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plaintext));
   const combined = new Uint8Array(iv.length + ciphertext.byteLength);
@@ -23,7 +24,8 @@ export async function encryptCredential(plaintext: string, secret: string): Prom
 
 export async function decryptCredential(payload: string, secret: string): Promise<string> {
   const keyBytes = hexToBytes(secret);
-  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["decrypt"]);
+  const keyData = new Uint8Array(keyBytes).buffer;
+  const key = await crypto.subtle.importKey("raw", keyData, { name: "AES-GCM" }, false, ["decrypt"]);
   const combined = base64UrlToBytes(payload);
   const iv = combined.slice(0, 12);
   const ciphertext = combined.slice(12);
@@ -33,7 +35,7 @@ export async function decryptCredential(payload: string, secret: string): Promis
 
 function hexToBytes(hex: string): Uint8Array {
   const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   return out;
 }
 

@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { hashToken, encryptCredential } from "../../../../lib/grab/crypto";
-import { corsHeaders, getAllowedOrigin } from "../../../../lib/cors";
+// cors helpers not used (only X-Grab-Key auth)
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 

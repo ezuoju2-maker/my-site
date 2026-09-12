@@ -117,7 +117,7 @@ export default function SmsServiceDetail({
           </p>
         ) : (
           <div className="space-y-2">
-            {filtered.map(({ s, c, priceRange, totalStock }) => {
+            {filtered.map(({ c, priceRange, totalStock }) => {
               const inStock = totalStock > 0;
               const priceText = priceRange.min === priceRange.max
                 ? "$" + priceRange.min.toFixed(2)
