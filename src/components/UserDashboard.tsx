@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../lib/api";
 const FEATURE_URLS: Record<string, string> = {
   "接码系统": "dashboard/services/sms/",
   "抓号系统": "dashboard/grab/",
-  "上号系统": "dashboard/grab/",
+  "上号系统": "dashboard/grab/use/",
 };
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
