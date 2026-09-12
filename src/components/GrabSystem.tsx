@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
-type Platform = { code: string; name: string; brand: string; iconSlug: string };
+type Platform = { code: string; name: string; brand: string; iconSlug: string; enabled: number };
 type AccountInfo = { id: string; platform: string; nickname: string | null; externalId: string; authorizationCode: string; deviceId: string | null; expiresAt: string };
 type QrSession = {
   id: string;
@@ -61,23 +61,14 @@ function PlatformIcon({ brand, iconSlug, size = 48 }: { brand: string; iconSlug:
 
 /* ============================================================
    平台官方 App 风格图标（圆角方形 + 品牌色 + 白色图形）
+   支持 26 个平台
    ============================================================ */
-function PlatformLogo({ code, size = 56 }: { code: string; size?: number }) {
+function PlatformLogo({ code, size = 52 }: { code: string; size?: number }) {
   const base = getBase();
   const inner = Math.round(size * 0.62);
   const radius = Math.round(size * 0.24);
 
-  // 小红书：品牌色底 + "小红书" 文字
-  if (code === "xiaohongshu") {
-    return (
-      <span className="flex shrink-0 items-center justify-center"
-        style={{ width: size, height: size, background: "#FF2442", borderRadius: radius }}>
-        <span style={{ color: "#fff", fontWeight: 700, fontSize: Math.round(size * 0.26), letterSpacing: "0.5px", fontFamily: "-apple-system, PingFang SC, Microsoft YaHei, sans-serif" }}>小红书</span>
-      </span>
-    );
-  }
-
-  // Google：白底 + 彩色 G（官方 4 色）
+  // ===== 白底 + 彩色图形 =====
   if (code === "google") {
     return (
       <span className="flex shrink-0 items-center justify-center"
@@ -92,19 +83,52 @@ function PlatformLogo({ code, size = 56 }: { code: string; size?: number }) {
     );
   }
 
-  // 其他平台：品牌色底 + 白色 Simple Icons 官方图形
-  const cfg: Record<string, { bg: string; icon: string }> = {
+  if (code === "instagram") {
+    return (
+      <span className="flex shrink-0 items-center justify-center"
+        style={{ width: size, height: size, borderRadius: radius, background: "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)" }}>
+        <svg viewBox="0 0 24 24" width={inner} height={inner} fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.5" cy="6.5" r="1" fill="#fff" />
+        </svg>
+      </span>
+    );
+  }
+
+  // ===== 品牌色底 + 白色图形/文字 =====
+  const cfg: Record<string, { bg: string; text?: string; textSize?: number; icon?: string }> = {
+    // 原 picker 8 个
+    xiaohongshu: { bg: "#FF2442", text: "小红书", textSize: 0.26 },
     douyin: { bg: "#000000", icon: "douyin" },
     bilibili: { bg: "#00A1D6", icon: "bilibili" },
     weibo: { bg: "#FDD35C", icon: "sinaweibo" },
     wechat: { bg: "#07C160", icon: "wechat" },
     qq: { bg: "#12B7F5", icon: "qq" },
     discord: { bg: "#5865F2", icon: "discord" },
+
+    // 更多平台
+    zhihu: { bg: "#0084FF", text: "知", textSize: 0.42 },
+    xiaoyuzhou: { bg: "#6B4EFF", text: "小宇宙", textSize: 0.18 },
+    dewu: { bg: "#000000", text: "得", textSize: 0.42 },
+    kuaishou: { bg: "#FF6E00", icon: "kuaishou" },
+    taobao: { bg: "#FF5000", text: "淘", textSize: 0.42 },
+    jd: { bg: "#E1251B", text: "京东", textSize: 0.26 },
+    pinduoduo: { bg: "#E02E24", text: "拼", textSize: 0.42 },
+    zsxq: { bg: "#00B26F", text: "星", textSize: 0.42 },
+    baidu: { bg: "#2932E1", icon: "baidu" },
+    telegram: { bg: "#26A5E4", icon: "telegram" },
+    whatsapp: { bg: "#25D366", icon: "whatsapp" },
+    twitch: { bg: "#9146FF", icon: "twitch" },
+    facebook: { bg: "#1877F2", icon: "facebook" },
+    youtube: { bg: "#FF0000", icon: "youtube" },
+    twitter: { bg: "#000000", icon: "x" },
+    threads: { bg: "#000000", icon: "threads" },
+    linkedin: { bg: "#0A66C2", text: "in", textSize: 0.36 },
   };
 
   const conf = cfg[code];
 
-  // 未知平台 → 灰底三点
   if (!conf) {
     return (
       <span className="flex shrink-0 items-center justify-center"
@@ -121,14 +145,20 @@ function PlatformLogo({ code, size = 56 }: { code: string; size?: number }) {
   return (
     <span className="flex shrink-0 items-center justify-center"
       style={{ width: size, height: size, background: conf.bg, borderRadius: radius }}>
-      <img
-        src={base + "icons/" + conf.icon + ".svg"}
-        alt=""
-        width={inner}
-        height={inner}
-        loading="lazy"
-        style={{ filter: "brightness(0) invert(1)" }}
-      />
+      {conf.text ? (
+        <span style={{
+          color: "#fff",
+          fontWeight: 700,
+          fontSize: Math.round(size * (conf.textSize || 0.3)),
+          letterSpacing: "0.3px",
+          fontFamily: "-apple-system, PingFang SC, Microsoft YaHei, sans-serif",
+          lineHeight: 1,
+        }}>{conf.text}</span>
+      ) : (
+        <img src={base + "icons/" + conf.icon + ".svg"} alt=""
+          width={inner} height={inner} loading="lazy"
+          style={{ filter: "brightness(0) invert(1)" }} />
+      )}
     </span>
   );
 }
@@ -153,6 +183,7 @@ export default function GrabSystem() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [moreSearch, setMoreSearch] = useState("");
   const pollTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -326,7 +357,7 @@ export default function GrabSystem() {
           {/* 平台网格：3 列，圆角方形卡片 */}
           <section>
             <div className="grid grid-cols-3 gap-3">
-              {platforms.map((p) => (
+              {platforms.filter((p) => p.enabled === 1).map((p) => (
                 <button key={p.code} type="button" disabled={loading}
                   onClick={() => generateQr(p)}
                   className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-2 py-3 active:bg-neutral-50 disabled:opacity-50">
@@ -379,6 +410,92 @@ export default function GrabSystem() {
             </button>
           </section>
 
+        </main>
+
+        {toast && (
+          <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center px-4">
+            <div className="rounded-full bg-neutral-900/90 px-4 py-2 text-sm text-white shadow-lg">{toast}</div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ==================== 视图：更多平台 ====================
+  if (view === "more") {
+    const morePlatforms = platforms.filter((p) => p.enabled === 0);
+    const q = moreSearch.trim().toLowerCase();
+    const filtered = q
+      ? morePlatforms.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
+      : morePlatforms;
+
+    return (
+      <div className="min-h-screen bg-neutral-50 pb-10">
+        <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white">
+          <div className="mx-auto flex h-16 max-w-3xl items-center gap-3 px-5">
+            <button type="button" onClick={goBack}
+              className="flex h-9 w-9 items-center justify-center text-neutral-700" aria-label="返回">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5" />
+                <path d="M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-lg font-semibold text-neutral-900">更多平台</h1>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-3xl px-5 py-4">
+          <p className="mb-3 text-sm text-neutral-500">选择你要抓取的平台</p>
+
+          <div className="relative mb-4">
+            <svg className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              value={moreSearch}
+              onChange={(e) => setMoreSearch(e.target.value)}
+              placeholder="搜索平台名称"
+              className="h-12 w-full rounded-xl border border-neutral-200 bg-white pl-11 pr-4 text-base outline-none placeholder:text-neutral-400 focus:border-neutral-400"
+            />
+          </div>
+
+          {filtered.length === 0 ? (
+            <p className="py-10 text-center text-sm text-neutral-400">未找到匹配的平台</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {filtered.map((p) => (
+                <button key={p.code} type="button" disabled={loading}
+                  onClick={() => generateQr(p)}
+                  className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-2 py-3 active:bg-neutral-50 disabled:opacity-50">
+                  <PlatformLogo code={p.code} size={52} />
+                  <div className="flex items-center gap-0.5">
+                    <span className="truncate text-sm text-neutral-900">{p.name}</span>
+                    <svg className="h-3.5 w-3.5 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <section className="mt-6">
+            <div className="flex items-center gap-3 rounded-2xl bg-neutral-100 px-4 py-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-neutral-800">支持多个平台的账号授权</div>
+                <div className="mt-0.5 text-xs text-neutral-500">安全 · 稳定 · 便捷</div>
+              </div>
+            </div>
+          </section>
         </main>
 
         {toast && (
