@@ -64,16 +64,6 @@ function PlatformIcon({ brand, iconSlug, size = 48 }: { brand: string; iconSlug:
   );
 }
 
-function formatTtl(seconds: number | null): string {
-  if (seconds === null) return "";
-  if (seconds === 0) return "永久";
-  if (seconds < 60) return seconds + "秒";
-  if (seconds < 3600) return Math.round(seconds / 60) + "分钟";
-  if (seconds < 86400) return Math.round(seconds / 3600) + "小时";
-  if (seconds < 2592000) return Math.round(seconds / 86400) + "天";
-  return Math.round(seconds / 2592000) + "个月";
-}
-
 /* ============================================================
    平台官方 App 风格图标（圆角方形 + 品牌色 + 白色图形）
    支持 26 个平台

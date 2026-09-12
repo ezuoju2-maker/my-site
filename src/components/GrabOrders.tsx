@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { getBase } from "../lib/url";
 import { API_BASE_URL } from "../lib/api";
 
-type Platform = { code: string; name: string; brand: string };
 
 type OrderAccount = {
   nickname: string | null;

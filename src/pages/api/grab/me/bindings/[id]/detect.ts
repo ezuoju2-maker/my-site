@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
-import { requireAuth } from "../../../../../../../lib/permissions";
-import { corsHeaders, getAllowedOrigin, rejectCrossSiteRequest } from "../../../../../../../lib/cors";
+import { requireAuth } from "../../../../../../lib/permissions";
+import { corsHeaders, getAllowedOrigin, rejectCrossSiteRequest } from "../../../../../../lib/cors";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 

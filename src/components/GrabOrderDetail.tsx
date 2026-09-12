@@ -153,15 +153,6 @@ export default function GrabOrderDetail({ orderId, onBack, onViewQr, onViewAuthI
     window.setTimeout(() => setToast(""), 1800);
   }
 
-  async function copyText(text: string, label = "已复制") {
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast(label);
-    } catch {
-      showToast("复制失败");
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">

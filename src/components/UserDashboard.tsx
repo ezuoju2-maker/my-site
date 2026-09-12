@@ -11,7 +11,6 @@ import { getBase } from "../lib/url";
 import { useEffect, useState } from "react";
 import {
   FEATURES,
-  TABS,
   SITE_NAME,
   ANNOUNCEMENT,
   type TabKey,
@@ -62,13 +61,6 @@ const FEATURE_ICONS: Record<IconName, React.FC<{ className?: string }>> = {
   ticket: IconTicket,
 };
 
-const TAB_ICONS: Record<TabKey, React.FC<{ className?: string }>> = {
-  home: IconHome,
-  orders: IconClipboard,
-  support: IconHeadphones,
-  me: IconUser,
-};
-
 const SUBTITLE_ICONS: Record<string, React.FC<{ className?: string }>> = {
   globe: IconGlobe,
   zap: IconZap,
@@ -79,7 +71,6 @@ const SUBTITLE_ICONS: Record<string, React.FC<{ className?: string }>> = {
 export default function UserDashboard() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [status, setStatus] = useState<"loading" | "ok">("loading");
-  const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [toast, setToast] = useState("");
   const [langPickerOpen, setLangPickerOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState(DEFAULT_LANG);
