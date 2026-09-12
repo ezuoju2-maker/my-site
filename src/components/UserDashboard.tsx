@@ -110,6 +110,8 @@ export default function UserDashboard() {
   // 未读通知数量。当前为 0，接入通知 API 后改为真实数据。
   // 红点仅在有未读通知时显示。
   const [notificationCount, setNotificationCount] = useState(0);
+  const [balance, setBalance] = useState<number>(0);
+  const [balanceLoaded, setBalanceLoaded] = useState(false);
 
   // 预留 setter，避免未使用警告（接入通知 API 时可直接调用）
   void setNotificationCount;
@@ -155,6 +157,23 @@ export default function UserDashboard() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/api/user/balance`, { credentials: "include", cache: "no-store" })
+      .then((r) => r.json() as Promise<{ ok?: boolean; balance?: number }>)
+      .then((d) => {
+        if (cancelled) return;
+        if (d.ok && typeof d.balance === "number") {
+          setBalance(d.balance);
+        }
+        setBalanceLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setBalanceLoaded(true);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   function notify(message: string) {
@@ -284,7 +303,7 @@ export default function UserDashboard() {
                   账户余额
                 </div>
                 <div className="mt-1 text-sm text-neutral-500">
-                  当前余额：<span className="ml-1 tracking-widest text-neutral-400">— —</span>
+                  当前余额：<span className="ml-1 font-medium text-neutral-900">¥{balanceLoaded ? balance.toFixed(3) : "—.———"}</span>
                 </div>
               </div>
             </div>
