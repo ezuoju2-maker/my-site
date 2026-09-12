@@ -1,0 +1,28 @@
+ALTER TABLE grab_platforms ADD COLUMN price REAL NOT NULL DEFAULT 9.90;
+
+UPDATE grab_platforms SET price = 9.90  WHERE code = 'xiaohongshu';
+UPDATE grab_platforms SET price = 12.90 WHERE code = 'douyin';
+UPDATE grab_platforms SET price = 9.90  WHERE code = 'bilibili';
+UPDATE grab_platforms SET price = 8.90  WHERE code = 'weibo';
+UPDATE grab_platforms SET price = 15.90 WHERE code = 'wechat';
+UPDATE grab_platforms SET price = 15.90 WHERE code = 'qq';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'discord';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'google';
+UPDATE grab_platforms SET price = 6.90  WHERE code = 'zhihu';
+UPDATE grab_platforms SET price = 9.90  WHERE code = 'xiaoyuzhou';
+UPDATE grab_platforms SET price = 9.90  WHERE code = 'dewu';
+UPDATE grab_platforms SET price = 9.90  WHERE code = 'kuaishou';
+UPDATE grab_platforms SET price = 12.90 WHERE code = 'taobao';
+UPDATE grab_platforms SET price = 12.90 WHERE code = 'jd';
+UPDATE grab_platforms SET price = 9.90  WHERE code = 'pinduoduo';
+UPDATE grab_platforms SET price = 9.90  WHERE code = 'zsxq';
+UPDATE grab_platforms SET price = 6.90  WHERE code = 'baidu';
+UPDATE grab_platforms SET price = 15.90 WHERE code = 'telegram';
+UPDATE grab_platforms SET price = 15.90 WHERE code = 'whatsapp';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'twitch';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'facebook';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'instagram';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'youtube';
+UPDATE grab_platforms SET price = 22.90 WHERE code = 'twitter';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'threads';
+UPDATE grab_platforms SET price = 19.90 WHERE code = 'linkedin';
