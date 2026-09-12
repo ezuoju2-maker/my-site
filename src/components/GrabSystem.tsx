@@ -60,95 +60,76 @@ function PlatformIcon({ brand, iconSlug, size = 48 }: { brand: string; iconSlug:
 }
 
 /* ============================================================
-   抓号系统首页专用：彩色 App 图标（圆角方形）
+   平台官方 App 风格图标（圆角方形 + 品牌色 + 白色图形）
    ============================================================ */
-function PlatformLogo({ code, size = 48 }: { code: string; size?: number }) {
-  const svg = { width: size, height: size, viewBox: "0 0 48 48", xmlns: "http://www.w3.org/2000/svg" } as const;
+function PlatformLogo({ code, size = 56 }: { code: string; size?: number }) {
+  const base = getBase();
+  const inner = Math.round(size * 0.62);
+  const radius = Math.round(size * 0.24);
 
+  // 小红书：品牌色底 + "小红书" 文字
   if (code === "xiaohongshu") {
     return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#FF2442" />
-        <text x="24" y="29" textAnchor="middle" fill="#fff" fontSize="12" fontWeight="600"
-          fontFamily="-apple-system, PingFang SC, Microsoft YaHei, sans-serif">小红书</text>
-      </svg>
+      <span className="flex shrink-0 items-center justify-center"
+        style={{ width: size, height: size, background: "#FF2442", borderRadius: radius }}>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: Math.round(size * 0.26), letterSpacing: "0.5px", fontFamily: "-apple-system, PingFang SC, Microsoft YaHei, sans-serif" }}>小红书</span>
+      </span>
     );
   }
-  if (code === "douyin") {
-    return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#000" />
-        <path d="M33 14c-.4-1.6-1.1-3-2.2-4.1-1.1-1-2.4-1.6-3.9-1.8v11.9c0 4-3.2 7.2-7.2 7.2s-7.2-3.2-7.2-7.2 3.2-7.2 7.2-7.2c.4 0 .8 0 1.1.1v5c-.4-.1-.7-.2-1.1-.2-1.4 0-2.6 1.2-2.6 2.6s1.2 2.6 2.6 2.6 2.6-1.2 2.6-2.6V4h5c.4 2.3 1.6 4.3 3.5 5.6 1.3 1 2.9 1.5 4.5 1.6V16c-1.5-.1-3-.6-4.3-1.3l-.1-.1z" fill="#fff" />
-        <path d="M33 14c-.4-1.6-1.1-3-2.2-4.1-1.1-1-2.4-1.6-3.9-1.8v11.9c0 4-3.2 7.2-7.2 7.2" fill="none" stroke="#25F4EE" strokeWidth="1.8" />
-      </svg>
-    );
-  }
-  if (code === "bilibili") {
-    return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#00A1D6" />
-        <path d="M14 17l-2-2.5 1.3-1 2.2 2.7h17l2.2-2.7 1.3 1L34 17h3c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H11c-1.1 0-2-.9-2-2V19c0-1.1.9-2 2-2h3z" fill="#fff" />
-        <rect x="17" y="23" width="4" height="4" fill="#00A1D6" />
-        <rect x="27" y="23" width="4" height="4" fill="#00A1D6" />
-      </svg>
-    );
-  }
-  if (code === "weibo") {
-    return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#FDD35C" />
-        <ellipse cx="24" cy="26" rx="12" ry="8.5" fill="#E6162D" />
-        <circle cx="24" cy="26" r="4" fill="#fff" />
-        <circle cx="24" cy="26" r="2.5" fill="#1A1A1A" />
-      </svg>
-    );
-  }
-  if (code === "wechat") {
-    return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#07C160" />
-        <ellipse cx="18" cy="21" rx="9" ry="8" fill="#fff" />
-        <ellipse cx="31" cy="28" rx="8" ry="7" fill="#fff" />
-        <circle cx="15" cy="20" r="1.2" fill="#07C160" />
-        <circle cx="21" cy="20" r="1.2" fill="#07C160" />
-        <circle cx="28" cy="27" r="1.1" fill="#07C160" />
-        <circle cx="34" cy="27" r="1.1" fill="#07C160" />
-      </svg>
-    );
-  }
-  if (code === "qq") {
-    return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#12B7F5" />
-        <path d="M24 11c-5 0-8.5 3.8-8.5 8.7 0 1.8.4 3.4 1 4.7-.7 1-1.4 2.6-1.4 3.4 0 .6.3 1 .9 1 .6 0 1.4-.6 2-1.4.8 1.3 2 2.3 3.4 2.8-.7.4-1.2.9-1.2 1.4 0 .8 1.6 1.4 3.8 1.4s3.8-.6 3.8-1.4c0-.5-.5-1-1.2-1.4 1.4-.5 2.6-1.5 3.4-2.8.6.8 1.4 1.4 2 1.4.6 0 .9-.4.9-1 0-.8-.7-2.4-1.4-3.4.6-1.3 1-2.9 1-4.7C32.5 14.8 29 11 24 11z" fill="#fff" />
-      </svg>
-    );
-  }
-  if (code === "discord") {
-    return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#5865F2" />
-        <path d="M33 17c-2.1-1-4.3-1.7-6.6-2l-.3.6c1.8.4 2.6 1 2.6 1s-2.2-1.1-5.7-1.1-5.7 1.1-5.7 1.1.8-.6 2.6-1l-.3-.6c-2.3.3-4.5 1-6.6 2-2.9 4.3-3.7 8.5-3.3 12.6 2.6 1.9 5.1 3 7.6 3.8l.7-1.1c-.8-.3-1.7-.7-2.4-1.2l.5-.4c4.6 2.1 9.6 2.1 14.1 0l.5.4c-.8.5-1.6.9-2.4 1.2l.7 1.1c2.5-.8 5-1.9 7.6-3.8.5-4.7-.6-9-3.3-12.6zM18.5 30c-1.5 0-2.7-1.4-2.7-3s1.2-3 2.7-3 2.7 1.4 2.7 3-1.2 3-2.7 3zm11 0c-1.5 0-2.7-1.4-2.7-3s1.2-3 2.7-3 2.7 1.4 2.7 3-1.2 3-2.7 3z" fill="#fff" />
-      </svg>
-    );
-  }
+
+  // Google：白底 + 彩色 G（官方 4 色）
   if (code === "google") {
     return (
-      <svg {...svg}>
-        <rect width="48" height="48" rx="12" fill="#fff" />
-        <path d="M24 10c3.6 0 6.7 1.3 9.1 3.4l-3.7 3.7c-1.5-1.2-3.4-1.9-5.4-1.9-3.9 0-7.2 2.6-8.4 6.2-.4 1.2-.7 2.5-.7 3.8s.2 2.6.7 3.8c1.2 3.6 4.5 6.2 8.4 6.2 2 0 3.8-.5 5.2-1.5.8-.5 1.4-1.2 2-1.9.5-.7.8-1.4 1-2.2H24v-4.4h13c.1.7.2 1.4.2 2.2 0 2.9-.8 5.5-2.2 7.6-2.5 3.8-6.8 6.4-12 6.4C13.7 40 6.4 32.3 6.4 23.5S13.7 7 23 7c4.3 0 8.1 1.5 11 4.1l-3.7 3.7c-1.7-1.5-3.9-2.4-6.3-2.4z" fill="#4285F4" />
-        <path d="M10 18l3.8 2.9c1-2.7 3.5-4.6 6.4-4.6 1.6 0 3.1.5 4.4 1.5l3.4-3.4c-2.2-1.9-4.9-2.9-7.8-2.9-4.4 0-8.2 2.3-10.2 6.5z" fill="#EA4335" />
-        <path d="M37 24c0-1.4-.2-2.8-.4-4.1H24v8h7.1c-.3 1.6-1 3-2 4l3.5 2.7C34.8 32.5 37 28.6 37 24z" fill="#34A853" />
-      </svg>
+      <span className="flex shrink-0 items-center justify-center"
+        style={{ width: size, height: size, background: "#fff", borderRadius: radius, boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)" }}>
+        <svg viewBox="0 0 48 48" width={inner} height={inner} xmlns="http://www.w3.org/2000/svg">
+          <path d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.5 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z" fill="#FFC107" />
+          <path d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.5 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" fill="#FF3D00" />
+          <path d="M24 44c5.5 0 10.4-2.1 14.1-5.5l-6.5-5.5c-2 1.5-4.6 2.5-7.6 2.5-5.3 0-9.7-3.4-11.3-8L6.1 32.3C9.5 38.8 16.2 44 24 44z" fill="#4CAF50" />
+          <path d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.5l.1-.1 6.5 5.5c-.5.4 6.9-5 6.9-15.4 0-1.3-.1-2.3-.4-3.5z" fill="#1976D2" />
+        </svg>
+      </span>
     );
   }
+
+  // 其他平台：品牌色底 + 白色 Simple Icons 官方图形
+  const cfg: Record<string, { bg: string; icon: string }> = {
+    douyin: { bg: "#000000", icon: "douyin" },
+    bilibili: { bg: "#00A1D6", icon: "bilibili" },
+    weibo: { bg: "#FDD35C", icon: "sinaweibo" },
+    wechat: { bg: "#07C160", icon: "wechat" },
+    qq: { bg: "#12B7F5", icon: "qq" },
+    discord: { bg: "#5865F2", icon: "discord" },
+  };
+
+  const conf = cfg[code];
+
+  // 未知平台 → 灰底三点
+  if (!conf) {
+    return (
+      <span className="flex shrink-0 items-center justify-center"
+        style={{ width: size, height: size, background: "#F0F0F0", borderRadius: radius }}>
+        <svg viewBox="0 0 24 24" width={Math.round(size * 0.42)} height={Math.round(size * 0.42)} fill="#9CA3AF">
+          <circle cx="5" cy="12" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="19" cy="12" r="2" />
+        </svg>
+      </span>
+    );
+  }
+
   return (
-    <svg {...svg}>
-      <rect width="48" height="48" rx="12" fill="#E5E5E5" />
-      <circle cx="24" cy="24" r="2.5" fill="#9CA3AF" />
-      <circle cx="16" cy="24" r="2.5" fill="#9CA3AF" />
-      <circle cx="32" cy="24" r="2.5" fill="#9CA3AF" />
-    </svg>
+    <span className="flex shrink-0 items-center justify-center"
+      style={{ width: size, height: size, background: conf.bg, borderRadius: radius }}>
+      <img
+        src={base + "icons/" + conf.icon + ".svg"}
+        alt=""
+        width={inner}
+        height={inner}
+        loading="lazy"
+        style={{ filter: "brightness(0) invert(1)" }}
+      />
+    </span>
   );
 }
 
@@ -302,17 +283,17 @@ export default function GrabSystem() {
   if (view === "picker") {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
-        {/* 顶部：抓号系统 + 联系客服（无返回箭头） */}
+        {/* 顶部：返回箭头 + 抓号系统 */}
         <header className="bg-neutral-50">
-          <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-5">
-            <h1 className="text-xl font-bold text-neutral-900">抓号系统</h1>
-            <button type="button" onClick={() => showToast("请联系客服")}
-              className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />
+          <div className="mx-auto flex h-16 max-w-3xl items-center gap-3 px-5">
+            <button type="button" onClick={goBack}
+              className="flex h-9 w-9 items-center justify-center text-neutral-700" aria-label="返回">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5" />
+                <path d="M12 19l-7-7 7-7" />
               </svg>
-              联系客服
             </button>
+            <h1 className="text-lg font-semibold text-neutral-900">抓号系统</h1>
           </div>
         </header>
 
@@ -325,12 +306,19 @@ export default function GrabSystem() {
             <p className="mt-2 text-sm text-neutral-500">
               我们家为你生成专属的授权二维码。
             </p>
-            <div className="pointer-events-none absolute -top-2 right-0 opacity-90">
-              <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
-                <rect x="38" y="12" width="36" height="36" rx="10" fill="#F5F5F5" transform="rotate(8 56 30)" />
-                <rect x="30" y="22" width="42" height="42" rx="12" fill="#FFFFFF" stroke="#E5E5E5" strokeWidth="1.5" />
-                <path d="M51 36c2.5 0 4.5 2 4.5 4.5 0 4-4.5 7.5-4.5 7.5s-4.5-3.5-4.5-7.5c0-2.5 2-4.5 4.5-4.5z" fill="#9CA3AF" />
-                <path d="M48.8 40.5l1.6 1.6 3-3" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <div className="pointer-events-none absolute -top-3 right-0">
+              <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+                {/* 后层灰卡（斜） */}
+                <rect x="52" y="20" width="48" height="48" rx="10" fill="#F1F1F3" transform="rotate(15 76 44)" />
+                {/* 前层白卡（斜） */}
+                <rect x="42" y="32" width="56" height="56" rx="12" fill="#FFFFFF" stroke="#E8E8EC" strokeWidth="1.2" transform="rotate(8 70 60)" />
+                {/* 盾牌（灰） */}
+                <g transform="rotate(8 70 60)">
+                  <path d="M70 44c6 0 11 1.5 15 3v13c0 9-6.5 16-15 19-8.5-3-15-10-15-19V47c4-1.5 9-3 15-3z" fill="#C4C7CE" />
+                  <path d="M64 60l4.5 4.5L78 55" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </g>
+                {/* 闪光星 */}
+                <path d="M104 12l1.5 4.5 4.5 1.5-4.5 1.5L104 24l-1.5-4.5L98 18l4.5-1.5z" fill="#C4C7CE" />
               </svg>
             </div>
           </section>
@@ -383,11 +371,6 @@ export default function GrabSystem() {
             </div>
           </section>
 
-          {/* 我的账号快捷入口 */}
-          <button type="button" onClick={() => setView("accounts")}
-            className="mt-4 h-12 w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700">
-            我的账号
-          </button>
         </main>
 
         {toast && (
