@@ -358,7 +358,9 @@ export default function UserDashboard() {
                   type="button"
                   onClick={() => {
                     setActiveTab(tab.key);
-                    if (tab.key !== "home") {
+                    if (tab.key === "orders") {
+                      window.location.href = getBase() + "dashboard/orders/";
+                    } else if (tab.key !== "home") {
                       notify(`${tab.label}开发中`);
                     }
                   }}
