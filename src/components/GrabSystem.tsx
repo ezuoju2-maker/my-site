@@ -231,7 +231,7 @@ export default function GrabSystem() {
     }
   }
 
-  async function generateQr(platform: Platform) {
+  async function generateQr(platform: Platform): Promise<QrSession | null> {
     setError(""); setLoading(true);
     try {
       const r = await fetch(`${API_BASE_URL}/api/grab/qr/create`, {
@@ -241,7 +241,7 @@ export default function GrabSystem() {
         body: JSON.stringify({ platform: platform.code, ttlDays: 30 }),
       });
       const d = (await r.json()) as { ok?: boolean; error?: string; token?: string; id?: string; expiresAt?: string };
-      if (!r.ok || !d.ok || !d.token) { setError(d.error || "生成失败"); return; }
+      if (!r.ok || !d.ok || !d.token) { setError(d.error || "生成失败"); return null; }
       const session: QrSession = {
         id: d.id || "",
         platform: platform.code,
@@ -256,9 +256,9 @@ export default function GrabSystem() {
         account: null,
       };
       setCurrentQr(session);
-      setView("qr");
       startPolling(session);
-    } catch { setError("网络错误"); }
+      return session;
+    } catch { setError("网络错误"); return null; }
     finally { setLoading(false); }
   }
 
@@ -300,7 +300,7 @@ export default function GrabSystem() {
   function goBack() {
     if (pollTimer.current) window.clearInterval(pollTimer.current);
     if (view === "picker") { window.location.href = getBase() + "dashboard/"; return; }
-    if (view === "authorize") { setView("qr"); return; }
+    if (view === "authorize") { setView("picker"); setCurrentQr(null); setDetailPlatform(null); return; }
     if (view === "paid") { setView("payment"); return; }
     if (view === "payment") { setView("order"); return; }
     if (view === "order") { setView("detail"); return; }
@@ -471,9 +471,9 @@ export default function GrabSystem() {
         orderNo={paymentOrderNo}
         payment={paymentMethod as any}
         amount={detailPlatform.price}
-        onDone={() => {
-          generateQr(detailPlatform);
-          setView("authorize");
+        onDone={async () => {
+          const s = await generateQr(detailPlatform);
+          if (s) setView("authorize");
         }}
       />
     );
@@ -486,7 +486,7 @@ export default function GrabSystem() {
       <GrabAuthorizePage
         platform={detailPlatform}
         qrContent={scanUrl}
-        onBack={() => { setView("qr"); }}
+        onBack={() => { setView("picker"); setCurrentQr(null); setDetailPlatform(null); }}
         onViewOrders={() => { window.location.href = getBase() + "dashboard/orders/"; }}
       />
     );
