@@ -101,7 +101,7 @@ function fmtDate(iso: string): string {
   return iso.replace("T", " ").slice(0, 16);
 }
 
-export default function GrabOrders({ embedded = false }: { embedded?: boolean }) {
+export default function GrabOrders({ embedded = false, onViewDetail }: { embedded?: boolean; onViewDetail?: (id: string) => void }) {
   const [tab, setTab] = useState<TabKey>("all");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,8 +205,11 @@ export default function GrabOrders({ embedded = false }: { embedded?: boolean })
 
             <button type="button"
               onClick={() => {
-                // 点击详情：跳到抓号系统页面看二维码/结果
-                window.location.href = getBase() + "dashboard/grab/";
+                if (onViewDetail) {
+                  onViewDetail(o.id);
+                } else {
+                  window.location.href = getBase() + "dashboard/grab/";
+                }
               }}
               className="mt-3 flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 active:bg-neutral-50">
               查看详情

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getBase } from "../lib/url";
 import GrabOrders from "./GrabOrders";
+import GrabOrderDetail from "./GrabOrderDetail";
 
 type OrderType = "sms" | "grab" | "card";
 
@@ -16,6 +17,7 @@ const TABS: { key: OrderType; label: string }[] = [
 
 export default function MyOrders({ onBack }: Props) {
   const [activeTab, setActiveTab] = useState<OrderType>("grab");
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   function goBack() {
     if (onBack) {
@@ -23,6 +25,15 @@ export default function MyOrders({ onBack }: Props) {
     } else {
       window.location.href = getBase() + "dashboard/";
     }
+  }
+
+  if (detailOrderId) {
+    return (
+      <GrabOrderDetail
+        orderId={detailOrderId}
+        onBack={() => setDetailOrderId(null)}
+      />
+    );
   }
 
   return (
@@ -78,7 +89,9 @@ export default function MyOrders({ onBack }: Props) {
       {/* 内容区 */}
       <main className="mx-auto max-w-2xl px-4 py-6">
         {activeTab === "sms" && <EmptyState text="暂无接码订单" />}
-        {activeTab === "grab" && <GrabOrders embedded />}
+        {activeTab === "grab" && (
+          <GrabOrders embedded onViewDetail={(id) => setDetailOrderId(id)} />
+        )}
         {activeTab === "card" && <EmptyState text="暂无卡券订单" />}
       </main>
     </div>
