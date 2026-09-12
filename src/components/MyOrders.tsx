@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { getBase } from "../lib/url";
+import { API_BASE_URL } from "../lib/api";
 import GrabOrders from "./GrabOrders";
 import GrabOrderDetail from "./GrabOrderDetail";
+import GrabAuthorizePage from "./GrabAuthorizePage";
 
 type OrderType = "sms" | "grab" | "card";
 
@@ -18,6 +20,36 @@ const TABS: { key: OrderType; label: string }[] = [
 export default function MyOrders({ onBack }: Props) {
   const [activeTab, setActiveTab] = useState<OrderType>("grab");
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [viewQrOrderId, setViewQrOrderId] = useState<string | null>(null);
+  const [qrData, setQrData] = useState<{ token: string; platform: { code: string; name: string; brand: string } } | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState("");
+
+  useEffect(() => {
+    if (!viewQrOrderId) return;
+    setQrLoading(true);
+    setQrError("");
+    setQrData(null);
+    fetch(`${API_BASE_URL}/api/grab/me/order-token?id=${encodeURIComponent(viewQrOrderId)}`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+      .then((r) => r.json() as Promise<{ ok?: boolean; error?: string; token?: string; platform?: { code: string; name: string; brand: string } }>)
+      .then((d) => {
+        if (d.ok && d.token && d.platform) {
+          setQrData({ token: d.token, platform: d.platform });
+        } else {
+          setQrError(
+            d.error === "NOT_WAITING" ? "该订单已授权或已过期" :
+            d.error === "TOKEN_MISSING" ? "二维码数据缺失" :
+            d.error === "DECRYPT_FAILED" ? "二维码解密失败" :
+            "加载失败",
+          );
+        }
+      })
+      .catch(() => setQrError("网络错误"))
+      .finally(() => setQrLoading(false));
+  }, [viewQrOrderId]);
 
   function goBack() {
     if (onBack) {
@@ -27,11 +59,51 @@ export default function MyOrders({ onBack }: Props) {
     }
   }
 
+  if (viewQrOrderId) {
+    if (qrLoading) {
+      return (
+        <div className="min-h-screen bg-neutral-50 pb-10">
+          <div className="flex h-14 items-center justify-center border-b border-neutral-100 bg-white">
+            <span className="text-base font-semibold text-neutral-900">加载中…</span>
+          </div>
+          <div className="py-20 text-center text-sm text-neutral-400">正在生成二维码…</div>
+        </div>
+      );
+    }
+    if (qrError || !qrData) {
+      return (
+        <div className="min-h-screen bg-neutral-50 pb-10">
+          <div className="flex h-14 items-center justify-center border-b border-neutral-100 bg-white">
+            <span className="text-base font-semibold text-neutral-900">二维码</span>
+          </div>
+          <div className="py-20 text-center text-sm text-red-500">{qrError || "加载失败"}</div>
+          <div className="flex justify-center">
+            <button type="button" onClick={() => { setViewQrOrderId(null); }}
+              className="mt-4 rounded-xl border border-neutral-200 bg-white px-6 py-2 text-sm text-neutral-700">
+              返回
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <GrabAuthorizePage
+        platform={qrData.platform}
+        qrContent={API_BASE_URL + "/scan/" + qrData.token}
+        mode="order"
+        onBack={() => setViewQrOrderId(null)}
+        onBackToDetail={() => setViewQrOrderId(null)}
+        onViewOrders={() => {}}
+      />
+    );
+  }
+
   if (detailOrderId) {
     return (
       <GrabOrderDetail
         orderId={detailOrderId}
         onBack={() => setDetailOrderId(null)}
+        onViewQr={(id) => setViewQrOrderId(id)}
       />
     );
   }

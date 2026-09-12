@@ -25,6 +25,7 @@ type Order = {
 type Props = {
   orderId: string;
   onBack: () => void;
+  onViewQr: (orderId: string) => void;
 };
 
 function PlatformLogo({ code, brand, size = 88 }: { code: string; brand: string; size?: number }) {
@@ -99,7 +100,7 @@ function fmtDate(iso: string): string {
   return iso.replace("T", " ").slice(0, 10);
 }
 
-export default function GrabOrderDetail({ orderId, onBack }: Props) {
+export default function GrabOrderDetail({ orderId, onBack, onViewQr }: Props) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -198,7 +199,7 @@ export default function GrabOrderDetail({ orderId, onBack }: Props) {
           </section>
 
           <button type="button"
-            onClick={() => { window.location.href = getBase() + "dashboard/grab/"; }}
+            onClick={() => onViewQr(orderId)}
             className="flex h-12 w-full items-center justify-center gap-1.5 rounded-xl text-base font-medium text-white"
             style={{ background: theme }}>
             查看授权二维码
