@@ -178,6 +178,7 @@ export default function GrabPaymentPage({ platform: p, payment, onBack, onPaid }
         </header>
 
         <main className="mx-auto max-w-3xl space-y-3 px-5 py-4">
+          {/* 商品卡 */}
           <section className="rounded-2xl border border-neutral-100 bg-white p-4">
             <div className="flex items-start gap-3">
               <PlatformLogo code={p.code} brand={p.brand} size={56} />
@@ -198,18 +199,24 @@ export default function GrabPaymentPage({ platform: p, payment, onBack, onPaid }
               <div><div className="text-xs text-neutral-400">商品类型</div><div className="mt-0.5 text-sm font-medium text-neutral-900">账号授权</div></div>
               <div><div className="text-xs text-neutral-400">购买数量</div><div className="mt-0.5 text-sm font-medium text-neutral-900">1 次</div></div>
             </div>
-            <div className="mt-3 space-y-2.5 border-t border-neutral-100 pt-3">
+          </section>
+
+          {/* 订单金额 */}
+          <section className="rounded-2xl border border-neutral-100 bg-white p-4">
+            <h3 className="text-sm font-semibold text-neutral-900">订单金额</h3>
+            <div className="mt-3 space-y-2.5">
               <div className="flex items-center justify-between text-sm"><span className="text-neutral-500">商品金额</span><span className="text-neutral-900">¥{p.price.toFixed(2)}</span></div>
               <div className="flex items-center justify-between text-sm"><span className="text-neutral-500">优惠券</span><button type="button" className="flex items-center gap-1 text-neutral-400">暂无可用<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></button></div>
               <div className="flex items-center justify-between border-t border-neutral-100 pt-3"><span className="text-sm font-medium text-neutral-900">应付金额</span><span className="text-2xl font-bold text-blue-500">¥{p.price.toFixed(2)}</span></div>
             </div>
           </section>
 
+          {/* 账户余额支付卡 */}
           <section className="rounded-2xl border border-neutral-100 bg-white p-4">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500">
-                <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
-                  <path fill="#fff" d={PAYMENT_ICONS.wechat.path} />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-500">
+                <svg viewBox="0 0 24 24" style={{ width: "60%", height: "60%", display: "block" }} fill="#fff" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
                 </svg>
               </span>
               <div className="min-w-0 flex-1">
@@ -220,12 +227,13 @@ export default function GrabPaymentPage({ platform: p, payment, onBack, onPaid }
                 <div className="text-lg font-bold text-blue-500">¥{balanceLoaded ? balance.toFixed(3) : "—.———"}</div>
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
-              <span className="text-xs text-neutral-400">使用账户余额支付，余额充足，可直接支付</span>
-              <button type="button" onClick={onBack} className="flex items-center gap-1 text-xs text-neutral-500">更改支付方式<svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></button>
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-100 pt-3">
+              <span className="min-w-0 flex-1 text-xs text-neutral-400">使用账户余额支付，余额充足，可直接支付</span>
+              <button type="button" onClick={onBack} className="flex shrink-0 items-center gap-0.5 text-xs text-neutral-500">更改支付方式<svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></button>
             </div>
           </section>
 
+          {/* 支付安全保障 */}
           <section className="rounded-2xl border border-neutral-100 bg-white p-4">
             <div className="flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
@@ -233,7 +241,7 @@ export default function GrabPaymentPage({ platform: p, payment, onBack, onPaid }
               </span>
               <span className="text-sm font-medium text-neutral-900">支付安全保障</span>
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-y-2 text-xs text-neutral-600">
+            <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-3 text-xs text-neutral-600">
               {["账户资金安全保障", "平台正规合规", "7×24小时服务", "支付加密保障"].map((t) => (
                 <div key={t} className="flex items-center gap-1.5"><svg className="h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg><span className="truncate">{t}</span></div>
               ))}
@@ -249,7 +257,11 @@ export default function GrabPaymentPage({ platform: p, payment, onBack, onPaid }
             </div>
             <button type="button" disabled={!enough}
               onClick={() => { showToast("支付成功，正在生成二维码…"); window.setTimeout(onPaid, 800); }}
-              className="h-12 shrink-0 rounded-full bg-blue-500 px-8 text-base font-medium text-white disabled:opacity-60">
+              className="flex h-12 shrink-0 items-center gap-1.5 rounded-full bg-blue-500 px-7 text-base font-medium text-white disabled:opacity-60">
+              <svg viewBox="0 0 24 24" style={{ width: 18, height: 18 }} fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9z" />
+                <rect x="16" y="10" width="5" height="4" rx="1" />
+              </svg>
               立即支付
             </button>
           </div>
