@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import GrabPlatformDetail from "./GrabPlatformDetail";
 import GrabOrderPage from "./GrabOrderPage";
+import GrabPaymentPage from "./GrabPaymentPage";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
@@ -31,7 +32,7 @@ type MyAccount = {
   accountStatus: string;
   accountExpiresAt: string;
 };
-type View = "picker" | "qr" | "accounts" | "more" | "detail" | "order";
+type View = "picker" | "qr" | "accounts" | "more" | "detail" | "order" | "payment";
 
 function isLightHex(hex: string): boolean {
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
@@ -209,6 +210,7 @@ export default function GrabSystem() {
   const [toast, setToast] = useState("");
   const [moreSearch, setMoreSearch] = useState("");
   const [detailPlatform, setDetailPlatform] = useState<Platform | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string>("wechat");
   const pollTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -329,6 +331,7 @@ export default function GrabSystem() {
   function goBack() {
     if (pollTimer.current) window.clearInterval(pollTimer.current);
     if (view === "picker") { window.location.href = getBase() + "dashboard/"; return; }
+    if (view === "payment") { setView("order"); return; }
     if (view === "order") { setView("detail"); return; }
     setView("picker");
     setCurrentQr(null);
@@ -341,8 +344,20 @@ export default function GrabSystem() {
       <GrabOrderPage
         platform={detailPlatform}
         onBack={() => setView("detail")}
-        onPay={() => generateQr(detailPlatform)}
+        onPay={(pm) => { setPaymentMethod(pm); setView("payment"); }}
         loading={loading}
+      />
+    );
+  }
+
+  // ==================== 视图：支付页 ====================
+  if (view === "payment" && detailPlatform) {
+    return (
+      <GrabPaymentPage
+        platform={detailPlatform}
+        payment={paymentMethod as any}
+        onBack={() => setView("order")}
+        onPaid={() => generateQr(detailPlatform)}
       />
     );
   }
