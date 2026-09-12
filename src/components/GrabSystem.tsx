@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import QRCode from "qrcode";
+import { QRCodeSVG } from "qrcode.react";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
@@ -43,7 +43,7 @@ export default function GrabSystem() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [ttlDays, setTtlDays] = useState(1);
   const [session, setSession] = useState<QrSession | null>(null);
-  const [qrSvg, setQrSvg] = useState("");
+  const [scanUrl, setScanUrl] = useState("");
   const [pollStatus, setPollStatus] = useState("");
   const [result, setResult] = useState<AccountInfo | null>(null);
   const [myAccounts, setMyAccounts] = useState<MyAccount[]>([]);
@@ -51,20 +51,18 @@ export default function GrabSystem() {
   const [error, setError] = useState("");
   const pollTimer = useRef<number | null>(null);
 
-  // 加载平台列表
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/grab/platforms`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => { if (d.ok) setPlatforms(d.platforms); })
+      .then((r) => r.json() as Promise<{ ok?: boolean; platforms?: Platform[] }>)
+      .then((d) => { if (d.ok && d.platforms) setPlatforms(d.platforms); })
       .catch(() => {});
   }, []);
 
-  // 加载我的账号
   const loadMyAccounts = useCallback(async () => {
     try {
       const r = await fetch(`${API_BASE_URL}/api/grab/me/accounts`, { credentials: "include" });
-      const d = await r.json();
-      if (d.ok) setMyAccounts(d.accounts);
+      const d = (await r.json()) as { ok?: boolean; accounts?: MyAccount[] };
+      if (d.ok && d.accounts) setMyAccounts(d.accounts);
     } catch {}
   }, []);
 
@@ -72,7 +70,6 @@ export default function GrabSystem() {
     if (view === "accounts") void loadMyAccounts();
   }, [view, loadMyAccounts]);
 
-  // 清理轮询
   useEffect(() => {
     return () => { if (pollTimer.current) window.clearInterval(pollTimer.current); };
   }, []);
@@ -87,32 +84,52 @@ export default function GrabSystem() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ platform: selectedPlatform.code, ttlDays }),
       });
-      const d = await r.json();
-      if (!r.ok || !d.ok) { setError(d.error || "生成失败"); return; }
+      const d = (await r.json()) as {
+        ok?: boolean;
+        error?: string;
+        token?: string;
+        id?: string;
+        scanUrl?: string;
+        expiresAt?: string;
+      };
+      if (!r.ok || !d.ok || !d.token) {
+        setError(d.error || "生成失败");
+        return;
+      }
 
-      const scanUrl = `${API_BASE_URL}${d.scanUrl}`;
-      const svg = await QRCode.toString(scanUrl, { type: "svg", margin: 1, width: 260, errorCorrectionLevel: "M" });
-      setQrSvg(svg);
+      const fullUrl = `${API_BASE_URL}${d.scanUrl}`;
+      setScanUrl(fullUrl);
       setSession({
-        token: d.token, id: d.id,
+        token: d.token,
+        id: d.id || "",
         platformCode: selectedPlatform.code,
         platformName: selectedPlatform.name,
-        expiresAt: d.expiresAt,
+        expiresAt: d.expiresAt || "",
         status: "waiting",
       });
       setPollStatus("等待抓号层提交结果…");
       setView("qr");
       startPolling(d.token);
-    } catch { setError("网络错误"); }
-    finally { setLoading(false); }
+    } catch {
+      setError("网络错误");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function startPolling(token: string) {
     if (pollTimer.current) window.clearInterval(pollTimer.current);
     pollTimer.current = window.setInterval(async () => {
       try {
-        const r = await fetch(`${API_BASE_URL}/api/grab/qr/status?token=${encodeURIComponent(token)}`, { credentials: "include" });
-        const d = await r.json();
+        const r = await fetch(
+          `${API_BASE_URL}/api/grab/qr/status?token=${encodeURIComponent(token)}`,
+          { credentials: "include" },
+        );
+        const d = (await r.json()) as {
+          ok?: boolean;
+          qr?: { status?: string };
+          account?: AccountInfo;
+        };
         if (!d.ok || !d.qr) return;
 
         if (d.qr.status === "consumed" && d.account) {
@@ -136,25 +153,37 @@ export default function GrabSystem() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accountId }),
       });
-      const d = await r.json();
-      if (!r.ok || !d.ok) { alert(d.error || "上号失败"); return; }
+      const d = (await r.json()) as {
+        ok?: boolean;
+        error?: string;
+        account?: { platform?: string; nickname?: string | null; externalId?: string };
+        credential?: string;
+      };
+      if (!r.ok || !d.ok || !d.account) {
+        alert(d.error || "上号失败");
+        return;
+      }
       alert(
         "上号成功\n\n" +
-        "平台：" + d.account.platform + "\n" +
-        "账号：" + (d.account.nickname || d.account.externalId) + "\n" +
-        "凭证：\n" + d.credential
+        "平台：" + (d.account.platform || "") + "\n" +
+        "账号：" + (d.account.nickname || d.account.externalId || "") + "\n" +
+        "凭证：\n" + (d.credential || "")
       );
-    } catch { alert("网络错误"); }
+    } catch {
+      alert("网络错误");
+    }
   }
 
   function goBack() {
-    if (view === "picker") { window.location.href = getBase() + "dashboard/"; return; }
+    if (view === "picker") {
+      window.location.href = getBase() + "dashboard/";
+      return;
+    }
     if (pollTimer.current) window.clearInterval(pollTimer.current);
     setView("picker");
-    setSession(null); setQrSvg(""); setResult(null);
+    setSession(null); setScanUrl(""); setResult(null);
   }
 
-  // ============ 视图：选平台 ============
   if (view === "picker") {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
@@ -201,7 +230,6 @@ export default function GrabSystem() {
     );
   }
 
-  // ============ 视图：二维码 / 结果 ============
   if (view === "qr" && session) {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
@@ -211,10 +239,14 @@ export default function GrabSystem() {
             <>
               <section className="rounded-2xl border border-neutral-100 bg-white p-6 text-center">
                 <p className="mb-4 text-sm text-neutral-500">请将二维码或 token 发送给抓号层</p>
-                {qrSvg && (
-                  <div className="mx-auto flex justify-center" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                {scanUrl && (
+                  <div className="mx-auto flex justify-center">
+                    <QRCodeSVG value={scanUrl} size={260} level="M" />
+                  </div>
                 )}
-                <p className="mt-4 text-xs text-neutral-400">有效期至：{session.expiresAt.replace("T", " ").slice(0, 19)}</p>
+                <p className="mt-4 text-xs text-neutral-400">
+                  有效期至：{session.expiresAt ? session.expiresAt.replace("T", " ").slice(0, 19) : "—"}
+                </p>
               </section>
 
               <section className="rounded-2xl border border-neutral-100 bg-white p-5">
@@ -235,9 +267,9 @@ export default function GrabSystem() {
               </section>
             </>
           ) : (
-            <section className="rounded-2xl border border-green-200 bg-green-50 p-6 space-y-3">
+            <section className="space-y-3 rounded-2xl border border-green-200 bg-green-50 p-6">
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-white text-sm">✓</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-sm text-white">✓</span>
                 <span className="font-medium text-green-900">抓号成功</span>
               </div>
               <div className="space-y-1.5 text-sm text-green-800">
@@ -245,7 +277,7 @@ export default function GrabSystem() {
                 <p>昵称：{result.nickname || "—"}</p>
                 <p>账号 ID：{result.externalId}</p>
                 <p>授权编号：<code className="rounded bg-white px-1.5 py-0.5 font-mono">{result.authorizationCode}</code></p>
-                <p>有效期：{result.expiresAt.replace("T", " ").slice(0, 19)}</p>
+                <p>有效期：{result.expiresAt ? result.expiresAt.replace("T", " ").slice(0, 19) : "—"}</p>
               </div>
               <button type="button" onClick={() => setView("accounts")}
                 className="mt-2 h-11 w-full rounded-xl bg-green-700 text-sm font-medium text-white">
@@ -258,7 +290,6 @@ export default function GrabSystem() {
     );
   }
 
-  // ============ 视图：我的账号 ============
   if (view === "accounts") {
     return (
       <div className="min-h-screen bg-neutral-50 pb-10">
