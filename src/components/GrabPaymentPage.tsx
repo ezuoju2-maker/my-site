@@ -149,6 +149,18 @@ export default function GrabPaymentPage({ platform: p, payment, onBack, onPaid }
     return () => window.clearInterval(t);
   }, [countdown, payment]);
 
+  // 模拟支付：5 秒后自动跳转支付成功页
+  const [autoCount, setAutoCount] = useState(5);
+  useEffect(() => {
+    if (payment === "balance") return;
+    if (autoCount <= 0) {
+      onPaid();
+      return;
+    }
+    const t = window.setTimeout(() => setAutoCount((c) => c - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [autoCount, payment, onPaid]);
+
   function showToast(msg: string) {
     setToast(msg);
     window.setTimeout(() => setToast(""), 1800);

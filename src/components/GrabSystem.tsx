@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import GrabPlatformDetail from "./GrabPlatformDetail";
 import GrabOrderPage from "./GrabOrderPage";
 import GrabPaymentPage from "./GrabPaymentPage";
+import GrabPaymentSuccess from "./GrabPaymentSuccess";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
@@ -32,7 +33,7 @@ type MyAccount = {
   accountStatus: string;
   accountExpiresAt: string;
 };
-type View = "picker" | "qr" | "accounts" | "more" | "detail" | "order" | "payment";
+type View = "picker" | "qr" | "accounts" | "more" | "detail" | "order" | "payment" | "paid";
 
 function isLightHex(hex: string): boolean {
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
@@ -211,6 +212,7 @@ export default function GrabSystem() {
   const [moreSearch, setMoreSearch] = useState("");
   const [detailPlatform, setDetailPlatform] = useState<Platform | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("wechat");
+  const [paymentOrderNo, setPaymentOrderNo] = useState<string>("");
   const pollTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -331,6 +333,7 @@ export default function GrabSystem() {
   function goBack() {
     if (pollTimer.current) window.clearInterval(pollTimer.current);
     if (view === "picker") { window.location.href = getBase() + "dashboard/"; return; }
+    if (view === "paid") { setView("payment"); return; }
     if (view === "payment") { setView("order"); return; }
     if (view === "order") { setView("detail"); return; }
     setView("picker");
@@ -357,7 +360,12 @@ export default function GrabSystem() {
         platform={detailPlatform}
         payment={paymentMethod as any}
         onBack={() => setView("order")}
-        onPaid={() => generateQr(detailPlatform)}
+        onPaid={() => {
+          const d = new Date();
+          const ymd = d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+          setPaymentOrderNo(ymd + String(Math.floor(Math.random() * 1e9)).padStart(9, "0"));
+          setView("paid");
+        }}
       />
     );
   }
@@ -483,6 +491,19 @@ export default function GrabSystem() {
         onBack={goBack}
         onBuy={() => setView("order")}
         loading={loading}
+      />
+    );
+  }
+
+  // ==================== 视图：支付成功 ====================
+  if (view === "paid" && detailPlatform) {
+    return (
+      <GrabPaymentSuccess
+        platform={detailPlatform}
+        orderNo={paymentOrderNo}
+        payment={paymentMethod as any}
+        amount={detailPlatform.price}
+        onDone={() => generateQr(detailPlatform)}
       />
     );
   }
