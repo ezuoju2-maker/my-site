@@ -83,20 +83,53 @@ export default function GrabAuthorizePage({ platform, qrContent, onBack, onViewO
     window.setTimeout(() => setToast(""), 1800);
   }
 
-  function handleSave() {
+  async function handleSave() {
     try {
       const canvas = canvasWrapRef.current?.querySelector("canvas");
       if (!canvas) {
         showToast("保存失败");
         return;
       }
-      const url = (canvas as HTMLCanvasElement).toDataURL("image/png");
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        (canvas as HTMLCanvasElement).toBlob(resolve, "image/png"),
+      );
+      if (!blob) {
+        showToast("保存失败");
+        return;
+      }
+
+      const filename = platform.name + "授权二维码.png";
+
+      // 优先 Web Share API（iOS/Android 弹原生分享，可"存储图像"到相册）
+      const file = new File([blob], filename, { type: "image/png" });
+      const canShareFiles =
+        typeof navigator !== "undefined" &&
+        typeof (navigator as any).canShare === "function" &&
+        (navigator as any).canShare({ files: [file] }) === true &&
+        typeof (navigator as any).share === "function";
+
+      if (canShareFiles) {
+        try {
+          await (navigator as any).share({ files: [file] });
+          showToast("已保存到相册");
+          return;
+        } catch (err) {
+          // 用户取消分享，不提示失败
+          if ((err as Error).name === "AbortError") return;
+          // 其他错误 fallback 到下载
+        }
+      }
+
+      // Fallback：桌面浏览器走下载
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = platform.name + "授权二维码.png";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       showToast("二维码已保存");
     } catch {
       showToast("保存失败");
