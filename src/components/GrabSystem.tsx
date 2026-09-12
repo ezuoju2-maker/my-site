@@ -4,6 +4,7 @@ import GrabPlatformDetail from "./GrabPlatformDetail";
 import GrabOrderPage from "./GrabOrderPage";
 import GrabPaymentPage from "./GrabPaymentPage";
 import GrabPaymentSuccess from "./GrabPaymentSuccess";
+import GrabAuthorizePage from "./GrabAuthorizePage";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
@@ -33,7 +34,7 @@ type MyAccount = {
   accountStatus: string;
   accountExpiresAt: string;
 };
-type View = "picker" | "qr" | "accounts" | "more" | "detail" | "order" | "payment" | "paid";
+type View = "picker" | "qr" | "accounts" | "more" | "detail" | "order" | "payment" | "paid" | "authorize";
 
 function isLightHex(hex: string): boolean {
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
@@ -273,6 +274,7 @@ export default function GrabSystem() {
         if (d.qr.status === "consumed" && d.account) {
           setCurrentQr((prev) => prev ? { ...prev, status: "consumed", account: { id: d.account!.id, nickname: d.account!.nickname, externalId: d.account!.externalId } } : prev);
           if (pollTimer.current) window.clearInterval(pollTimer.current);
+          setView("qr");
         } else if (d.qr.status === "expired") {
           setCurrentQr((prev) => prev ? { ...prev, status: "expired" } : prev);
           if (pollTimer.current) window.clearInterval(pollTimer.current);
@@ -298,6 +300,7 @@ export default function GrabSystem() {
   function goBack() {
     if (pollTimer.current) window.clearInterval(pollTimer.current);
     if (view === "picker") { window.location.href = getBase() + "dashboard/"; return; }
+    if (view === "authorize") { setView("qr"); return; }
     if (view === "paid") { setView("payment"); return; }
     if (view === "payment") { setView("order"); return; }
     if (view === "order") { setView("detail"); return; }
@@ -468,7 +471,23 @@ export default function GrabSystem() {
         orderNo={paymentOrderNo}
         payment={paymentMethod as any}
         amount={detailPlatform.price}
-        onDone={() => generateQr(detailPlatform)}
+        onDone={() => {
+          generateQr(detailPlatform);
+          setView("authorize");
+        }}
+      />
+    );
+  }
+
+  // ==================== 视图：授权等待（付款后） ====================
+  if (view === "authorize" && detailPlatform && currentQr) {
+    const scanUrl = currentQr.token ? `${API_BASE_URL}/scan/${currentQr.token}` : "";
+    return (
+      <GrabAuthorizePage
+        platform={detailPlatform}
+        qrContent={scanUrl}
+        onBack={() => { setView("qr"); }}
+        onViewOrders={() => { window.location.href = getBase() + "dashboard/orders/"; }}
       />
     );
   }
