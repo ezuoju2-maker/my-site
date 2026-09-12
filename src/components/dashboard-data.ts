@@ -24,18 +24,8 @@ export const FEATURES: Feature[] = [
     subtitle: "全球接码 · 全平台接码",
     subtitleIcon: "globe",
   },
-  {
-    icon: "crosshair",
-    title: "抓号系统",
-    subtitle: "精准抓号 · 操作简单",
-    subtitleIcon: "shield",
-  },
-  {
-    icon: "monitor",
-    title: "上号系统",
-    subtitle: "安全上号 · 多平台支持",
-    subtitleIcon: "shield",
-  },
+  
+  
   {
     icon: "ticket",
     title: "卡券系统",
