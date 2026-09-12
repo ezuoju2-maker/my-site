@@ -25,12 +25,6 @@ export const FEATURES: Feature[] = [
     subtitleIcon: "globe",
   },
   {
-    icon: "send",
-    title: "发码系统",
-    subtitle: "快速发码 · 稳定高效",
-    subtitleIcon: "zap",
-  },
-  {
     icon: "crosshair",
     title: "抓号系统",
     subtitle: "精准抓号 · 操作简单",

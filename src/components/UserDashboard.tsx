@@ -3,7 +3,6 @@ import { API_BASE_URL } from "../lib/api";
 // 功能卡片跳转 URL 映射（未映射的显示"开发中"）
 const FEATURE_URLS: Record<string, string> = {
   "接码系统": "dashboard/services/sms/",
-  "发码系统": "dashboard/services/send/",
   "抓号系统": "dashboard/grab/",
   "上号系统": "dashboard/grab/",
 };
