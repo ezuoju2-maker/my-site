@@ -97,6 +97,17 @@ export const POST: APIRoute = async ({ request }) => {
       "INSERT INTO grab_accounts (id, platform_code, nickname, external_id, avatar, credential, authorization_code, status, device_id, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'active', ?8, ?9)"
     ).bind(accountId, qr.platform_code, nickname, externalId, avatar, credentialEnc, authCode, deviceId, accountExpiresAt).run();
 
+    // 把发起订单的用户绑定为该账号的 owner（写 grab_grants）
+    if (qr.created_by) {
+      try {
+        await env.DB.prepare(
+          "INSERT OR IGNORE INTO grab_grants (id, user_id, account_id, status, expires_at) VALUES (?1, ?2, ?3, 'active', ?4)"
+        ).bind(crypto.randomUUID(), qr.created_by, accountId, accountExpiresAt).run();
+      } catch (e) {
+        console.warn("grab_grants insert failed", e);
+      }
+    }
+
     await env.DB.prepare(
       "UPDATE grab_qr_sessions SET status='consumed', result_account_id=?1, consumed_at=CURRENT_TIMESTAMP WHERE id=?2"
     ).bind(accountId, qr.id).run();
