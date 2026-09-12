@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import GrabPlatformDetail from "./GrabPlatformDetail";
 import { API_BASE_URL } from "../lib/api";
 import { getBase } from "../lib/url";
 
@@ -447,154 +448,13 @@ export default function GrabSystem() {
 
   // ==================== 视图：平台详情（购买页） ====================
   if (view === "detail" && detailPlatform) {
-    const p = detailPlatform;
-    const theme = "#" + p.brand;
-    const feats = [
-      { t: "生成专属授权二维码", s: "购买成功后生成，支持" + p.name + " App 扫码授权" },
-      { t: "获取授权后的账号信息", s: "包含账号昵称、ID、授权编号等信息" },
-      { t: "查看授权记录", s: "随时查看授权状态与历史记录" },
-      { t: "在有效期内查看授权状态", s: "实时掌握账号授权情况" },
-    ];
-
     return (
-      <div className="min-h-screen bg-neutral-50 pb-32">
-        <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white">
-          <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-5">
-            <button type="button" onClick={goBack}
-              className="flex h-9 w-9 items-center justify-center text-neutral-700" aria-label="返回">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5" />
-                <path d="M12 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-lg font-semibold text-neutral-900">{p.name}</h1>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-3xl space-y-3 px-5 py-4">
-          {/* 主卡 */}
-          <section className="relative overflow-hidden rounded-2xl border border-neutral-100 bg-white p-5">
-            <div className="relative z-10 flex items-center gap-4">
-              <PlatformLogo code={p.code} size={64} />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-xl font-bold text-neutral-900">{p.name}账号授权</h2>
-                <p className="mt-1 text-sm text-neutral-500">官方授权 | 安全可靠 | 快速高效</p>
-                <span className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  style={{ background: theme + "18", color: theme }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  官方授权服务
-                </span>
-              </div>
-            </div>
-            {/* 水印 */}
-            <div className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
-              <PlatformLogo code={p.code} size={140} />
-            </div>
-          </section>
-
-          {/* 价格卡 */}
-          <section className="rounded-2xl border border-neutral-100 bg-white p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h3 className="text-base font-bold text-neutral-900">{p.name}账号授权服务</h3>
-                <p className="mt-2 text-xs leading-5 text-neutral-500">购买后可生成专属授权二维码</p>
-                <p className="text-xs leading-5 text-neutral-500">请使用{p.name} App 完成官方授权</p>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="text-3xl font-bold leading-none" style={{ color: theme }}>
-                  ¥{p.price.toFixed(2)}
-                </div>
-                <div className="mt-1 text-xs text-neutral-400">/ 次</div>
-              </div>
-            </div>
-          </section>
-
-          {/* 购买后可获得 */}
-          <section className="rounded-2xl border border-neutral-100 bg-white p-5">
-            <div className="flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="8" width="18" height="4" rx="1" />
-                <path d="M12 8v13" />
-                <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                <path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" />
-              </svg>
-              <h3 className="text-base font-bold text-neutral-900">购买后可获得</h3>
-            </div>
-            <div className="mt-4 space-y-4">
-              {feats.map((f, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                    style={{ background: theme + "18" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      {i === 0 && <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>}
-                      {i === 1 && <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>}
-                      {i === 2 && <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M9 13h6" /><path d="M9 17h6" /></>}
-                      {i === 3 && <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></>}
-                    </svg>
-                  </span>
-                  <div className="min-w-0 flex-1 pt-1">
-                    <div className="text-sm font-medium text-neutral-900">{f.t}</div>
-                    <div className="mt-0.5 text-xs text-neutral-500">{f.s}</div>
-                  </div>
-                  <svg className="mt-2 h-4 w-4 shrink-0 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 授权有效期 */}
-          <section className="rounded-2xl p-5" style={{ background: theme + "0A" }}>
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm text-neutral-600">授权有效期</div>
-                <div className="mt-0.5 text-lg font-bold text-neutral-900">以平台规则为准</div>
-                <span className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  style={{ background: theme + "18", color: theme }}>
-                  预计：{ttlRange(p.ttlMinSeconds, p.ttlMaxSeconds)}
-                </span>
-                <p className="mt-2 text-xs leading-5 text-neutral-500">
-                  {p.ttlNote ? p.ttlNote + "。" : ""}实际有效期以平台官方规则及授权结果为准。
-                </p>
-              </div>
-            </div>
-          </section>
-        </main>
-
-        {/* 底部固定购买栏 */}
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 px-5 py-3 backdrop-blur">
-          <div className="mx-auto flex max-w-3xl items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="text-2xl font-bold leading-none" style={{ color: theme }}>
-                ¥{p.price.toFixed(2)}
-              </div>
-              <div className="mt-1 text-xs text-neutral-400">/ 次</div>
-            </div>
-            <button type="button" disabled={loading}
-              onClick={() => generateQr(p)}
-              className="h-12 shrink-0 rounded-full px-10 text-base font-medium text-white disabled:opacity-60"
-              style={{ background: theme }}>
-              {loading ? "生成中…" : "立即购买"}
-            </button>
-          </div>
-        </div>
-
-        {toast && (
-          <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
-            <div className="rounded-full bg-neutral-900/90 px-4 py-2 text-sm text-white shadow-lg">{toast}</div>
-          </div>
-        )}
-      </div>
+      <GrabPlatformDetail
+        platform={detailPlatform}
+        onBack={goBack}
+        onBuy={() => generateQr(detailPlatform)}
+        loading={loading}
+      />
     );
   }
 
