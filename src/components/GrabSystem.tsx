@@ -304,7 +304,7 @@ export default function GrabSystem() {
               选择要抓取的平台
             </h2>
             <p className="mt-2 text-sm text-neutral-500">
-              我们家为你生成专属的授权二维码。
+              我们将为你生成专属的二维码
             </p>
             <div className="pointer-events-none absolute -top-3 right-0">
               <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
