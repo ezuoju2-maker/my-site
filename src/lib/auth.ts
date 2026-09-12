@@ -1,4 +1,10 @@
 import { env } from "cloudflare:workers";
+import {
+  createSessionRecord,
+  deleteSessionRecord,
+  getSessionRecord,
+  isValidSessionToken,
+} from "./session-store";
 
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
@@ -16,12 +22,6 @@ export type SessionData = {
   sessionVersion: number;
 };
 
-/**
- * 从 getSession 返回的完整会话对象。
- *
- * 注意：role 不存 KV，每次从 DB 实时读取，
- * 这样管理员权限变更可以立即生效，无需等 session 过期。
- */
 export type ActiveSession = {
   token: string;
   userId: string;
@@ -44,28 +44,20 @@ function bytesToBase64Url(bytes: Uint8Array) {
 }
 
 function base64UrlToBytes(value: string) {
-  const normalized = value
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padding = normalized.length % 4;
   const padded = padding === 0
     ? normalized
     : normalized + "=".repeat(4 - padding);
-
   const binary = atob(padded);
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
 function parsePasswordHash(value: string): StoredPassword | null {
   const parts = value.split("$");
-
-  if (parts.length !== 4 || parts[0] !== "pbkdf2-sha256") {
-    return null;
-  }
+  if (parts.length !== 4 || parts[0] !== "pbkdf2-sha256") return null;
 
   const iterations = Number(parts[1]);
-
   if (
     !Number.isInteger(iterations) ||
     iterations < 100_000 ||
@@ -77,35 +69,24 @@ function parsePasswordHash(value: string): StoredPassword | null {
   try {
     const salt = base64UrlToBytes(parts[2]);
     const hash = base64UrlToBytes(parts[3]);
-
     if (
       salt.length < PASSWORD_SALT_BYTES ||
       hash.length !== PASSWORD_HASH_BYTES
     ) {
       return null;
     }
-
-    return {
-      iterations,
-      salt,
-      hash,
-    };
+    return { iterations, salt, hash };
   } catch {
     return null;
   }
 }
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array) {
-  if (a.length !== b.length) {
-    return false;
-  }
-
+  if (a.length !== b.length) return false;
   let difference = 0;
-
   for (let i = 0; i < a.length; i += 1) {
     difference |= a[i] ^ b[i];
   }
-
   return difference === 0;
 }
 
@@ -159,10 +140,7 @@ export async function verifyPassword(
   }
 
   const parsed = parsePasswordHash(storedHash);
-
-  if (!parsed) {
-    return false;
-  }
+  if (!parsed) return false;
 
   try {
     const keyMaterial = await crypto.subtle.importKey(
@@ -184,10 +162,7 @@ export async function verifyPassword(
       parsed.hash.length * 8,
     );
 
-    return constantTimeEqual(
-      new Uint8Array(bits),
-      parsed.hash,
-    );
+    return constantTimeEqual(new Uint8Array(bits), parsed.hash);
   } catch {
     return false;
   }
@@ -199,90 +174,48 @@ export async function createSession(
   remember = false,
   sessionVersion = 1,
 ) {
-  const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
-  const token = bytesToBase64Url(tokenBytes);
-
-  const session: SessionData = {
-    userId,
-    username,
-    sessionVersion,
-  };
-
-  await env.SESSION.put(
-    `session:${token}`,
-    JSON.stringify(session),
-    {
-      expirationTtl: remember
-        ? REMEMBER_SESSION_TTL
-        : SESSION_TTL,
-    },
-  );
+  const ttl = remember ? REMEMBER_SESSION_TTL : SESSION_TTL;
+  const token = await createSessionRecord(userId, username, sessionVersion, ttl);
 
   return {
     token,
-    maxAge: remember
-      ? REMEMBER_SESSION_TTL
-      : null,
+    maxAge: remember ? REMEMBER_SESSION_TTL : null,
   };
 }
 
-export async function getSession(request: Request) {
+function extractToken(request: Request): string | null {
   const cookie = request.headers.get("Cookie") ?? "";
-  const match = cookie.match(
-    /(?:^|;\s*)session=([^;]+)/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
+  const match = cookie.match(/(?:^|;\s*)session=([^;]+)/);
+  if (!match) return null;
   const token = match[1];
+  if (!isValidSessionToken(token)) return null;
+  return token;
+}
 
-  if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
-    return null;
-  }
+export async function getSession(request: Request): Promise<ActiveSession | null> {
+  const token = extractToken(request);
+  if (!token) return null;
+
+  const stored = await getSessionRecord(token);
+  if (!stored) return null;
 
   try {
-    const value = await env.SESSION.get(
-      `session:${token}`,
-    );
-
-    if (!value) {
-      return null;
-    }
-
-    const session = JSON.parse(value) as Partial<SessionData>;
-
-    if (
-      typeof session.userId !== "string" ||
-      typeof session.username !== "string" ||
-      typeof session.sessionVersion !== "number" ||
-      !Number.isInteger(session.sessionVersion) ||
-      session.sessionVersion < 1
-    ) {
-      await env.SESSION.delete(`session:${token}`);
-      return null;
-    }
-
     const user = await env.DB.prepare(
       "SELECT session_version, role FROM users WHERE id = ?1 LIMIT 1",
     )
-      .bind(session.userId)
+      .bind(stored.userId)
       .first<{ session_version: number; role: string }>();
 
-    if (
-      !user ||
-      user.session_version !== session.sessionVersion
-    ) {
-      await env.SESSION.delete(`session:${token}`);
+    if (!user || user.session_version !== stored.sessionVersion) {
+      await deleteSessionRecord(token);
       return null;
     }
 
     return {
       token,
-      userId: session.userId,
-      username: session.username,
-      sessionVersion: session.sessionVersion,
+      userId: stored.userId,
+      username: stored.username,
+      sessionVersion: stored.sessionVersion,
       role: user.role || "user",
     };
   } catch {
@@ -290,16 +223,10 @@ export async function getSession(request: Request) {
   }
 }
 
-export async function deleteSession(request: Request) {
-  const session = await getSession(request);
-
-  if (!session) {
-    return;
-  }
-
-  await env.SESSION.delete(
-    `session:${session.token}`,
-  );
+export async function deleteSession(request: Request): Promise<void> {
+  const token = extractToken(request);
+  if (!token) return;
+  await deleteSessionRecord(token);
 }
 
 export function sessionCookie(
