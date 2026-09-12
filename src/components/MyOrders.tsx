@@ -4,7 +4,7 @@ import { getBase } from "../lib/url";
 type OrderType = "sms" | "grab" | "card";
 
 type Props = {
-  onBack: () => void;
+  onBack?: () => void;
 };
 
 const TABS: { key: OrderType; label: string }[] = [

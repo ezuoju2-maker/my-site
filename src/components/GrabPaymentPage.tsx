@@ -123,7 +123,6 @@ export default function GrabPaymentPage({ platform: p, payment, onBack, onPaid }
   const [balanceLoaded, setBalanceLoaded] = useState(false);
   const [toast, setToast] = useState("");
   const theme = "#" + p.brand;
-  const usdtIcon = PAYMENT_ICONS.usdt;
 
   // USDT 换算（1 USDT ≈ 7.2 CNY）
   const usdtRate = 7.2;
