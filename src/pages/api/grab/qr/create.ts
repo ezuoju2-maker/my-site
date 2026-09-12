@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { requireAuth } from "../../../../lib/permissions";
 import { corsHeaders, getAllowedOrigin, rejectCrossSiteRequest } from "../../../../lib/cors";
-import { generateToken, hashToken } from "../../../../lib/grab/crypto";
+import { generateToken, hashToken, encryptCredential } from "../../../../lib/grab/crypto";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -64,9 +64,15 @@ export const POST: APIRoute = async ({ request }) => {
     const id = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + ttlDays * 86400000).toISOString();
 
+    const otpSecret = (env as any).OTP_SECRET as string | undefined;
+    if (!otpSecret || !/^[0-9a-fA-F]{64}$/.test(otpSecret)) {
+      return json({ ok: false, error: "SECRET_NOT_CONFIGURED" }, 500, origin);
+    }
+    const tokenEnc = await encryptCredential(token, otpSecret);
+
     await env.DB.prepare(
-      "INSERT INTO grab_qr_sessions (id, token_hash, platform_code, created_by, expires_at) VALUES (?1, ?2, ?3, ?4, ?5)"
-    ).bind(id, tokenHash, platform, auth.session.userId, expiresAt).run();
+      "INSERT INTO grab_qr_sessions (id, token_hash, platform_code, created_by, expires_at, token_encrypted) VALUES (?1, ?2, ?3, ?4, ?5, ?6)"
+    ).bind(id, tokenHash, platform, auth.session.userId, expiresAt, tokenEnc).run();
 
     return json({ ok: true, id, token, scanUrl: "/scan/" + token, expiresAt }, 200, origin);
   } catch (e) {
