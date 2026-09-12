@@ -9,16 +9,16 @@ type Platform = {
   price: number;
 };
 
-type PaymentId = "wechat" | "alipay" | "usdt";
+type PaymentId = "wechat" | "alipay" | "usdt" | "balance";
 
 type Props = {
   platform: Platform;
   onBack: () => void;
-  onPay: (payment: PaymentId) => void;
+  onPay: (payment: string) => void;
   loading: boolean;
 };
 
-const PAYMENT_ICONS: Record<PaymentId, { color: string; path: string }> = {
+const PAYMENT_ICONS: Record<string, { color: string; path: string }> = {
   wechat: {
     color: "#07C160",
     path: "M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.55 3.85 4.21 7.02 3.90 4.75.02 8.10-2.78 8.10-6.31 0-3.02-3.19-5.47-8.06-5.60zm-3.282 3.28c.542 0 .98.439.98.981a.978.978 0 0 1-.98.981.978.978 0 0 1-.98-.981c0-.542.439-.981.98-.981zm5.47 0c.543 0 .982.439.982.981a.978.978 0 0 1-.981.981.978.978 0 0 1-.98-.981c0-.542.439-.981.98-.981z",
@@ -31,15 +31,13 @@ const PAYMENT_ICONS: Record<PaymentId, { color: string; path: string }> = {
     color: "#26A17B",
     path: "M17.922 17.383v-.002c-.11.008-.677.042-1.942.042-1.01 0-1.721-.03-1.971-.042v.003c-3.888-.171-6.79-.848-6.79-1.658 0-.809 2.902-1.486 6.79-1.66v2.644c.254.018.982.061 1.988.061 1.207 0 1.812-.05 1.925-.06v-2.643c3.88.173 6.775.85 6.775 1.658 0 .81-2.895 1.485-6.775 1.657m0-3.59v-2.366h5.414V7.819H8.595v3.608h5.414v2.365c-4.4.202-7.709 1.074-7.709 2.118 0 1.044 3.309 1.915 7.709 2.118v7.582h3.913v-7.584c4.393-.202 7.694-1.073 7.694-2.116 0-1.043-3.301-1.914-7.694-2.117",
   },
+  balance: {
+    color: "#1677FF",
+    path: "M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
+  },
 };
 
-const PAYMENTS: { id: PaymentId; name: string; hint: string }[] = [
-  { id: "wechat", name: "微信支付", hint: "推荐使用，安全快捷" },
-  { id: "alipay", name: "支付宝", hint: "安全快捷，支持多种支付方式" },
-  { id: "usdt", name: "USDT (TRC20)", hint: "支持 TRC20 网络转账" },
-];
-
-function PlatformLogo({ code, brand, iconSlug, size = 48 }: { code: string; brand: string; iconSlug: string; size?: number }) {
+function PlatformLogo({ code, brand, size = 56 }: { code: string; brand: string; size?: number }) {
   const base = getBase();
   const inner = Math.round(size * 0.62);
   const radius = Math.round(size * 0.24);
@@ -104,6 +102,12 @@ function PlatformLogo({ code, brand, iconSlug, size = 48 }: { code: string; bran
 export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: Props) {
   const [payment, setPayment] = useState<PaymentId>("wechat");
   const theme = "#" + p.brand;
+  const balance = 36.42;
+
+  const wechat = PAYMENT_ICONS.wechat;
+  const alipay = PAYMENT_ICONS.alipay;
+  const usdt = PAYMENT_ICONS.usdt;
+  const balanceIcon = PAYMENT_ICONS.balance;
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-32">
@@ -114,15 +118,15 @@ export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: P
               <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg font-semibold text-neutral-900">确认订单</h1>
+          <h1 className="text-lg font-semibold text-neutral-900">选择支付方式</h1>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl space-y-3 px-5 py-4">
-        {/* 商品卡 */}
+        {/* 商品 + 金额合并卡 */}
         <section className="rounded-2xl border border-neutral-100 bg-white p-4">
           <div className="flex items-start gap-3">
-            <PlatformLogo code={p.code} brand={p.brand} iconSlug={p.iconSlug} size={56} />
+            <PlatformLogo code={p.code} brand={p.brand} size={56} />
             <div className="min-w-0 flex-1">
               <div className="text-base font-semibold text-neutral-900">{p.name}账号授权服务</div>
               <div className="mt-0.5 text-xs text-neutral-500">官方授权 | 安全可靠 | 快速高效</div>
@@ -137,28 +141,18 @@ export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: P
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-3">
-            <div className="flex items-start gap-2">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" /></svg>
-              <div className="min-w-0">
-                <div className="text-xs text-neutral-400">商品类型</div>
-                <div className="mt-0.5 text-sm font-medium text-neutral-900">账号授权</div>
-              </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-3">
+            <div>
+              <div className="text-xs text-neutral-400">商品类型</div>
+              <div className="mt-0.5 text-sm font-medium text-neutral-900">账号授权</div>
             </div>
-            <div className="flex items-start gap-2">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M12 8v8" /><path d="M8 12h8" /></svg>
-              <div className="min-w-0">
-                <div className="text-xs text-neutral-400">数量</div>
-                <div className="mt-0.5 text-sm font-medium text-neutral-900">1 次</div>
-              </div>
+            <div>
+              <div className="text-xs text-neutral-400">购买数量</div>
+              <div className="mt-0.5 text-sm font-medium text-neutral-900">1 次</div>
             </div>
           </div>
-        </section>
 
-        {/* 订单金额 */}
-        <section className="rounded-2xl border border-neutral-100 bg-white p-4">
-          <h3 className="text-base font-semibold text-neutral-900">订单金额</h3>
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-2.5 border-t border-neutral-100 pt-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-neutral-500">商品金额</span>
               <span className="text-neutral-900">¥{p.price.toFixed(2)}</span>
@@ -177,51 +171,113 @@ export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: P
           </div>
         </section>
 
-        {/* 支付方式 */}
+        {/* 选择支付方式 */}
         <section className="rounded-2xl border border-neutral-100 bg-white p-4">
           <h3 className="text-base font-semibold text-neutral-900">选择支付方式</h3>
           <div className="mt-3 space-y-2">
-            {PAYMENTS.map((m) => {
-              const selected = payment === m.id;
-              const icon = PAYMENT_ICONS[m.id];
-              return (
-                <button key={m.id} type="button" onClick={() => setPayment(m.id)}
-                  className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (selected ? "border-blue-500 bg-blue-50/40" : "border-neutral-200 bg-white")}>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: icon.color }}>
-                    <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
-                      <path fill="#ffffff" d={icon.path} />
-                    </svg>
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-neutral-900">{m.name}</div>
-                    <div className="mt-0.5 text-xs text-neutral-500">{m.hint}</div>
-                  </div>
-                  <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " + (selected ? "border-blue-500" : "border-neutral-300")}>
-                    {selected && <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />}
-                  </span>
-                </button>
-              );
-            })}
+            {/* 微信 */}
+            <button type="button" onClick={() => setPayment("wechat")}
+              className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (payment === "wechat" ? "border-blue-500 bg-blue-50/40" : "border-neutral-200 bg-white")}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: wechat.color }}>
+                <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
+                  <path fill="#ffffff" d={wechat.path} />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-neutral-900">微信支付</span>
+                  <span className="rounded-sm bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-500">推荐</span>
+                </div>
+                <div className="mt-0.5 text-xs text-neutral-500">微信安全支付，极速到账</div>
+              </div>
+              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " + (payment === "wechat" ? "border-blue-500" : "border-neutral-300")}>
+                {payment === "wechat" && <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />}
+              </span>
+            </button>
+
+            {/* 支付宝 */}
+            <button type="button" onClick={() => setPayment("alipay")}
+              className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (payment === "alipay" ? "border-blue-500 bg-blue-50/40" : "border-neutral-200 bg-white")}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: alipay.color }}>
+                <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
+                  <path fill="#ffffff" d={alipay.path} />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-neutral-900">支付宝</div>
+                <div className="mt-0.5 text-xs text-neutral-500">支付宝安全支付，支持多种银行卡</div>
+              </div>
+              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " + (payment === "alipay" ? "border-blue-500" : "border-neutral-300")}>
+                {payment === "alipay" && <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />}
+              </span>
+            </button>
+
+            {/* USDT */}
+            <button type="button" onClick={() => setPayment("usdt")}
+              className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (payment === "usdt" ? "border-blue-500 bg-blue-50/40" : "border-neutral-200 bg-white")}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: usdt.color }}>
+                <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
+                  <path fill="#ffffff" d={usdt.path} />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-neutral-900">USDT (TRC20)</span>
+                  <span className="rounded-sm bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-500">TRC20 网络</span>
+                </div>
+                <div className="mt-0.5 text-xs text-neutral-500">支持 TRON 网络转账</div>
+              </div>
+              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " + (payment === "usdt" ? "border-blue-500" : "border-neutral-300")}>
+                {payment === "usdt" && <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />}
+              </span>
+            </button>
+
             <div className="flex items-start gap-2 rounded-lg bg-neutral-50 px-3 py-2.5">
               <svg className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
               <p className="text-xs text-neutral-500">USDT 支付需使用 TRON (TRC20) 网络</p>
             </div>
+
+            {/* 账户余额 */}
+            <button type="button" onClick={() => setPayment("balance")}
+              className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (payment === "balance" ? "border-blue-500 bg-blue-50/40" : "border-neutral-200 bg-white")}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: balanceIcon.color }}>
+                <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
+                  <path fill="#ffffff" d={balanceIcon.path} />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-neutral-900">账户余额支付</span>
+                  <span className="rounded-sm bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-500">余额支付</span>
+                </div>
+                <div className="mt-0.5 text-xs text-neutral-500">使用当前账户余额进行支付</div>
+                <div className="mt-1 flex items-center gap-1 text-xs text-neutral-500">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1" /><rect x="16" y="10" width="6" height="4" rx="1" /></svg>
+                  当前账户余额 <span className="font-medium text-blue-500">¥{balance.toFixed(2)}</span>
+                </div>
+              </div>
+              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " + (payment === "balance" ? "border-blue-500" : "border-neutral-300")}>
+                {payment === "balance" && <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />}
+              </span>
+            </button>
           </div>
         </section>
 
-        {/* 安全保障 */}
-        <section className="rounded-2xl border border-neutral-100 bg-white p-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
-              <svg className="h-3.5 w-3.5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
-            </span>
-            <span className="text-sm font-medium text-neutral-900">安全保障</span>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-y-2 text-xs text-neutral-600">
-            {["官方授权服务", "支付加密保障", "订单自动处理", "售后服务支持"].map((t) => (
-              <div key={t} className="flex items-center gap-1.5">
-                <svg className="h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>
-                <span className="truncate">{t}</span>
+        {/* 底部 4 特色 */}
+        <section className="rounded-2xl border border-neutral-100 bg-white px-4 py-4">
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { t: "安全保障", s: "多重风控保障", d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
+              { t: "快速到账", s: "支付后立即处理", d: "m13 2-8 12h6l-1 8 8-12h-6z" },
+              { t: "专业客服", s: "7×24小时服务", d: "M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" },
+              { t: "隐私保护", s: "信息严格保密", d: "M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4" },
+            ].map((item) => (
+              <div key={item.t} className="flex flex-col items-center text-center">
+                <svg className="mb-1 h-5 w-5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.d} />
+                </svg>
+                <div className="text-[11px] font-medium text-neutral-800">{item.t}</div>
+                <div className="mt-0.5 text-[10px] leading-tight text-neutral-400">{item.s}</div>
               </div>
             ))}
           </div>
@@ -236,7 +292,7 @@ export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: P
           </div>
           <button type="button" disabled={loading} onClick={() => onPay(payment)}
             className="h-12 shrink-0 rounded-full px-10 text-base font-medium text-white disabled:opacity-60"
-            style={{ background: theme }}>
+            style={{ background: "#1677FF" }}>
             {loading ? "处理中…" : "立即支付"}
           </button>
         </div>
