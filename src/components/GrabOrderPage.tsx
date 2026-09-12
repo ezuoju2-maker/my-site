@@ -235,8 +235,8 @@ export default function GrabOrderPage({ platform: p, onBack, onPay, loading }: P
             <button type="button" onClick={() => setPayment("usdt")}
               className={"flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors " + (payment === "usdt" ? "border-blue-500 bg-blue-50/40" : "border-neutral-200 bg-white")}>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: usdt.color }}>
-                <svg viewBox="0 0 24 24" style={{ width: "58%", height: "58%", display: "block" }}>
-                  <path fill="#ffffff" d={usdt.path} />
+                <svg viewBox="0 0 24 24" style={{ width: "62%", height: "62%", display: "block" }}>
+                  <path fill="#ffffff" d={usdt.path} transform="translate(-2 -4)" />
                 </svg>
               </span>
               <div className="min-w-0 flex-1">
