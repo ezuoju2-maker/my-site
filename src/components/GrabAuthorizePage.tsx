@@ -9,6 +9,10 @@ type Props = {
   qrContent: string;
   onBack: () => void;
   onViewOrders: () => void;
+  // mode = "order"：从订单详情进来，底部显示"返回授权详情"
+  // mode = "default"：从支付流程进来，底部显示"已购买的抓号服务 + 查看抓号订单"
+  mode?: "default" | "order";
+  onBackToDetail?: () => void;
 };
 
 function PlatformLogo({ code, brand, size = 88 }: { code: string; brand: string; size?: number }) {
@@ -73,7 +77,7 @@ function PlatformLogo({ code, brand, size = 88 }: { code: string; brand: string;
   );
 }
 
-export default function GrabAuthorizePage({ platform, qrContent, onBack, onViewOrders }: Props) {
+export default function GrabAuthorizePage({ platform, qrContent, onBack, onViewOrders, mode = "default", onBackToDetail }: Props) {
   const [toast, setToast] = useState("");
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const theme = "#" + platform.brand;
@@ -199,20 +203,29 @@ export default function GrabAuthorizePage({ platform, qrContent, onBack, onViewO
           </button>
         </section>
 
-        {/* 分隔 + 查看订单 */}
+        {/* 分隔 + 底部操作 */}
         <div className="mt-6 border-t border-neutral-100" />
 
-        <section className="mt-6 flex flex-col items-center">
-          <p className="text-sm text-neutral-500">已购买的抓号服务</p>
-          <button type="button" onClick={onViewOrders}
-            className="mt-3 flex h-11 items-center gap-1.5 rounded-full px-6 text-sm font-medium text-white"
-            style={{ background: theme }}>
-            查看抓号订单
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
-        </section>
+        {mode === "default" ? (
+          <section className="mt-6 flex flex-col items-center">
+            <p className="text-sm text-neutral-500">已购买的抓号服务</p>
+            <button type="button" onClick={onViewOrders}
+              className="mt-3 flex h-11 items-center gap-1.5 rounded-full px-6 text-sm font-medium text-white"
+              style={{ background: theme }}>
+              查看抓号订单
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          </section>
+        ) : (
+          <section className="mt-6 flex flex-col items-center">
+            <button type="button" onClick={onBackToDetail || onBack}
+              className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-white px-6 text-sm font-medium text-neutral-700">
+              返回授权详情
+            </button>
+          </section>
+        )}
       </main>
 
       {toast && (
