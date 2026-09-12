@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getBase } from "../lib/url";
 import { API_BASE_URL } from "../lib/api";
+import { openPlatformApp, getSchemeEntry } from "../lib/platform-app-schemes";
 
 type Binding = {
   id: string;
@@ -222,15 +223,30 @@ export default function GrabberAccountDetail({ bindingId, onBack, onRemoved }: P
     }
   }
 
-  function handleEnterAccount() {
-    // 当前平台未接入真实官方 App Scheme/Universal Link
-    // 按规范：不支持直接进入时，弹提示
-    alert(
-      "当前平台暂不支持直接打开 App 账号\n\n" +
-      "您可以通过以下方式使用：\n" +
-      "· 复制授权信息，前往官方 App 使用\n" +
-      "· 等待官方 API 能力接入"
-    );
+  async function handleEnterAccount() {
+    if (!binding) return;
+
+    const entry = getSchemeEntry(binding.platform);
+    if (!entry) {
+      showToast("当前平台暂不支持直接打开 App");
+      return;
+    }
+
+    // 尝试打开 App
+    const opened = await openPlatformApp(binding.platform);
+
+    if (!opened) {
+      // App 未安装，弹窗询问是否打开网页
+      const goWeb = window.confirm(
+        `未检测到 ${entry.appName} App\n\n` +
+        `是否打开网页版？（在网页版登录后即可使用账号）`
+      );
+      if (goWeb) {
+        window.open(entry.webFallback, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      showToast(`已打开 ${entry.appName}`);
+    }
   }
 
   if (loading) {
