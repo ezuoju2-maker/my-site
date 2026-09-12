@@ -3,17 +3,20 @@ import type { EmailProvider, SendEmailArgs } from "../types";
 /**
  * AgentMail - 无需域名的邮件 API
  * 免费额度：100 封/天（3000 封/月）
- * 发件人必须使用账号下已分配的 inbox 地址
+ * inbox_id 必须使用完整邮箱地址（URL 编码）
  */
+const INBOX_ID = "guiji@agentmail.to";
+const INBOX_ID_URL = encodeURIComponent(INBOX_ID);
+
 export const agentmailProvider: EmailProvider = {
   id: "agentmail",
   label: "AgentMail",
   dailyLimit: 100,
   envKey: "AGENTMAIL_API_KEY",
-  from: "my-site <guiji@agentmail.to>",
+  from: `my-site <${INBOX_ID}>`,
   async send(args: SendEmailArgs, apiKey: string): Promise<void> {
     const res = await fetch(
-      "https://api.agentmail.to/v0/inboxes/guiji/messages/send",
+      `https://api.agentmail.to/v0/inboxes/${INBOX_ID_URL}/messages/send`,
       {
         method: "POST",
         headers: {
@@ -30,7 +33,7 @@ export const agentmailProvider: EmailProvider = {
     );
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`agentmail ${res.status} ${body.slice(0, 200)}`);
+      throw new Error(`agentmail ${res.status} ${body.slice(0, 300)}`);
     }
   },
 };
