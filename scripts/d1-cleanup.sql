@@ -19,3 +19,7 @@ WHERE day < date('now', '-90 days');
 -- 必须用 datetime() 包裹才能正确比较，直接字符串比较会因 'T' vs ' ' 而出错
 DELETE FROM sessions
 WHERE datetime(expires_at) <= datetime('now');
+
+-- 5. rate_limits: 删除已过期的限流行
+DELETE FROM rate_limits
+WHERE datetime(expires_at) <= datetime('now');

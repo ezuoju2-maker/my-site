@@ -18,6 +18,7 @@ import {
   extractCaptchaToken,
   verifyCaptcha,
 } from "../../../lib/captcha";
+import { getCooldownRemaining, setCooldown, getCount, bumpCounter } from "../../../lib/rate-limit";
 import { sendEmail } from "../../../lib/email";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -112,8 +113,8 @@ export const POST: APIRoute = async ({ request }) => {
   const attemptsKey = `password-reset-attempts:${email}`;
 
   const [ipCooldown, emailCooldown] = await Promise.all([
-    kv.get(ipCooldownKey),
-    kv.get(emailCooldownKey),
+    getCooldownRemaining(ipCooldownKey),
+    getCooldownRemaining(emailCooldownKey),
   ]);
 
   if (ipCooldown || emailCooldown) {
@@ -129,8 +130,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  const dailyCount =
-    Number.parseInt((await kv.get(dailyKey)) ?? "0", 10) || 0;
+  const dailyCount = await getCount(dailyKey);
 
   if (dailyCount >= EMAIL_DAILY_LIMIT) {
     return json(
@@ -150,12 +150,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 无论邮箱是否存在，返回相同结果，防止账号枚举
     if (!user) {
-      await kv.put(ipCooldownKey, "1", {
-        expirationTtl: RESEND_COOLDOWN_SECONDS,
-      });
-      await kv.put(emailCooldownKey, "1", {
-        expirationTtl: RESEND_COOLDOWN_SECONDS,
-      });
+      await setCooldown(ipCooldownKey, RESEND_COOLDOWN_SECONDS);
+      await setCooldown(emailCooldownKey, RESEND_COOLDOWN_SECONDS);
       return json(
         {
           ok: true,
@@ -202,15 +198,9 @@ export const POST: APIRoute = async ({ request }) => {
 
     await kv.put(codeKey, digest, { expirationTtl: OTP_TTL_SECONDS });
     await kv.delete(attemptsKey);
-    await kv.put(ipCooldownKey, "1", {
-      expirationTtl: RESEND_COOLDOWN_SECONDS,
-    });
-    await kv.put(emailCooldownKey, "1", {
-      expirationTtl: RESEND_COOLDOWN_SECONDS,
-    });
-    await kv.put(dailyKey, String(dailyCount + 1), {
-      expirationTtl: 86400,
-    });
+    await setCooldown(ipCooldownKey, RESEND_COOLDOWN_SECONDS);
+    await setCooldown(emailCooldownKey, RESEND_COOLDOWN_SECONDS);
+    await bumpCounter(dailyKey, 86400);
 
     recordEmailOp().catch(() => {});
 

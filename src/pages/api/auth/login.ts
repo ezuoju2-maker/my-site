@@ -9,6 +9,7 @@ import {
   getAllowedOrigin,
   rejectCrossSiteRequest,
 } from "../../../lib/cors";
+import { incrementLimit, resetLimit } from "../../../lib/rate-limit";
 import {
   createSession,
   sessionCookie,
@@ -57,15 +58,6 @@ function normalizeIdentifier(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
-async function incrementLimit(kv: KVNamespace, key: string, max: number) {
-  const current = Number.parseInt((await kv.get(key)) ?? "0", 10) || 0;
-  if (current >= max) return true;
-
-  await kv.put(key, String(current + 1), {
-    expirationTtl: LOGIN_WINDOW_SECONDS,
-  });
-  return false;
-}
 
 export const OPTIONS: APIRoute = async ({ request }) => {
   const origin = getAllowedOrigin(request);
@@ -140,16 +132,8 @@ export const POST: APIRoute = async ({ request }) => {
   const ipKey = `login-ip-attempts:${clientIp}`;
 
   try {
-    const identifierLimited = await incrementLimit(
-      kv,
-      identifierKey,
-      LOGIN_MAX_ATTEMPTS_PER_IDENTIFIER,
-    );
-    const ipLimited = await incrementLimit(
-      kv,
-      ipKey,
-      LOGIN_MAX_ATTEMPTS_PER_IP,
-    );
+    const identifierLimited = (await incrementLimit(identifierKey, LOGIN_WINDOW_SECONDS, LOGIN_MAX_ATTEMPTS_PER_IDENTIFIER)).limited;
+    const ipLimited = (await incrementLimit(ipKey, LOGIN_WINDOW_SECONDS, LOGIN_MAX_ATTEMPTS_PER_IP)).limited;
 
     if (identifierLimited || ipLimited) {
       return json(
@@ -189,8 +173,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    await kv.delete(identifierKey);
-    await kv.delete(ipKey);
+    await resetLimit(identifierKey);
+    await resetLimit(ipKey);
 
     const session = await createSession(
       user.id,

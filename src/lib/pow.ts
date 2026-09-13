@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { bumpCounter, getCount, resetLimit } from "./rate-limit";
 
 const POW_PREFIX = "pow";
 const CHALLENGE_TTL = 10 * 60;
@@ -71,14 +72,10 @@ async function computeClientBinding(
  * 返回值：null 表示直接拒绝（已被临时封禁）。
  */
 async function getDifficultyForIp(ip: string): Promise<number | null> {
-  const kv = env.SESSION;
-  if (!kv) throw new Error("KV unavailable");
-
   const key = `${POW_PREFIX}:fail:${ip}`;
-  const raw = await kv.get(key);
-  const failCount = Number.parseInt(raw ?? "0", 10) || 0;
+  const failCount = await getCount(key);
 
-  if (failCount > 10) return null;     // 临时封禁
+  if (failCount > 10) return null;
   if (failCount > 5) return 5;
   if (failCount > 2) return 4;
   return BASE_DIFFICULTY;
@@ -88,15 +85,8 @@ async function getDifficultyForIp(ip: string): Promise<number | null> {
  * 记录一次失败。TTL 10 分钟，自然过期。
  */
 export async function recordFail(ip: string): Promise<void> {
-  const kv = env.SESSION;
-  if (!kv) return;
-  const key = `${POW_PREFIX}:fail:${ip}`;
   try {
-    const raw = await kv.get(key);
-    const current = Number.parseInt(raw ?? "0", 10) || 0;
-    await kv.put(key, String(current + 1), {
-      expirationTtl: FAIL_WINDOW_SECONDS,
-    });
+    await bumpCounter(`${POW_PREFIX}:fail:${ip}`, FAIL_WINDOW_SECONDS);
   } catch {
     // 静默：记录失败不影响主流程
   }
@@ -106,10 +96,8 @@ export async function recordFail(ip: string): Promise<void> {
  * 成功则清零。真人成功一次，不累计失败。
  */
 export async function clearFail(ip: string): Promise<void> {
-  const kv = env.SESSION;
-  if (!kv) return;
   try {
-    await kv.delete(`${POW_PREFIX}:fail:${ip}`);
+    await resetLimit(`${POW_PREFIX}:fail:${ip}`);
   } catch {
     // 静默
   }

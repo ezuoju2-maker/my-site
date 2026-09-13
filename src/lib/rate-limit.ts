@@ -96,6 +96,36 @@ export async function setCooldown(
 /**
  * 冷却是否生效。返回剩余秒数（0 表示无冷却）。
  */
+/**
+ * 纯递增计数（无上限判断），用于每日配额这类需要"记录次数"的场景。
+ * 与 incrementLimit 的区别：不判断是否超限，只递增。
+ */
+export async function bumpCounter(
+  key: string,
+  windowSeconds: number,
+): Promise<number> {
+  const row = await db()
+    .prepare(
+      `INSERT INTO rate_limits (key, count, expires_at)
+       VALUES (?1, 1, ?2)
+       ON CONFLICT(key) DO UPDATE SET
+         count = CASE
+           WHEN datetime(rate_limits.expires_at) <= datetime(now) THEN 1
+           ELSE rate_limits.count + 1
+         END,
+         expires_at = CASE
+           WHEN datetime(rate_limits.expires_at) <= datetime(now)
+             THEN excluded.expires_at
+           ELSE rate_limits.expires_at
+         END,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING count`,
+    )
+    .bind(key, isoIn(windowSeconds))
+    .first<{ count: number }>();
+  return row?.count ?? 1;
+}
+
 export async function getCooldownRemaining(key: string): Promise<number> {
   const row = await db()
     .prepare(
