@@ -16,6 +16,7 @@ import {
   extractCaptchaToken,
   verifyCaptcha,
 } from "../../../lib/captcha";
+import { getCooldownRemaining, setCooldown, getCount, bumpCounter } from "../../../lib/rate-limit";
 import { sendEmail } from "../../../lib/email";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -117,8 +118,8 @@ export const POST: APIRoute = async ({ request }) => {
   const attemptsKey = `email-code-attempts:${email}`;
 
   const [ipCooldown, emailCooldown] = await Promise.all([
-    kv.get(ipCooldownKey),
-    kv.get(emailCooldownKey),
+    getCooldownRemaining(ipCooldownKey),
+    getCooldownRemaining(emailCooldownKey),
   ]);
 
   if (ipCooldown || emailCooldown) {
@@ -134,8 +135,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  const dailyCount =
-    Number.parseInt((await kv.get(dailyKey)) ?? "0", 10) || 0;
+  const dailyCount = await getCount(dailyKey);
 
   if (dailyCount >= EMAIL_DAILY_LIMIT) {
     return json(
@@ -188,15 +188,9 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     await kv.put(codeKey, digest, { expirationTtl: OTP_TTL_SECONDS });
     await kv.delete(attemptsKey);
-    await kv.put(ipCooldownKey, "1", {
-      expirationTtl: RESEND_COOLDOWN_SECONDS,
-    });
-    await kv.put(emailCooldownKey, "1", {
-      expirationTtl: RESEND_COOLDOWN_SECONDS,
-    });
-    await kv.put(dailyKey, String(dailyCount + 1), {
-      expirationTtl: 86400,
-    });
+    await setCooldown(ipCooldownKey, RESEND_COOLDOWN_SECONDS);
+    await setCooldown(emailCooldownKey, RESEND_COOLDOWN_SECONDS);
+    await bumpCounter(dailyKey, 86400);
   } catch (error) {
     console.error("OTP KV storage error", error);
     return json({ ok: false, error: "OTP_SERVICE_ERROR" }, 500, {}, origin);
