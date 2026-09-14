@@ -38,3 +38,13 @@ my-site-local-audit-archive*/
 
 # debug / one-off scripts (keep locally, don't commit)
 /*.sh
+# 清理备份目录
+.cleanup-backup-*/
+# 源码快照/临时文件
+my-site-all-source.txt
+files.txt
+# package 备份文件
+package.json.bak-*
+package-lock.json.bak-*
+package.json.before-*
+*.bak[0-9]*
