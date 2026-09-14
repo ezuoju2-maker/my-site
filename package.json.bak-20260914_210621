@@ -29,8 +29,7 @@
     "wrangler": "4.130.0"
   },
   "allowScripts": {
-    "esbuild": true,
-    "workerd": true
+    "esbuild": true
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",

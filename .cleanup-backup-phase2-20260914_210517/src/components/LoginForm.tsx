@@ -130,7 +130,9 @@ export default function LoginForm() {
         return;
       }
 
-      window.location.href = withBase("welcome/");
+      const role = data?.user?.role === "admin" ? "admin" : "user";
+      const target = role === "admin" ? "/admin/" : "/dashboard/";
+      window.location.href = withBase(target);
     } catch {
       setPasswordError(t("common.network_error"));
       setCaptchaToken("");

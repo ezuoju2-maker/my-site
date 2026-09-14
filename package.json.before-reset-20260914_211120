@@ -40,6 +40,9 @@
     "vite": "^7.3.6"
   },
   "overrides": {
-    "sharp": "0.35.4"
+    "sharp": "0.35.4",
+    "@bruits/satteri-android-arm64": "0.10.5",
+    "@bruits/satteri-linux-x64-gnu": "0.10.5",
+    "@bruits/satteri-linux-x64-musl": "0.10.5"
   }
 }

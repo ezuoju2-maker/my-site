@@ -1,43 +1,9 @@
-import { API_BASE_URL } from "../lib/api";
-import { parseApiResponse } from "../lib/api-response";
-import { useEffect } from "react";
-import { withBase } from "../lib/url";
-
-
+/**
+ * 已废弃：原用于访问登录页时若已登录则跳转用户中心。
+ * 用户中心正在重构，暂时保留组件占位，不做任何跳转。
+ *
+ * TODO: 新用户中心建成后，恢复自动跳转逻辑。
+ */
 export default function AutoLoginRedirect() {
-  useEffect(() => {
-    let cancelled = false;
-
-    async function checkSession() {
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/auth/me`,
-          {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
-          },
-        );
-
-        if (!cancelled && response.ok) {
-          const data = await parseApiResponse(response);
-          const role = data?.user?.role === "admin" ? "admin" : "user";
-          const target = role === "admin" ? "/admin/" : "/dashboard/";
-          window.location.replace(
-            withBase(target),
-          );
-        }
-      } catch {
-        // Ignore network errors and leave the login page available.
-      }
-    }
-
-    void checkSession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return null;
 }
