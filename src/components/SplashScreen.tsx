@@ -73,7 +73,7 @@ export default function SplashScreen() {
       {phase === "welcome" && (
         <div className="flex h-full w-full items-center justify-center bg-white px-8">
           <div className="relative w-full max-w-md">
-            {/* 左上角小猫恶魔（镜像） */}
+            {/* 左上角小猫恶魔（镜像 + multiply 透明） */}
             <video
               src={DEMON_SRC}
               className="pointer-events-none absolute -left-8 -top-8 h-20 w-20 object-contain sm:-left-10 sm:-top-10 sm:h-24 sm:w-24"
@@ -82,10 +82,10 @@ export default function SplashScreen() {
               loop
               playsInline
               preload="auto"
-              style={{ transform: "scaleX(-1)" }}
+              style={{ transform: "scaleX(-1)", mixBlendMode: "multiply" }}
             />
 
-            {/* 右上角小猫恶魔 */}
+            {/* 右上角小猫恶魔（multiply 透明） */}
             <video
               src={DEMON_SRC}
               className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 object-contain sm:-right-10 sm:-top-10 sm:h-24 sm:w-24"
@@ -94,6 +94,7 @@ export default function SplashScreen() {
               loop
               playsInline
               preload="auto"
+              style={{ mixBlendMode: "multiply" }}
             />
 
             {/* 卡片框架 */}
