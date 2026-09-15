@@ -1,6 +1,5 @@
 const PROD_ORIGINS = [
   "https://ezuoju2-maker.github.io",
-  "https://my-site-n7j.pages.dev",
   "https://xx-drp.pages.dev",
 ];
 
