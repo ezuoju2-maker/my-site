@@ -30,7 +30,7 @@ export function withBase(path: string): string {
  * 拼接 API 路径（前端调用后端）。
  *
  * @example
- *   apiUrl("/api/auth/login")  // "https://my-site-n7j.pages.dev/api/auth/login"
+ *   apiUrl("/api/auth/login")  // "https://xx-drp.pages.dev/api/auth/login"
  */
 export function apiUrl(path: string): string {
   const clean = path.startsWith("/") ? path : `/${path}`;
