@@ -53,7 +53,7 @@ export default function SplashScreen() {
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950 transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[100] bg-white transition-opacity duration-500 ${
         fading ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       aria-hidden={fading}
