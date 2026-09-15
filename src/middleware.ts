@@ -24,7 +24,7 @@ const SECURITY_HEADERS: Record<string, string> = {
     "img-src 'self' data: blob: https:",
     "style-src 'self' 'unsafe-inline'",
     "script-src 'self' 'unsafe-inline'",
-    "connect-src 'self' https://my-site-n7j.pages.dev https://cap-worker.ezuoju2.workers.dev",
+    "connect-src 'self'",
     "font-src 'self' data:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
