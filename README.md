@@ -4,7 +4,7 @@
 
 ## 在线入口
 
-- 主站：https://my-site-n7j.pages.dev/
+- 主站：https://xx-drp.pages.dev/
 - 备用：https://ezuoju2-maker.github.io/my-site/
 
 ## 技术栈
@@ -70,7 +70,7 @@ GitHub Actions -> Clear All Users (Manual Only) -> Run workflow -> 输入 YES-CL
 
 URL 后加 ?debug=1 加载 Eruda 移动端 Console：
 
-    https://my-site-n7j.pages.dev/?debug=1
+    https://xx-drp.pages.dev/?debug=1
 
 ## 项目结构
 
