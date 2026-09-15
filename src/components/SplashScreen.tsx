@@ -5,7 +5,7 @@ import { useTranslation } from "../i18n/useTranslation";
 const FADE_MS = 600;
 const MAX_WAIT_MS = 5000;
 const SPLASH_SRC = `${import.meta.env.BASE_URL}splash.mp4`;
-const DEMON_SRC = `${import.meta.env.BASE_URL}demon.mp4`;
+const DEMON_SRC = `${import.meta.env.BASE_URL}demon.webm`;
 
 type Phase = "splash" | "welcome" | "done";
 
@@ -81,8 +81,7 @@ export default function SplashScreen() {
               muted
               loop
               playsInline
-              preload="auto"
-              style={{ transform: "scaleX(-1)", mixBlendMode: "multiply" }}
+              preload="auto" style={{ transform: "scaleX(-1)" }}
             />
 
             {/* 右上角小猫恶魔（multiply 透明） */}
@@ -94,7 +93,6 @@ export default function SplashScreen() {
               loop
               playsInline
               preload="auto"
-              style={{ mixBlendMode: "multiply" }}
             />
 
             {/* 卡片框架 */}
