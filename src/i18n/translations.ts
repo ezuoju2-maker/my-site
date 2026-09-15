@@ -36,7 +36,7 @@ export const translations: Record<string, Record<string, string>> = {
 
     // ============ 登录 ============
     "login.title": "登录",
-    "login.welcome": "欢迎回来，请登录",
+    "login.welcome": "欢迎使用网站名称",
     "login.site_name": "网站名称",
     "login.identifier": "用户名 / 邮箱",
     "login.identifier_placeholder": "请输入用户名或邮箱",
