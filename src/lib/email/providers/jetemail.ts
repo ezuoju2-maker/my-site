@@ -7,7 +7,7 @@ export const jetemailProvider: EmailProvider = {
   envKey: "JETEMAIL_API_KEY",
   from: "my-site <onboarding@jetemail.com>",
   async send(args: SendEmailArgs, apiKey: string): Promise<void> {
-    const res = await fetch("https://api.jetemail.com/v1/email/send", {
+    const res = await fetch("https://api.jetemail.com/email", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
