@@ -168,7 +168,18 @@ export const POST: APIRoute = async ({ request }) => {
         role: string;
       }>();
 
-    if (!user || !(await verifyPassword(password, user.password_hash))) {
+    if (!user) {
+      // 用户不存在时也执行一次 PBKDF2 计算，抵消时序差异（防账号枚举）
+      await verifyPassword(password, "pbkdf2-sha256$100000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").catch(() => {});
+      return json(
+        { ok: false, error: "INVALID_CREDENTIALS" },
+        401,
+        {},
+        origin,
+      );
+    }
+
+    if (!(await verifyPassword(password, user.password_hash))) {
       return json(
         { ok: false, error: "INVALID_CREDENTIALS" },
         401,
