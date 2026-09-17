@@ -187,7 +187,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     await kv.put(codeKey, digest, { expirationTtl: OTP_TTL_SECONDS });
-    await kv.delete(attemptsKey);
+    // 不重置 attemptsKey：防止攻击者通过反复请求 OTP 循环猜测
     await setCooldown(ipCooldownKey, RESEND_COOLDOWN_SECONDS);
     await setCooldown(emailCooldownKey, RESEND_COOLDOWN_SECONDS);
     await bumpCounter(dailyKey, 86400);

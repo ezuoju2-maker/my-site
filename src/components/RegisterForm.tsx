@@ -392,16 +392,11 @@ export default function RegisterForm() {
       if (!response.ok) {
         const error = data?.error;
 
-        if (error === "USERNAME_EXISTS") {
-          setUsernameError(t("register.error.username_exists"));
+        if (error === "ACCOUNT_EXISTS") {
+          setUsernameError(t("register.error.account_exists"));
           setEmailError("");
           setEmailCodeError("");
           scrollToRegisterError("username");
-        } else if (error === "EMAIL_EXISTS") {
-          setUsernameError("");
-          setEmailError(t("register.error.email_exists"));
-          setEmailCodeError("");
-          scrollToRegisterError("email");
         } else if (error === "EMAIL_CODE_EXPIRED") {
           setUsernameError("");
           setEmailError("");

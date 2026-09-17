@@ -287,7 +287,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (existingUser) {
       if (existingUser.username === username) {
         return json(
-          { ok: false, error: "USERNAME_EXISTS" },
+          { ok: false, error: "ACCOUNT_EXISTS" },
           409,
           {},
           origin,
@@ -295,7 +295,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       return json(
-        { ok: false, error: "EMAIL_EXISTS" },
+        { ok: false, error: "ACCOUNT_EXISTS" },
         409,
         {},
         origin,
@@ -337,7 +337,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (message.includes("UNIQUE constraint failed: users.username")) {
       return json(
-        { ok: false, error: "USERNAME_EXISTS" },
+        { ok: false, error: "ACCOUNT_EXISTS" },
         409,
         {},
         origin,
@@ -346,7 +346,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (message.includes("UNIQUE constraint failed: users.email")) {
       return json(
-        { ok: false, error: "EMAIL_EXISTS" },
+        { ok: false, error: "ACCOUNT_EXISTS" },
         409,
         {},
         origin,
