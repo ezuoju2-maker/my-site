@@ -32,6 +32,13 @@ function bytesToBase64Url(bytes: Uint8Array): string {
     .replace(/=+$/g, "");
 }
 
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export function generateSessionToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return bytesToBase64Url(bytes);
@@ -55,14 +62,15 @@ export async function createSessionRecord(
   if (!db) throw new Error("D1 binding (DB) is not configured");
 
   const token = generateSessionToken();
+  const tokenHash = await sha256Hex(token);
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
 
   await db
     .prepare(
-      `INSERT INTO sessions (token, user_id, username, session_version, expires_at)
-       VALUES (?1, ?2, ?3, ?4, ?5)`,
+      `INSERT INTO sessions (token, token_hash, user_id, username, session_version, expires_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
     )
-    .bind(token, userId, username, sessionVersion, expiresAt)
+    .bind(token.slice(0, 8) + "..." + token.slice(-8), tokenHash, userId, username, sessionVersion, expiresAt)
     .run();
 
   return token;
@@ -78,20 +86,56 @@ export async function getSessionRecord(
   const db = env.DB;
   if (!db) throw new Error("D1 binding (DB) is not configured");
 
-  // 1) D1
+  // 1) D1：优先按 token_hash 查（新格式），回退按 token 查（兼容旧格式）
   try {
-    const row = await db
+    const tokenHash = await sha256Hex(token);
+    let row = await db
       .prepare(
-        `SELECT user_id, username, session_version, expires_at
-         FROM sessions WHERE token = ?1 LIMIT 1`,
+        `SELECT user_id, username, session_version, expires_at, token, token_hash
+         FROM sessions WHERE token_hash = ?1 LIMIT 1`,
       )
-      .bind(token)
+      .bind(tokenHash)
       .first<{
         user_id: string;
         username: string;
         session_version: number;
         expires_at: string;
+        token: string;
+        token_hash: string | null;
       }>();
+
+    // 兼容路径：旧 session 只存明文 token，还没迁移到 hash
+    if (!row) {
+      row = await db
+        .prepare(
+          `SELECT user_id, username, session_version, expires_at, token, token_hash
+           FROM sessions WHERE token = ?1 AND token_hash IS NULL LIMIT 1`,
+        )
+        .bind(token)
+        .first<{
+          user_id: string;
+          username: string;
+          session_version: number;
+          expires_at: string;
+          token: string;
+          token_hash: string | null;
+        }>();
+
+      // 懒迁移：把旧 session 明文 token 升级为 hash
+      if (row) {
+        try {
+          await db
+            .prepare(
+              `UPDATE sessions SET token_hash = ?1, token = ?2
+               WHERE token = ?3 AND token_hash IS NULL`,
+            )
+            .bind(tokenHash, token.slice(0, 8) + "..." + token.slice(-8), token)
+            .run();
+        } catch (migErr) {
+          console.warn("[session-store] token hash migration failed", migErr);
+        }
+      }
+    }
 
     if (row) {
       if (new Date(row.expires_at).getTime() <= Date.now()) {
@@ -177,8 +221,9 @@ export async function deleteSessionRecord(token: string): Promise<void> {
 
   const tasks: Promise<unknown>[] = [];
   if (db) {
+    const tokenHash = await sha256Hex(token);
     tasks.push(
-      db.prepare("DELETE FROM sessions WHERE token = ?1").bind(token).run(),
+      db.prepare("DELETE FROM sessions WHERE token_hash = ?1 OR token = ?2").bind(tokenHash, token).run(),
     );
   }
   if (kv) {
