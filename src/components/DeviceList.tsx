@@ -39,21 +39,56 @@ function timeUntil(iso: string): string {
 
 function simplifyUA(ua: string | null): string {
   if (!ua || ua === "unknown") return "未知设备";
-  let browser = "浏览器";
-  let os = "";
 
-  if (ua.includes("Edg/")) browser = "Edge";
-  else if (ua.includes("Chrome/")) browser = "Chrome";
+  // === 浏览器识别（顺序很重要）===
+  let browser = "浏览器";
+
+  // iOS 上的 Chrome / Edge / Firefox / Opera 有特殊标识
+  if (ua.includes("CriOS/")) browser = "Chrome";
+  else if (ua.includes("EdgiOS/")) browser = "Edge";
+  else if (ua.includes("FxiOS/")) browser = "Firefox";
+  else if (ua.includes("OPiOS/")) browser = "Opera";
+  else if (ua.includes("Edg/")) browser = "Edge";
+  else if (ua.includes("OPR/") || ua.includes("Opera")) browser = "Opera";
   else if (ua.includes("Firefox/")) browser = "Firefox";
+  else if (ua.includes("MicroMessenger")) browser = "微信";
+  else if (ua.includes("QQBrowser")) browser = "QQ 浏览器";
+  else if (ua.includes("UCBrowser")) browser = "UC 浏览器";
+  else if (ua.includes("Quark")) browser = "夸克";
+  else if (ua.includes("HuaweiBrowser")) browser = "华为浏览器";
+  else if (ua.includes("MiuiBrowser")) browser = "小米浏览器";
+  else if (ua.includes("Chrome/") || ua.includes("Chromium/")) browser = "Chrome";
   else if (ua.includes("Safari/")) browser = "Safari";
 
-  if (ua.includes("Windows")) os = "Windows";
-  else if (ua.includes("Mac OS")) os = "macOS";
-  else if (ua.includes("Android")) os = "Android";
-  else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
-  else if (ua.includes("Linux")) os = "Linux";
+  // === 系统 / 设备识别 ===
+  let device = "";
 
-  return os ? `${browser} on ${os}` : browser;
+  // 手机 / 平板优先识别（在 OS 前）
+  if (ua.includes("iPhone")) device = "iPhone";
+  else if (ua.includes("iPad")) device = "iPad";
+  else if (ua.includes("Android")) {
+    // 尝试从 UA 里提取机型
+    const m = ua.match(/Android[^;]*;s*([^;)]+)/);
+    if (m && m[1] && !m[1].includes("wv") && m[1].length < 40) {
+      device = m[1].trim();
+      // 清理常见后缀
+      device = device.replace(/\s+Build.*$/i, "").replace(/\s+Mobile.*$/i, "");
+    } else {
+      device = "Android";
+    }
+  } else if (ua.includes("Mac OS X") || ua.includes("Macintosh")) {
+    device = "Mac";
+  } else if (ua.includes("Windows NT")) {
+    device = "Windows";
+  } else if (ua.includes("CrOS")) {
+    device = "ChromeOS";
+  } else if (ua.includes("Linux")) {
+    device = "Linux";
+  }
+
+  if (device && browser !== "浏览器") return `${browser} · ${device}`;
+  if (device) return device;
+  return browser;
 }
 
 export default function DeviceList() {

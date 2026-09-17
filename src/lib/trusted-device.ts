@@ -40,9 +40,16 @@ export async function createTrustedDevice(
 
   const token = generateDeviceToken();
   const tokenHash = await sha256Hex(token);
+  const ua = userAgent.slice(0, 500);
   const expiresAt = new Date(
     Date.now() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
+
+  // 同一用户 + 同一 User-Agent → 视为同一台设备，先删旧记录（滚动续期）
+  await db
+    .prepare("DELETE FROM trusted_devices WHERE user_id = ?1 AND user_agent = ?2")
+    .bind(userId, ua)
+    .run();
 
   await db
     .prepare(
@@ -50,7 +57,7 @@ export async function createTrustedDevice(
        (id, user_id, token_hash, user_agent, expires_at)
        VALUES (?1, ?2, ?3, ?4, ?5)`,
     )
-    .bind(crypto.randomUUID(), userId, tokenHash, userAgent.slice(0, 500), expiresAt)
+    .bind(crypto.randomUUID(), userId, tokenHash, ua, expiresAt)
     .run();
 
   return token;
