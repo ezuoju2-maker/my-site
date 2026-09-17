@@ -4,14 +4,50 @@ import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 
 type Device = {
-  id: string;
-  userAgent: string | null;
-  createdAt: string;
-  lastUsedAt: string;
-  expiresAt: string;
+  deviceId: string;
+  deviceType: string | null;
+  deviceModel: string | null;
+  modelConfidence: string | null;
+  osVersion: string | null;
+  browser: string | null;
+  firstLoginAt: string | null;
+  lastLoginAt: string | null;
+  ipAddress: string | null;
+  location: string | null;
 };
 
-function timeAgo(iso: string): string {
+// 把"系列"型号收敛到最可能的一个具体型号
+const MODEL_CONVERGE: Record<string, string> = {
+  "iPhone X/XS/11 Pro/12 mini/13 mini 系列": "iPhone 12 mini",
+  "iPhone 12/13/14 系列": "iPhone 13",
+  "iPhone 14 Pro/15/16 系列": "iPhone 15",
+  "iPhone 12 Pro Max/13 Pro Max/14 Plus 系列": "iPhone 13 Pro Max",
+  "iPhone 14 Pro Max/15 Plus/16 Plus 系列": "iPhone 15 Pro Max",
+  "iPhone SE/8/7/6s 系列": "iPhone SE",
+  "iPhone XR/11 系列": "iPhone 11",
+  "iPhone XS Max/11 Pro Max 系列": "iPhone XS Max",
+  "iPhone 6/7/8 Plus 系列": "iPhone 8 Plus",
+  "iPhone 16 Pro 系列": "iPhone 16 Pro",
+  "iPhone 16 Pro Max 系列": "iPhone 16 Pro Max",
+};
+
+function pickOneModel(model: string | null): string {
+  if (!model || model === "未知" || model.includes("未知")) return "iPhone";
+  if (MODEL_CONVERGE[model]) return MODEL_CONVERGE[model];
+  if (model.includes("/")) return model.split("/")[0].trim();
+  return model;
+}
+
+function getOSFamily(deviceType: string | null): string {
+  if (!deviceType) return "未知";
+  if (deviceType === "iPhone" || deviceType === "iPad" || deviceType === "Mac") return "iOS";
+  if (deviceType === "Android") return "Android";
+  if (/harmony|鸿蒙/i.test(deviceType)) return "鸿蒙";
+  return deviceType;
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "未知";
   try {
     const t = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z").getTime();
     const diff = Date.now() - t;
@@ -25,70 +61,19 @@ function timeAgo(iso: string): string {
   }
 }
 
-function timeUntil(iso: string): string {
+function formatDateTime(iso: string | null): string {
+  if (!iso) return "未知";
   try {
-    const t = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z").getTime();
-    const diff = t - Date.now();
-    if (diff <= 0) return "已过期";
-    if (diff < 86400_000) return `${Math.floor(diff / 3600_000)} 小时后`;
-    return `${Math.floor(diff / 86400_000)} 天后`;
+    const t = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
+    const y = t.getFullYear();
+    const m = String(t.getMonth() + 1).padStart(2, "0");
+    const d = String(t.getDate()).padStart(2, "0");
+    const hh = String(t.getHours()).padStart(2, "0");
+    const mm = String(t.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${d} ${hh}:${mm}`;
   } catch {
     return iso;
   }
-}
-
-function simplifyUA(ua: string | null): string {
-  if (!ua || ua === "unknown") return "未知设备";
-
-  // === 浏览器识别（顺序很重要）===
-  let browser = "浏览器";
-
-  // iOS 上的 Chrome / Edge / Firefox / Opera 有特殊标识
-  if (ua.includes("CriOS/")) browser = "Chrome";
-  else if (ua.includes("EdgiOS/")) browser = "Edge";
-  else if (ua.includes("FxiOS/")) browser = "Firefox";
-  else if (ua.includes("OPiOS/")) browser = "Opera";
-  else if (ua.includes("Edg/")) browser = "Edge";
-  else if (ua.includes("OPR/") || ua.includes("Opera")) browser = "Opera";
-  else if (ua.includes("Firefox/")) browser = "Firefox";
-  else if (ua.includes("MicroMessenger")) browser = "微信";
-  else if (ua.includes("QQBrowser")) browser = "QQ 浏览器";
-  else if (ua.includes("UCBrowser")) browser = "UC 浏览器";
-  else if (ua.includes("Quark")) browser = "夸克";
-  else if (ua.includes("HuaweiBrowser")) browser = "华为浏览器";
-  else if (ua.includes("MiuiBrowser")) browser = "小米浏览器";
-  else if (ua.includes("Chrome/") || ua.includes("Chromium/")) browser = "Chrome";
-  else if (ua.includes("Safari/")) browser = "Safari";
-
-  // === 系统 / 设备识别 ===
-  let device = "";
-
-  // 手机 / 平板优先识别（在 OS 前）
-  if (ua.includes("iPhone")) device = "iPhone";
-  else if (ua.includes("iPad")) device = "iPad";
-  else if (ua.includes("Android")) {
-    // 尝试从 UA 里提取机型
-    const m = ua.match(/Android[^;]*;s*([^;)]+)/);
-    if (m && m[1] && !m[1].includes("wv") && m[1].length < 40) {
-      device = m[1].trim();
-      // 清理常见后缀
-      device = device.replace(/\s+Build.*$/i, "").replace(/\s+Mobile.*$/i, "");
-    } else {
-      device = "Android";
-    }
-  } else if (ua.includes("Mac OS X") || ua.includes("Macintosh")) {
-    device = "Mac";
-  } else if (ua.includes("Windows NT")) {
-    device = "Windows";
-  } else if (ua.includes("CrOS")) {
-    device = "ChromeOS";
-  } else if (ua.includes("Linux")) {
-    device = "Linux";
-  }
-
-  if (device && browser !== "浏览器") return `${browser} · ${device}`;
-  if (device) return device;
-  return browser;
 }
 
 export default function DeviceList() {
@@ -133,23 +118,26 @@ export default function DeviceList() {
     };
   }, []);
 
-  async function handleRevoke(id: string) {
-    setRevokingId(id);
+  async function handleRevoke(deviceId: string) {
+    setRevokingId(deviceId);
     setError("");
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/user/devices?id=${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        },
+        `${API_BASE_URL}/api/user/devices?device_id=${encodeURIComponent(deviceId)}`,
+        { method: "DELETE", credentials: "include" },
       );
       const data = await parseApiResponse(response);
       if (!response.ok || !data.ok) {
         setError("撤销失败，请稍后重试");
         return;
       }
-      setDevices((prev) => (prev ? prev.filter((d) => d.id !== id) : prev));
+      // 同步清掉本地 device_id（如果是当前设备）
+      try {
+        if (localStorage.getItem("device_id") === deviceId) {
+          localStorage.removeItem("device_id");
+        }
+      } catch {}
+      setDevices((prev) => (prev ? prev.filter((d) => d.deviceId !== deviceId) : prev));
       setConfirmId(null);
     } catch {
       setError("网络错误，请重试");
@@ -177,13 +165,13 @@ export default function DeviceList() {
               <path d="M12 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-base font-semibold text-neutral-900">已信任的设备</h1>
+          <h1 className="text-base font-semibold text-neutral-900">登录设备</h1>
         </div>
       </header>
 
       <main className="mx-auto max-w-2xl space-y-3 px-4 py-4">
         <p className="text-xs leading-5 text-neutral-500">
-          这些设备在 90 天内可以自动登录，无需输入密码。如发现陌生设备，请立即撤销并修改密码。
+          以下是最近登录过你账号的设备。如发现陌生设备，请立即撤销并修改密码。
         </p>
 
         {devices === null && (
@@ -195,33 +183,40 @@ export default function DeviceList() {
 
         {devices && devices.length === 0 && (
           <div className="rounded-2xl border border-neutral-100 bg-white p-8 text-center">
-            <p className="text-sm text-neutral-500">暂无可信设备</p>
+            <p className="text-sm text-neutral-500">暂无登录记录</p>
           </div>
         )}
 
         {devices && devices.map((d) => (
-          <div
-            key={d.id}
-            className="rounded-2xl border border-neutral-100 bg-white p-4"
-          >
+          <div key={d.deviceId} className="rounded-2xl border border-neutral-100 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-base font-medium text-neutral-900">
-                  {simplifyUA(d.userAgent)}
+                <div className="flex items-center gap-2">
+                  <div className="truncate text-base font-medium text-neutral-900">
+                    {pickOneModel(d.deviceModel)}
+                  </div>
+                  {d.modelConfidence === "高" && (
+                    <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-600">
+                      精准
+                    </span>
+                  )}
                 </div>
-                <div className="mt-1 space-y-0.5 text-xs text-neutral-500">
-                  <div>最后使用：{timeAgo(d.lastUsedAt)}</div>
-                  <div>添加时间：{d.createdAt.slice(0, 16)}</div>
-                  <div>剩余有效期：{timeUntil(d.expiresAt)}</div>
+                <div className="mt-2 space-y-0.5 text-xs text-neutral-500">
+                  <div>系统：{getOSFamily(d.deviceType)}{d.osVersion ? ` ${d.osVersion}` : ""}</div>
+                  <div>浏览器：{d.browser || "未知"}</div>
+                  <div>首次登录：{formatDateTime(d.firstLoginAt)}</div>
+                  <div>最近登录：{timeAgo(d.lastLoginAt)}</div>
+                  <div>IP：{d.ipAddress || "未知"}</div>
+                  <div>登录地点：{d.location || "未知"}</div>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setConfirmId(d.id)}
-                disabled={revokingId === d.id}
+                onClick={() => setConfirmId(d.deviceId)}
+                disabled={revokingId === d.deviceId}
                 className="shrink-0 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 disabled:opacity-50"
               >
-                {revokingId === d.id ? "撤销中…" : "撤销"}
+                {revokingId === d.deviceId ? "撤销中…" : "撤销"}
               </button>
             </div>
           </div>
@@ -234,7 +229,6 @@ export default function DeviceList() {
         )}
       </main>
 
-      {/* 撤销确认弹窗 */}
       {confirmId && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
@@ -250,9 +244,9 @@ export default function DeviceList() {
               撤销此设备？
             </h2>
             <p className="mt-2 text-center text-sm leading-6 text-neutral-500">
-              该设备将无法再自动登录。
+              撤销后该设备的登录记录将被清除。
               <br />
-              用户在此设备上需要重新输入密码。
+              下次登录时会重新记录。
             </p>
             <div className="mt-6 flex gap-3">
               <button
