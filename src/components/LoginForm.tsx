@@ -323,6 +323,26 @@ export default function LoginForm() {
         {loading ? t("login.submitting") : t("login.submit")}
       </button>
 
+      {/* Google 登录 */}
+      <div className="relative my-2">
+        <div className="absolute inset-x-0 top-1/2 h-px bg-neutral-200" />
+        <div className="relative flex justify-center">
+          <span className="bg-white px-3 text-xs text-neutral-400">或</span>
+        </div>
+      </div>
+      <a
+        href={`${API_BASE_URL}/api/auth/google`}
+        className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700"
+      >
+        <svg className="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#FFC107" d="M43.6 20.5H42V20.5H24v7h11.3C33.7 31.7 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.4 1 7.4 2.7l4.9-4.9C33 8.1 28.7 6 24 6 14.1 6 6 14.1 6 24s8.1 18 18 18 18-8.1 18-18c0-1.2-.1-2.3-.4-3.5z"/>
+          <path fill="#FF3D00" d="M8.5 14.7l5.8 4.2C15.7 15 19.6 12 24 12c2.8 0 5.4 1 7.4 2.7l4.9-4.9C33 8.1 28.7 6 24 6 16.8 6 10.6 10.2 8.5 14.7z"/>
+          <path fill="#4CAF50" d="M24 42c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 33 26.7 34 24 34c-5.3 0-9.7-3.4-11.3-8.1l-6 4.6C8.6 36.6 15.6 42 24 42z"/>
+          <path fill="#1976D2" d="M43.6 20.5H42V20.5H24v7h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2C41.1 35 44 29.9 44 24c0-1.2-.1-2.3-.4-3.5z"/>
+        </svg>
+        使用 Google 登录
+      </a>
+
       <p className="pt-1 text-center text-sm text-neutral-500">
         {t("login.no_account")}{" "}
         <a

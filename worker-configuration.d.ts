@@ -21,6 +21,8 @@ declare namespace Cloudflare {
     MAILERSEND_API_KEY?: string;
     ELASTICEMAIL_API_KEY?: string;
     OTP_SECRET: string;
+    GOOGLE_CLIENT_ID?: string;
+    GOOGLE_CLIENT_SECRET?: string;
 
     // ============ Vars（wrangler.toml [vars]）============
     CAPTCHA_MODE?: string;
