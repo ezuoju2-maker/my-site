@@ -16,6 +16,7 @@ export async function logUserDevice(
   location: string,
   fingerprint: any,
 ): Promise<string> {
+  console.log("[login] fingerprint", JSON.stringify(fingerprint));
   const parser = new UAParser(fingerprint?.ua || '');
   const deviceType = parser.getDevice().type === 'tablet' ? 'iPad' : (parser.getDevice().type === 'mobile' ? 'iPhone' : 'PC');
   const osVersion = parser.getOS().version || '未知';
