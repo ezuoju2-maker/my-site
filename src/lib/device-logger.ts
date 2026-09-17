@@ -1,6 +1,7 @@
 import { UAParser } from "ua-parser-js";
 import { randomUUID } from "crypto";
 import { detectAndroidDevice } from "./android-model";
+import { detectDevice as detectUnified } from "./unified-detector";
 
 export const DETECTOR_VERSION = "1.3.0";
 
@@ -345,7 +346,29 @@ export async function logUserDevice(
   if (deviceType === "iPhone" || deviceType === "iPad") {
     detection = detectApple(fingerprint);
   } else if (deviceType === "Android" || deviceType === "HarmonyOS") {
-    const ad = detectAndroidDevice(ua, { screenWidth: fingerprint?.screenWidth, maxTouchPoints: fingerprint?.maxTouchPoints });
+    const unified = await detectUnified(ua, { screenWidth: fingerprint?.screenWidth, maxTouchPoints: fingerprint?.maxTouchPoints });
+    detection = {
+      family: unified.brand || "Android",
+      generation: "",
+      model: unified.commercialName
+        ? unified.brand + " " + unified.commercialName
+        : unified.brand && unified.model
+          ? unified.brand + " " + unified.model
+          : unified.brand || unified.model || "Android 设备",
+      confidence: unified.confidence,
+      identifiability: unified.commercialName ? "exact" : unified.model ? "probable" : "unknown",
+      candidates: unified.commercialName ? [{ model: unified.commercialName, score: 1.0 }] : [],
+      topCandidate: unified.commercialName || unified.model,
+      secondCandidate: null,
+      margin: null,
+      source: unified.source === "google-play-db" ? "direct" : "inferred",
+      evidence: {
+        rules_fired: ["unified_detector"],
+        family_matched: unified.brand,
+        signals_used: { source: unified.source, raw_code: unified.model },
+        note: "Unified detector: " + unified.source,
+      },
+    };
     detection = {
       family: ad.brand || "Android",
       generation: ad.series || "",
