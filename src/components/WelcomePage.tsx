@@ -17,6 +17,7 @@ export default function WelcomePage() {
   const [status, setStatus] = useState<"loading" | "ok">("loading");
   const [loggingOut, setLoggingOut] = useState(false);
   const [fullLoggingOut, setFullLoggingOut] = useState(false);
+  const [showFullLogoutModal, setShowFullLogoutModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,15 +74,18 @@ export default function WelcomePage() {
     window.location.replace(getBase());
   }
 
-  async function handleFullLogout() {
+  function handleFullLogout() {
     if (fullLoggingOut) return;
-    if (
-      !window.confirm(
-        "确认彻底退出？\n\n这将清除此设备的信任状态。\n下次访问需要重新输入密码登录。",
-      )
-    ) {
-      return;
-    }
+    setShowFullLogoutModal(true);
+  }
+
+  function closeFullLogoutModal() {
+    if (fullLoggingOut) return;
+    setShowFullLogoutModal(false);
+  }
+
+  async function confirmFullLogout() {
+    if (fullLoggingOut) return;
     setFullLoggingOut(true);
     try {
       await fetch(`${API_BASE_URL}/api/auth/logout?full=1`, {
@@ -174,6 +178,48 @@ export default function WelcomePage() {
         >
           {fullLoggingOut ? "彻底退出中…" : "彻底退出（清除信任）"}
         </button>
+
+        {/* 彻底退出确认弹窗 */}
+        {showFullLogoutModal && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) closeFullLogoutModal();
+            }}
+          >
+            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-2xl">
+                ⚠️
+              </div>
+              <h2 className="mt-4 text-center text-lg font-semibold text-neutral-900">
+                确认彻底退出？
+              </h2>
+              <p className="mt-2 text-center text-sm leading-6 text-neutral-500">
+                这将清除此设备的信任状态。
+                <br />
+                下次访问需要重新输入密码登录。
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeFullLogoutModal}
+                  disabled={fullLoggingOut}
+                  className="h-11 flex-1 rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700 disabled:opacity-50"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmFullLogout}
+                  disabled={fullLoggingOut}
+                  className="h-11 flex-1 rounded-lg bg-red-600 text-base font-medium text-white disabled:opacity-50"
+                >
+                  {fullLoggingOut ? "退出中…" : "确认退出"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <p className="mt-6 text-center text-xs text-neutral-400">
           my-site
