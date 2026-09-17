@@ -1,0 +1,49 @@
+---
+import "../../styles/global.css";
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>UA 探测</title>
+</head>
+<body class="bg-neutral-50 p-4 text-sm">
+  <main class="mx-auto max-w-2xl space-y-4">
+    <h1 class="text-lg font-semibold">设备信号探测</h1>
+    <p class="text-xs text-neutral-500">用不同 App 打开这个页面，对比 UA 差异。</p>
+    <div class="rounded-xl border border-neutral-200 bg-white p-3">
+      <div class="text-xs text-neutral-400">User-Agent</div>
+      <pre id="ua" class="mt-1 whitespace-pre-wrap break-all text-xs"></pre>
+    </div>
+    <div class="rounded-xl border border-neutral-200 bg-white p-3">
+      <div class="text-xs text-neutral-400">解析结果</div>
+      <pre id="parsed" class="mt-1 whitespace-pre-wrap break-all text-xs"></pre>
+    </div>
+    <button id="copy" class="h-11 w-full rounded-lg bg-neutral-900 text-white">复制全部</button>
+  </main>
+  <script>
+    const ua = navigator.userAgent;
+    document.getElementById('ua').textContent = ua;
+
+    // 从 UA 里提取所有可能的"型号"线索
+    const signals = {
+      qq_device: (ua.match(/Device\/([^(]+)\(([^)]+)\)/i) || [])[2] || null,
+      hw_identifier: (ua.match(/(iPhone\d+,\d+)/i) || [])[1] || null,
+      screen: screen.width + "x" + screen.height,
+      dpr: window.devicePixelRatio,
+      platform: navigator.platform,
+      maxTouchPoints: navigator.maxTouchPoints,
+    };
+    document.getElementById('parsed').textContent = JSON.stringify(signals, null, 2);
+
+    document.getElementById('copy').onclick = async () => {
+      const text = "UA:\n" + ua + "\n\nSignals:\n" + JSON.stringify(signals, null, 2);
+      await navigator.clipboard.writeText(text);
+      document.getElementById('copy').textContent = "已复制 ✓";
+      setTimeout(() => document.getElementById('copy').textContent = "复制全部", 1500);
+    };
+  </script>
+</body>
+</html>
