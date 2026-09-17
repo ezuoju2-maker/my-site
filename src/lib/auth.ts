@@ -10,6 +10,20 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 
 const PASSWORD_ITERATIONS = 100_000;
+
+function getPasswordPepper(): string {
+  const pepper = (env as any).PASSWORD_PEPPER;
+  if (typeof pepper !== "string" || pepper.length < 32) {
+    console.warn("[auth] PASSWORD_PEPPER not configured or too short");
+    return "";
+  }
+  return pepper;
+}
+
+function applyPepper(password: string): string {
+  const pepper = getPasswordPepper();
+  return pepper ? password + ":" + pepper : password;
+}
 const PASSWORD_SALT_BYTES = 16;
 const PASSWORD_HASH_BYTES = 32;
 
@@ -103,7 +117,7 @@ export async function hashPassword(password: string) {
 
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(password),
+    new TextEncoder().encode(applyPepper(password)),
     "PBKDF2",
     false,
     ["deriveBits"],
@@ -145,7 +159,7 @@ export async function verifyPassword(
   try {
     const keyMaterial = await crypto.subtle.importKey(
       "raw",
-      new TextEncoder().encode(password),
+      new TextEncoder().encode(applyPepper(password)),
       "PBKDF2",
       false,
       ["deriveBits"],
