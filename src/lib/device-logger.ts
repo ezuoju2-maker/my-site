@@ -30,7 +30,7 @@ const SPEC_GROUPS: Record<string, SpecGroup> = {
   "375x812@3": {
     family: 'iPhone 5.4"/5.8" 全面屏',
     generation: "2017-2021",
-    models: ["iPhone 13 mini", "iPhone 12 mini", "iPhone 11 Pro", "iPhone XS", "iPhone X"],
+    models: ["iPhone 12 mini", "iPhone 13 mini", "iPhone 11 Pro", "iPhone XS", "iPhone X"],
   },
   "390x844@3": {
     family: 'iPhone 6.1" 全面屏',
@@ -128,12 +128,14 @@ function detectDevice(signals: Signals): Detection {
   if (uaModel) {
     return {
       ...empty,
-      family: "iPhone",
+      family: uaModel,
       model: uaModel,
       confidence: "高",
       identifiability: "exact",
       candidates: [{ model: uaModel, score: 1.0 }],
       topCandidate: uaModel,
+      secondCandidate: null,
+      margin: null,
     };
   }
 
@@ -143,27 +145,30 @@ function detectDevice(signals: Signals): Detection {
   if (!group) return empty;
 
   // 阶段 2：组内无法区分，所有成员同分（证据制）
-  // 关键：不给"看似精确"的 0.95/0.89 这种伪精度
   const candidates = group.models.map((m) => ({ model: m, score: 0.5 }));
-  const top = candidates[0];
-  const second = candidates[1] ?? null;
-  const margin = second ? top.score - second.score : null;
+  const margin = 0;
 
-  // identifiability 判定
   let identifiability: string;
   let confidence: string;
   let displayModel: string;
+  let topCandidate: string | null;
+  let secondCandidate: string | null;
 
   if (group.models.length === 1) {
     // 组内只有 1 款 → probable
     identifiability = "probable";
     confidence = "中";
     displayModel = group.models[0];
+    topCandidate = group.models[0];
+    secondCandidate = null;
   } else {
-    // 组内多款 → ambiguous，展示 family 名，不硬选
+    // 组内多款 → ambiguous，展示 family 名，不硬选 top
     identifiability = "ambiguous";
     confidence = "低";
     displayModel = group.family;
+    // 关键修正：分数相同（margin=0）时，不选 top，把整个 family 作为答案
+    topCandidate = null;
+    secondCandidate = null;
   }
 
   return {
@@ -173,8 +178,8 @@ function detectDevice(signals: Signals): Detection {
     confidence,
     identifiability,
     candidates,
-    topCandidate: top.model,
-    secondCandidate: second?.model ?? null,
+    topCandidate,
+    secondCandidate,
     margin,
   };
 }
@@ -191,12 +196,18 @@ export async function logUserDevice(
   const deviceType = parser.getDevice().type === "tablet" ? "iPad"
     : parser.getDevice().type === "mobile" ? "iPhone" : "PC";
 
-  // 从 UA 里精确提取 iOS 版本（UAParser 会误把 Safari Version 当 OS 版本）
+  // ===== 拆开三个版本号 =====
+  // 1) iOS 版本：从 UA 的 "iPhone OS 18_7" 提取
   const iosMatch = ua.match(/iPhone OS (\d+)[._](\d+)/i);
+  const osName = deviceType === "iPhone" || deviceType === "iPad" ? "iOS" : "未知";
   const osVersion = iosMatch
     ? `${iosMatch[1]}.${iosMatch[2]}`
     : (parser.getOS().version || "未知");
-  const browser = parser.getBrowser().name || "未知";
+
+  // 2) 浏览器名 + 版本：分别从 UAParser 和 "Version/x.y" 提取
+  const browserName = parser.getBrowser().name || "未知";
+  const versionMatch = ua.match(/Version\/([\d.]+)/i);
+  const browserVersion = versionMatch ? versionMatch[1] : (parser.getBrowser().version || "");
 
   const detection = deviceType === "iPhone" ? detectDevice(fingerprint) : {
     family: deviceType, generation: "", model: deviceType,
@@ -211,17 +222,21 @@ export async function logUserDevice(
   await db.prepare(
     `INSERT INTO user_login_devices 
       (user_id, device_id, device_type, device_model, model_confidence,
-       os_version, browser, ip_address, location,
+       os_name, os_version, browser, browser_name, browser_version,
+       ip_address, location,
        device_signals, model_candidates, model_score,
        device_family, device_generation, top_candidate, second_candidate,
        score_margin, model_identifiability)
-    VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)
+    VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)
     ON CONFLICT(user_id, device_id) DO UPDATE SET
       device_type = excluded.device_type,
       device_model = excluded.device_model,
       model_confidence = excluded.model_confidence,
+      os_name = excluded.os_name,
       os_version = excluded.os_version,
       browser = excluded.browser,
+      browser_name = excluded.browser_name,
+      browser_version = excluded.browser_version,
       last_login_at = CURRENT_TIMESTAMP,
       ip_address = excluded.ip_address,
       location = excluded.location,
@@ -236,7 +251,8 @@ export async function logUserDevice(
       model_identifiability = excluded.model_identifiability`
   ).bind(
     userId, deviceId, deviceType, detection.model, detection.confidence,
-    osVersion, browser, clientIp, location,
+    osName, osVersion, browserName, browserName, browserVersion,
+    clientIp, location,
     JSON.stringify(signalsForDb),
     JSON.stringify(detection.candidates),
     detection.candidates[0]?.score ?? null,
