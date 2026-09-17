@@ -44,6 +44,33 @@ export const DEVICE_FAMILIES: Record<string, DeviceFamily> = {
     models: ["iPhone 11 Pro Max", "iPhone XS Max"] },
 };
 
+
+// 从 UA 提取真实 iOS 版本
+// 规则：
+//   - Apple 从 iOS 26 开始冻结 Safari UA 里的 "iPhone OS X_Y"，真实版本只通过 "Version/X.Y" 暴露
+//   - 微信等 App 不遵守冻结规则，直接写真实版本（如 "iPhone OS 26_6"）
+//   - 快手的 WebView 可能缓存旧 UA，无法修，保留原值
+function extractOsVersion(ua: string, deviceType: string): string {
+  if (deviceType !== "iPhone" && deviceType !== "iPad") return "未知";
+
+  const osMatch = ua.match(/iPhone OS (\d+)[._](\d+)/i);
+  const osVer = osMatch ? `${osMatch[1]}.${osMatch[2]}` : null;
+
+  const safariMatch = ua.match(/Version\/(\d+)[._](\d+)/i);
+  const safariVer = safariMatch ? `${safariMatch[1]}.${safariMatch[2]}` : null;
+
+  // 如果 OS 和 Safari 都拿到，且 Safari 主版本远大于 OS 主版本 → OS 是被冻结的，用 Safari 版本
+  if (osVer && safariVer) {
+    const osMajor = parseInt(osVer.split(".")[0], 10);
+    const safariMajor = parseInt(safariVer.split(".")[0], 10);
+    if (safariMajor > osMajor + 3) {
+      return safariVer;
+    }
+  }
+
+  return osVer || safariVer || "未知";
+}
+
 function extractModelFromUA(ua: string): string | null {
   const qq = ua.match(/Device\/Apple\(([^)]+)\)/i);
   if (qq) return qq[1].trim();
@@ -169,9 +196,8 @@ export async function logUserDevice(
   const deviceType = parser.getDevice().type === "tablet" ? "iPad"
     : parser.getDevice().type === "mobile" ? "iPhone" : "PC";
 
-  const iosMatch = ua.match(/iPhone OS (\d+)[._](\d+)/i);
   const osName = deviceType === "iPhone" || deviceType === "iPad" ? "iOS" : "未知";
-  const osVersion = iosMatch ? `${iosMatch[1]}.${iosMatch[2]}` : (parser.getOS().version || "未知");
+  const osVersion = extractOsVersion(ua, deviceType);
   const browserName = parser.getBrowser().name || "未知";
   const versionMatch = ua.match(/Version\/([\d.]+)/i);
   const browserVersion = versionMatch ? versionMatch[1] : (parser.getBrowser().version || "");
