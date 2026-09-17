@@ -14,8 +14,34 @@ export type DeviceSignals = {
   language: string;
   timezone: string;
   gpu: string | null;
+  safeArea: { top: number; bottom: number; left: number; right: number };
   device_id?: string;
 };
+
+
+function getSafeArea() {
+  try {
+    const el = document.createElement("div");
+    el.style.cssText =
+      "position:fixed;left:0;top:0;width:0;height:0;" +
+      "padding-top:env(safe-area-inset-top);" +
+      "padding-bottom:env(safe-area-inset-bottom);" +
+      "padding-left:env(safe-area-inset-left);" +
+      "padding-right:env(safe-area-inset-right);";
+    document.body.appendChild(el);
+    const style = getComputedStyle(el);
+    const area = {
+      top: parseFloat(style.paddingTop) || 0,
+      bottom: parseFloat(style.paddingBottom) || 0,
+      left: parseFloat(style.paddingLeft) || 0,
+      right: parseFloat(style.paddingRight) || 0,
+    };
+    el.remove();
+    return area;
+  } catch {
+    return { top: 0, bottom: 0, left: 0, right: 0 };
+  }
+}
 
 function getWebGLRenderer(): string | null {
   try {
@@ -59,6 +85,7 @@ export function getDeviceFingerprint(): DeviceSignals {
       }
     })(),
     gpu: getWebGLRenderer(),
+    safeArea: getSafeArea(),
     device_id: (() => {
       try {
         return localStorage.getItem("device_id") || undefined;

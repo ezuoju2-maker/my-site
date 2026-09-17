@@ -14,7 +14,69 @@ type Signals = {
   language?: string;
   timezone?: string;
   gpu?: string | null;
+  safeArea?: { top: number; bottom: number; left: number; right: number };
   device_id?: string;
+};
+
+type SpecGroup = {
+  family: string;
+  generation: string;
+  models: string[];
+};
+
+// 物理规格组：CSS 分辨率 + DPR → 共享该规格的所有机型
+// 关键：这些机型在纯 Web 环境下无法区分，硬选一个都是编造精度
+const SPEC_GROUPS: Record<string, SpecGroup> = {
+  "375x812@3": {
+    family: 'iPhone 5.4"/5.8" 全面屏',
+    generation: "2017-2021",
+    models: ["iPhone 13 mini", "iPhone 12 mini", "iPhone 11 Pro", "iPhone XS", "iPhone X"],
+  },
+  "390x844@3": {
+    family: 'iPhone 6.1" 全面屏',
+    generation: "2020-2022",
+    models: ["iPhone 14", "iPhone 13", "iPhone 12"],
+  },
+  "393x852@3": {
+    family: 'iPhone 6.1" 灵动岛',
+    generation: "2022-2024",
+    models: ["iPhone 16", "iPhone 15", "iPhone 14 Pro"],
+  },
+  "402x874@3": {
+    family: 'iPhone 6.3" 灵动岛',
+    generation: "2024",
+    models: ["iPhone 16 Pro"],
+  },
+  "428x926@3": {
+    family: 'iPhone 6.7" 大屏',
+    generation: "2020-2022",
+    models: ["iPhone 14 Plus", "iPhone 13 Pro Max", "iPhone 12 Pro Max"],
+  },
+  "430x932@3": {
+    family: 'iPhone 6.7" 灵动岛',
+    generation: "2022-2024",
+    models: ["iPhone 16 Plus", "iPhone 15 Plus", "iPhone 14 Pro Max"],
+  },
+  "440x956@3": {
+    family: 'iPhone 6.9" 灵动岛',
+    generation: "2024",
+    models: ["iPhone 16 Pro Max"],
+  },
+  "375x667@2": {
+    family: 'iPhone 4.7" 非全面屏',
+    generation: "2014-2022",
+    models: ["iPhone SE 3", "iPhone SE 2", "iPhone 8", "iPhone 7", "iPhone 6s"],
+  },
+  "414x896@2": {
+    family: 'iPhone 6.1" 非 Pro',
+    generation: "2018-2019",
+    models: ["iPhone 11", "iPhone XR"],
+  },
+  "414x896@3": {
+    family: 'iPhone 6.5" 大屏',
+    generation: "2018-2019",
+    models: ["iPhone 11 Pro Max", "iPhone XS Max"],
+  },
 };
 
 function extractModelFromUA(ua: string): string | null {
@@ -36,34 +98,85 @@ function extractModelFromUA(ua: string): string | null {
   return null;
 }
 
-// 返回候选列表 [{model, score}]，按分数降序
-function scoreCandidates(signals: Signals): { model: string; score: number }[] {
-  const screen = signals.screen;
-  const dpr = signals.dpr;
+type Detection = {
+  family: string;
+  generation: string;
+  model: string;
+  confidence: string;
+  identifiability: string;
+  candidates: { model: string; score: number }[];
+  topCandidate: string | null;
+  secondCandidate: string | null;
+  margin: number | null;
+};
 
-  // 屏幕组合 → 候选机型（按概率排序）
-  const screenMap: Record<string, string[]> = {
-    "375x812@3": ["iPhone 13 mini", "iPhone 12 mini", "iPhone 11 Pro", "iPhone XS", "iPhone X"],
-    "390x844@3": ["iPhone 14", "iPhone 13", "iPhone 12"],
-    "393x852@3": ["iPhone 16", "iPhone 15", "iPhone 14 Pro"],
-    "402x874@3": ["iPhone 16 Pro"],
-    "428x926@3": ["iPhone 14 Plus", "iPhone 13 Pro Max", "iPhone 12 Pro Max"],
-    "430x932@3": ["iPhone 16 Plus", "iPhone 15 Plus", "iPhone 14 Pro Max"],
-    "440x956@3": ["iPhone 16 Pro Max"],
-    "375x667@2": ["iPhone SE 2", "iPhone SE 3", "iPhone 8", "iPhone 7"],
-    "414x896@2": ["iPhone 11", "iPhone XR"],
-    "414x896@3": ["iPhone 11 Pro Max", "iPhone XS Max"],
+function detectDevice(signals: Signals): Detection {
+  const empty: Detection = {
+    family: "iPhone",
+    generation: "",
+    model: "iPhone",
+    confidence: "低",
+    identifiability: "unknown",
+    candidates: [],
+    topCandidate: null,
+    secondCandidate: null,
+    margin: null,
   };
 
-  const key = `${screen}@${dpr}`;
-  const list = screenMap[key];
-  if (!list) return [];
+  // 阶段 0：UA 明确路径（微信/QQ/钉钉等会注入 Device/Apple(iPhone 12 mini)）
+  const uaModel = extractModelFromUA(signals.ua || "");
+  if (uaModel) {
+    return {
+      ...empty,
+      family: "iPhone",
+      model: uaModel,
+      confidence: "高",
+      identifiability: "exact",
+      candidates: [{ model: uaModel, score: 1.0 }],
+      topCandidate: uaModel,
+    };
+  }
 
-  // 简单评分：位置越靠前分越高
-  return list.map((model, i) => ({
-    model,
-    score: Number((0.95 - i * 0.06).toFixed(2)),
-  }));
+  // 阶段 1：物理规格组匹配
+  const key = `${signals.screen}@${signals.dpr}`;
+  const group = SPEC_GROUPS[key];
+  if (!group) return empty;
+
+  // 阶段 2：组内无法区分，所有成员同分（证据制）
+  // 关键：不给"看似精确"的 0.95/0.89 这种伪精度
+  const candidates = group.models.map((m) => ({ model: m, score: 0.5 }));
+  const top = candidates[0];
+  const second = candidates[1] ?? null;
+  const margin = second ? top.score - second.score : null;
+
+  // identifiability 判定
+  let identifiability: string;
+  let confidence: string;
+  let displayModel: string;
+
+  if (group.models.length === 1) {
+    // 组内只有 1 款 → probable
+    identifiability = "probable";
+    confidence = "中";
+    displayModel = group.models[0];
+  } else {
+    // 组内多款 → ambiguous，展示 family 名，不硬选
+    identifiability = "ambiguous";
+    confidence = "低";
+    displayModel = group.family;
+  }
+
+  return {
+    family: group.family,
+    generation: group.generation,
+    model: displayModel,
+    confidence,
+    identifiability,
+    candidates,
+    topCandidate: top.model,
+    secondCandidate: second?.model ?? null,
+    margin,
+  };
 }
 
 export async function logUserDevice(
@@ -77,34 +190,21 @@ export async function logUserDevice(
   const parser = new UAParser(ua);
   const deviceType = parser.getDevice().type === "tablet" ? "iPad"
     : parser.getDevice().type === "mobile" ? "iPhone" : "PC";
-  const osVersion = parser.getOS().version || "未知";
+
+  // 从 UA 里精确提取 iOS 版本（UAParser 会误把 Safari Version 当 OS 版本）
+  const iosMatch = ua.match(/iPhone OS (\d+)[._](\d+)/i);
+  const osVersion = iosMatch
+    ? `${iosMatch[1]}.${iosMatch[2]}`
+    : (parser.getOS().version || "未知");
   const browser = parser.getBrowser().name || "未知";
 
-  let deviceModel = "未知";
-  let confidence = "低";
-  let candidates: { model: string; score: number }[] = [];
-  let topScore: number | null = null;
-
-  if (deviceType === "iPhone") {
-    const uaModel = extractModelFromUA(ua);
-    if (uaModel) {
-      deviceModel = uaModel;
-      confidence = "高";
-      candidates = [{ model: uaModel, score: 0.99 }];
-      topScore = 0.99;
-    } else {
-      candidates = scoreCandidates(fingerprint);
-      if (candidates.length > 0) {
-        deviceModel = candidates[0].model;
-        topScore = candidates[0].score;
-        confidence = topScore >= 0.9 ? "高" : topScore >= 0.75 ? "中" : "低";
-      }
-    }
-  }
+  const detection = deviceType === "iPhone" ? detectDevice(fingerprint) : {
+    family: deviceType, generation: "", model: deviceType,
+    confidence: "中", identifiability: "unknown",
+    candidates: [], topCandidate: null, secondCandidate: null, margin: null,
+  };
 
   const deviceId = fingerprint?.device_id || randomUUID();
-
-  // 存原始 signals（去掉 device_id 避免冗余）
   const signalsForDb = { ...fingerprint };
   delete signalsForDb.device_id;
 
@@ -112,8 +212,10 @@ export async function logUserDevice(
     `INSERT INTO user_login_devices 
       (user_id, device_id, device_type, device_model, model_confidence,
        os_version, browser, ip_address, location,
-       device_signals, model_candidates, model_score)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+       device_signals, model_candidates, model_score,
+       device_family, device_generation, top_candidate, second_candidate,
+       score_margin, model_identifiability)
+    VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)
     ON CONFLICT(user_id, device_id) DO UPDATE SET
       device_type = excluded.device_type,
       device_model = excluded.device_model,
@@ -125,13 +227,21 @@ export async function logUserDevice(
       location = excluded.location,
       device_signals = excluded.device_signals,
       model_candidates = excluded.model_candidates,
-      model_score = excluded.model_score`
+      model_score = excluded.model_score,
+      device_family = excluded.device_family,
+      device_generation = excluded.device_generation,
+      top_candidate = excluded.top_candidate,
+      second_candidate = excluded.second_candidate,
+      score_margin = excluded.score_margin,
+      model_identifiability = excluded.model_identifiability`
   ).bind(
-    userId, deviceId, deviceType, deviceModel, confidence,
+    userId, deviceId, deviceType, detection.model, detection.confidence,
     osVersion, browser, clientIp, location,
     JSON.stringify(signalsForDb),
-    JSON.stringify(candidates),
-    topScore,
+    JSON.stringify(detection.candidates),
+    detection.candidates[0]?.score ?? null,
+    detection.family, detection.generation, detection.topCandidate,
+    detection.secondCandidate, detection.margin, detection.identifiability,
   ).run();
 
   return deviceId;
