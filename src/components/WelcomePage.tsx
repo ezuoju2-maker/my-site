@@ -179,6 +179,17 @@ export default function WelcomePage() {
           {fullLoggingOut ? "彻底退出中…" : "彻底退出（清除信任）"}
         </button>
 
+        {/* 管理已信任设备 */}
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = `${getBase()}settings/devices/`;
+          }}
+          className="mt-3 h-12 w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-600"
+        >
+          管理已信任的设备
+        </button>
+
         {/* 彻底退出确认弹窗 */}
         {showFullLogoutModal && (
           <div

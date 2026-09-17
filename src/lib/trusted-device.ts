@@ -165,3 +165,80 @@ export function clearDeviceCookie(): string {
     "Max-Age=0",
   ].join("; ");
 }
+
+export type TrustedDeviceInfo = {
+  id: string;
+  userAgent: string | null;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+};
+
+/**
+ * 列出用户所有未过期的信任设备（按最近使用时间倒序）
+ */
+export async function listTrustedDevices(
+  userId: string,
+): Promise<TrustedDeviceInfo[]> {
+  const db = env.DB;
+  if (!db) return [];
+
+  try {
+    const result = await db
+      .prepare(
+        `SELECT id, user_agent, created_at, last_used_at, expires_at
+         FROM trusted_devices
+         WHERE user_id = ?1 AND datetime(expires_at) > datetime('now')
+         ORDER BY last_used_at DESC
+         LIMIT 50`,
+      )
+      .bind(userId)
+      .all<{
+        id: string;
+        user_agent: string | null;
+        created_at: string;
+        last_used_at: string;
+        expires_at: string;
+      }>();
+
+    return (result.results ?? []).map((r) => ({
+      id: r.id,
+      userAgent: r.user_agent,
+      createdAt: r.created_at,
+      lastUsedAt: r.last_used_at,
+      expiresAt: r.expires_at,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 撤销某台设备。必须校验 user_id 匹配，防止越权。
+ * 返回 true 表示删除成功。
+ */
+export async function revokeDeviceById(
+  userId: string,
+  deviceId: string,
+): Promise<boolean> {
+  const db = env.DB;
+  if (!db) return false;
+
+  try {
+    const row = await db
+      .prepare("SELECT user_id FROM trusted_devices WHERE id = ?1 LIMIT 1")
+      .bind(deviceId)
+      .first<{ user_id: string }>();
+
+    if (!row || row.user_id !== userId) return false;
+
+    await db
+      .prepare("DELETE FROM trusted_devices WHERE id = ?1")
+      .bind(deviceId)
+      .run();
+
+    return true;
+  } catch {
+    return false;
+  }
+}
