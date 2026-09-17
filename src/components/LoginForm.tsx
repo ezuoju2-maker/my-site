@@ -135,6 +135,9 @@ export default function LoginForm() {
 
       if ((data as any)?.device_id) {
         localStorage.setItem("device_id", (data as any).device_id);
+        if ((data as any).risk && (data as any).risk.level !== "low") {
+          sessionStorage.setItem("login_risk", JSON.stringify((data as any).risk));
+        }
       }
       window.location.href = withBase("welcome/");
     } catch {

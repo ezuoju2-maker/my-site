@@ -1,8 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import WelcomePage from "../components/WelcomePage";
+import LoginRiskBanner from "../components/LoginRiskBanner";
 ---
 
 <Layout title="欢迎">
+  <div class="mx-auto max-w-2xl px-4 pt-4">
+    <LoginRiskBanner client:load />
+  </div>
   <WelcomePage client:load />
 </Layout>
