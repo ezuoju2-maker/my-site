@@ -129,7 +129,7 @@ type DeviceFamily = { family: string; generation: string; models: string[] };
 
 export const DEVICE_FAMILIES: Record<string, DeviceFamily> = {
   "375x812@3": { family: "iPhone mini / 5.8 系列", generation: "2017-2021",
-    models: ["iPhone 12 mini", "iPhone 13 mini", "iPhone 11 Pro", "iPhone XS", "iPhone X"] },
+    models: ["iPhone 13 mini", "iPhone 12 mini", "iPhone 11 Pro", "iPhone XS", "iPhone X"] },
   "390x844@3": { family: "iPhone 6.1 标准系列", generation: "2020-2022",
     models: ["iPhone 13", "iPhone 14", "iPhone 12"] },
   "393x852@3": { family: "iPhone 6.1 灵动岛系列", generation: "2022-2024",

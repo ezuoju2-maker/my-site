@@ -3,26 +3,16 @@ import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
 
-type Candidate = { model: string; score: number };
-
 type Device = {
   deviceId: string;
   deviceType: string | null;
   deviceModel: string | null;
   deviceFamily: string | null;
-  modelConfidence: string | null;
   modelIdentifiability: string | null;
-  modelSource: string | null;
-  detectorVersion: string | null;
-  modelCandidates: Candidate[];
-  topCandidate: string | null;
-  secondCandidate: string | null;
   osName: string | null;
   osVersion: string | null;
   browserName: string | null;
   browserVersion: string | null;
-  groundTruthModel: string | null;
-  correctedAt: string | null;
   firstLoginAt: string | null;
   lastLoginAt: string | null;
   ipAddress: string | null;
@@ -51,24 +41,11 @@ function formatDateTime(iso: string | null): string {
   } catch { return iso; }
 }
 
-function badgeForIdentifiability(id: string | null): { text: string; cls: string } | null {
-  switch (id) {
-    case "exact": return { text: "精确", cls: "bg-green-50 text-green-600" };
-    case "probable": return { text: "较可靠", cls: "bg-blue-50 text-blue-600" };
-    case "ambiguous": return { text: "推断", cls: "bg-amber-50 text-amber-600" };
-    default: return null;
-  }
-}
-
 export default function DeviceList() {
   const [devices, setDevices] = useState<Device[] | null>(null);
   const [error, setError] = useState("");
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [correctingId, setCorrectingId] = useState<string | null>(null);
-  const [correctInput, setCorrectInput] = useState("");
-  const [correctSaving, setCorrectSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,31 +81,7 @@ export default function DeviceList() {
     finally { setRevokingId(null); }
   }
 
-  async function submitCorrection(deviceId: string, model: string) {
-    if (!model.trim()) return;
-    setCorrectSaving(true); setError("");
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/user/devices`, {
-        method: "PATCH", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ device_id: deviceId, model: model.trim() }),
-      });
-      const data = await parseApiResponse(response);
-      if (!response.ok || !data.ok) { setError("提交失败，请重试"); return; }
-      setDevices((prev) =>
-        prev ? prev.map((d) => d.deviceId === deviceId
-          ? { ...d, groundTruthModel: model.trim(), correctedAt: new Date().toISOString() }
-          : d) : prev
-      );
-      setCorrectingId(null);
-      setCorrectInput("");
-    } catch { setError("网络错误"); }
-    finally { setCorrectSaving(false); }
-  }
-
   function goBack() { window.location.href = getBase() + "welcome/"; }
-
-  const correctingDevice = devices?.find((d) => d.deviceId === correctingId) ?? null;
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-10">
@@ -161,135 +114,38 @@ export default function DeviceList() {
           </div>
         )}
 
-        {devices && devices.map((d) => {
-          const badge = badgeForIdentifiability(d.modelIdentifiability);
-          const isExpanded = expandedId === d.deviceId;
-          const showCandidates = d.modelCandidates.length > 1;
-          return (
-            <div key={d.deviceId} className="rounded-2xl border border-neutral-100 bg-white p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="truncate text-base font-medium text-neutral-900">
-                      {d.groundTruthModel || d.deviceModel || d.deviceType || "未知设备"}
-                    </div>
-                    {badge && !d.groundTruthModel && (
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
-                        {badge.text}
-                      </span>
-                    )}
-                    {d.groundTruthModel && (
-                      <span className="shrink-0 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-600">
-                        已确认
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 space-y-0.5 text-xs text-neutral-500">
-                    <div>系统：{d.osName || "未知"}{d.osVersion ? ` ${d.osVersion}` : ""}</div>
-                    <div>浏览器：{d.browserName || "未知"}{d.browserVersion ? ` ${d.browserVersion}` : ""}</div>
-                    <div>首次登录：{formatDateTime(d.firstLoginAt)}</div>
-                    <div>最近登录：{timeAgo(d.lastLoginAt)}</div>
-                    <div>IP：{d.ipAddress || "未知"}</div>
-                    <div>登录地点：{d.location || "未知"}</div>
-                  </div>
-
-                  {!d.groundTruthModel && d.modelIdentifiability === "ambiguous" && (
-                    <button
-                      type="button"
-                      onClick={() => { setCorrectingId(d.deviceId); setCorrectInput(""); }}
-                      className="mt-3 mr-3 text-xs text-purple-600 underline-offset-2 hover:underline"
-                    >
-                      更正真实型号
-                    </button>
-                  )}
-
-                  {showCandidates && (
-                    <button
-                      type="button"
-                      onClick={() => setExpandedId(isExpanded ? null : d.deviceId)}
-                      className="mt-3 text-xs text-blue-600 underline-offset-2 hover:underline"
-                    >
-                      {isExpanded ? "收起候选" : `查看 ${d.modelCandidates.length} 个候选 ▾`}
-                    </button>
-                  )}
-
-                  {isExpanded && showCandidates && (
-                    <ul className="mt-2 space-y-1 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600">
-                      {d.modelCandidates.map((c) => (
-                        <li key={c.model} className="flex items-center justify-between">
-                          <span>{c.model}</span>
-                          <span className="text-neutral-400">{(c.score * 100).toFixed(0)}%</span>
-                        </li>
-                      ))}
-                      <li className="pt-2 text-[10px] leading-4 text-neutral-400">
-                        Safari 不暴露设备型号，无法仅凭网页精确区分。想精确识别，可用 QQ 内置浏览器打开本站登录。
-                      </li>
-                    </ul>
-                  )}
+        {devices && devices.map((d) => (
+          <div key={d.deviceId} className="rounded-2xl border border-neutral-100 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-base font-medium text-neutral-900">
+                  {d.deviceModel || d.deviceType || "未知设备"}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setConfirmId(d.deviceId)}
-                  disabled={revokingId === d.deviceId}
-                  className="shrink-0 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 disabled:opacity-50"
-                >
-                  {revokingId === d.deviceId ? "撤销中…" : "撤销"}
-                </button>
+                <div className="mt-2 space-y-0.5 text-xs text-neutral-500">
+                  <div>系统：{d.osName || "未知"}{d.osVersion ? ` ${d.osVersion}` : ""}</div>
+                  <div>浏览器：{d.browserName || "未知"}{d.browserVersion ? ` ${d.browserVersion}` : ""}</div>
+                  <div>首次登录：{formatDateTime(d.firstLoginAt)}</div>
+                  <div>最近登录：{timeAgo(d.lastLoginAt)}</div>
+                  <div>IP：{d.ipAddress || "未知"}</div>
+                  <div>登录地点：{d.location || "未知"}</div>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setConfirmId(d.deviceId)}
+                disabled={revokingId === d.deviceId}
+                className="shrink-0 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 disabled:opacity-50"
+              >
+                {revokingId === d.deviceId ? "撤销中…" : "撤销"}
+              </button>
             </div>
-          );
-        })}
+          </div>
+        ))}
 
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{error}</div>
         )}
       </main>
-
-      {correctingId && correctingDevice && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
-          onClick={(e) => { if (e.target === e.currentTarget && !correctSaving) setCorrectingId(null); }}
-        >
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-neutral-900">你用的是哪款设备？</h2>
-            <p className="mt-1 text-xs text-neutral-500">你的确认会帮助改进识别准确率</p>
-            <div className="mt-4 space-y-2">
-              {correctingDevice.modelCandidates.map((c) => (
-                <button
-                  key={c.model}
-                  type="button"
-                  onClick={() => submitCorrection(correctingId, c.model)}
-                  disabled={correctSaving}
-                  className="w-full rounded-lg border border-neutral-200 py-3 text-sm font-medium text-neutral-800 hover:border-neutral-900 disabled:opacity-50"
-                >
-                  {c.model}
-                </button>
-              ))}
-            </div>
-            <div className="mt-3 border-t border-neutral-100 pt-3">
-              <input
-                type="text"
-                value={correctInput}
-                onChange={(e) => setCorrectInput(e.target.value)}
-                placeholder="其他型号（手动输入）"
-                className="h-11 w-full rounded-lg border border-neutral-300 px-3 text-sm"
-              />
-            </div>
-            <div className="mt-4 flex gap-3">
-              <button type="button" onClick={() => setCorrectingId(null)} disabled={correctSaving}
-                className="h-11 flex-1 rounded-lg border border-neutral-300 text-base font-medium text-neutral-700 disabled:opacity-50">
-                取消
-              </button>
-              <button type="button" onClick={() => submitCorrection(correctingId, correctInput)}
-                disabled={correctSaving || !correctInput.trim()}
-                className="h-11 flex-1 rounded-lg bg-neutral-900 text-base font-medium text-white disabled:opacity-50">
-                {correctSaving ? "提交中…" : "提交"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {confirmId && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
