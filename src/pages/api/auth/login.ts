@@ -12,6 +12,7 @@ import {
 import { incrementLimit, resetLimit } from "../../../lib/rate-limit";
 import { createTrustedDevice, deviceCookie } from "../../../lib/trusted-device";
 import { logUserDevice } from "../../../lib/device-logger";
+import { assessLoginRisk } from "../../../lib/risk-engine";
 import {
   createSession,
   sessionCookie,
@@ -204,12 +205,28 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 设备指纹落库
     let deviceId: string | null = null;
+    let riskResult: any = null;
     try {
       const cf = (request as any).cf;
       const location = cf
         ? [cf.city, cf.region, cf.country].filter(Boolean).join(", ")
         : "未知";
       deviceId = await logUserDevice(env.DB, user.id, clientIp, location, (body as any).fingerprint);
+      try {
+        const prev = await env.DB.prepare(
+          "SELECT device_id, ip_address, location, last_login_at, browser_name, os_name FROM user_login_devices WHERE user_id = ?1 AND device_id != ?2 ORDER BY last_login_at DESC LIMIT 1"
+        ).bind(user.id, deviceId).first();
+        riskResult = assessLoginRisk({
+          device_id: deviceId,
+          ip_address: clientIp,
+          location,
+          browser_name: "unknown",
+          os_name: "unknown",
+        }, prev || null);
+        await env.DB.prepare(
+          "UPDATE user_login_devices SET risk_score=?1, risk_level=?2, risk_signals=?3, is_new_device=?4 WHERE user_id=?5 AND device_id=?6"
+        ).bind(riskResult.score, riskResult.level, JSON.stringify(riskResult.signals), riskResult.signals.isNewDevice ? 1 : 0, user.id, deviceId).run();
+      } catch (e) { console.warn("[login] risk failed", e); }
     } catch (err) {
       console.warn("[login] logUserDevice failed", err);
     }
@@ -240,6 +257,7 @@ export const POST: APIRoute = async ({ request }) => {
           role: user.role || "user",
         },
         device_id: deviceId,
+        risk: riskResult ? { score: riskResult.score, level: riskResult.level, isNewDevice: riskResult.signals.isNewDevice, reasons: riskResult.reasons } : null,
       }),
       { status: 200, headers: resHeaders },
     );
