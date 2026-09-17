@@ -1,0 +1,45 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    # 每 3 天 UTC 06:00 运行（GitHub Actions 60 天无活动会暂停，
+    # 所以不要设成每周一次，保守 3 天一次）
+    - cron: "0 6 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::Missing SUPABASE_URL or SUPABASE_ANON_KEY secret"
+            exit 1
+          fi
+
+          HTTP_CODE=$(curl -sS -o /tmp/keepalive.json -w '%{http_code}' \
+            "${SUPABASE_URL}/rest/v1/keepalive?select=id" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          echo "HTTP status: ${HTTP_CODE}"
+          echo "Response body:"
+          cat /tmp/keepalive.json
+          echo ""
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Supabase keepalive failed (HTTP ${HTTP_CODE})"
+            exit 1
+          fi
+
+          echo "✅ Supabase keepalive ping succeeded"
