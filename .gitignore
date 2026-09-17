@@ -1,3 +1,9 @@
+f*.mjs
+p*.mjs
+*.mjs
+!vite.config.mjs
+!astro.config.mjs
+!tailwind.config.mjs
 # build output
 dist/
 .astro/
