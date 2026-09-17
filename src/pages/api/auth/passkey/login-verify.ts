@@ -36,7 +36,10 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: "CHALLENGE_EXPIRED" }), { status: 400 });
   }
 
-  const cred = body.credential as { id: string };
+  const cred = body.credential as { id?: string } | null;
+  if (!cred || typeof cred.id !== "string" || !/^[A-Za-z0-9_-]+$/.test(cred.id) || cred.id.length > 1024) {
+    return new Response(JSON.stringify({ error: "INVALID_CREDENTIAL" }), { status: 400 });
+  }
   const passkey = await db
     .prepare("SELECT user_id, public_key, counter, transports FROM passkeys WHERE credential_id = ?1")
     .bind(cred.id)
@@ -44,6 +47,11 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!passkey) {
     return new Response(JSON.stringify({ error: "PASSKEY_NOT_FOUND" }), { status: 400 });
+  }
+
+  if (row.user_id && passkey.user_id !== row.user_id) {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
+    return new Response(JSON.stringify({ error: "CREDENTIAL_USER_MISMATCH" }), { status: 400 });
   }
 
   let verification;
@@ -61,11 +69,19 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
   } catch {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
     return new Response(JSON.stringify({ error: "VERIFICATION_FAILED" }), { status: 400 });
   }
 
   if (!verification.verified) {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
     return new Response(JSON.stringify({ error: "NOT_VERIFIED" }), { status: 400 });
+  }
+
+  const newCounter = verification.authenticationInfo.newCounter;
+  if (newCounter !== 0 && newCounter <= passkey.counter) {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
+    return new Response(JSON.stringify({ error: "COUNTER_ROLLBACK" }), { status: 400 });
   }
 
   await db
