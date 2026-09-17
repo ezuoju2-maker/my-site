@@ -146,6 +146,28 @@ export default function DeviceList() {
     }
   }
 
+  async function submitCorrection(deviceId: string, model: string) {
+    if (!model.trim()) return;
+    setCorrectSaving(true);
+    setError("");
+    try {
+      const response = await fetch(API_BASE_URL + "/api/user/devices", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ device_id: deviceId, model: model.trim() }),
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok || !data.ok) { setError("提交失败，请重试"); return; }
+      setDevices((prev) =>
+        prev ? prev.map((d) => d.deviceId === deviceId ? { ...d, groundTruthModel: model.trim(), correctedAt: new Date().toISOString() } : d) : prev
+      );
+      setCorrectingId(null);
+      setCorrectInput("");
+    } catch { setError("网络错误"); }
+    finally { setCorrectSaving(false); }
+  }
+
   function goBack() {
     window.location.href = getBase() + "welcome/";
   }
@@ -228,6 +250,50 @@ export default function DeviceList() {
           </div>
         )}
       </main>
+
+      {correctingId && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
+          onClick={(e) => { if (e.target === e.currentTarget && !correctSaving) setCorrectingId(null); }}
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-neutral-900">你用的是哪款 iPhone？</h2>
+            <p className="mt-1 text-xs text-neutral-500">你的确认将帮助改进识别准确率</p>
+            <div className="mt-4 space-y-2">
+              {(devices?.find((x) => x.deviceId === correctingId)?.modelCandidates || []).map((c) => (
+                <button
+                  key={c.model}
+                  type="button"
+                  onClick={() => submitCorrection(correctingId, c.model)}
+                  disabled={correctSaving}
+                  className="w-full rounded-lg border border-neutral-200 py-3 text-sm font-medium text-neutral-800 hover:border-neutral-900 disabled:opacity-50"
+                >
+                  {c.model}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 border-t border-neutral-100 pt-3">
+              <input
+                type="text"
+                value={correctInput}
+                onChange={(e) => setCorrectInput(e.target.value)}
+                placeholder="其他型号（手动输入）"
+                className="h-11 w-full rounded-lg border border-neutral-300 px-3 text-sm"
+              />
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button type="button" onClick={() => setCorrectingId(null)} disabled={correctSaving}
+                className="h-11 flex-1 rounded-lg border border-neutral-300 text-base font-medium text-neutral-700 disabled:opacity-50">
+                取消
+              </button>
+              <button type="button" onClick={() => submitCorrection(correctingId, correctInput)} disabled={correctSaving || !correctInput.trim()}
+                className="h-11 flex-1 rounded-lg bg-neutral-900 text-base font-medium text-white disabled:opacity-50">
+                {correctSaving ? "提交中…" : "提交"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmId && (
         <div
