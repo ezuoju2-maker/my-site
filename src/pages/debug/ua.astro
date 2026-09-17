@@ -25,9 +25,12 @@ import "../../styles/global.css";
   </main>
   <script>
     const ua = navigator.userAgent;
-    document.getElementById('ua').textContent = ua;
+    const uaEl = document.getElementById('ua');
+    const parsedEl = document.getElementById('parsed');
+    const copyEl = document.getElementById('copy');
 
-    // 从 UA 里提取所有可能的"型号"线索
+    if (uaEl) uaEl.textContent = ua;
+
     const signals = {
       qq_device: (ua.match(/Device\/([^(]+)\(([^)]+)\)/i) || [])[2] || null,
       hw_identifier: (ua.match(/(iPhone\d+,\d+)/i) || [])[1] || null,
@@ -36,14 +39,16 @@ import "../../styles/global.css";
       platform: navigator.platform,
       maxTouchPoints: navigator.maxTouchPoints,
     };
-    document.getElementById('parsed').textContent = JSON.stringify(signals, null, 2);
+    if (parsedEl) parsedEl.textContent = JSON.stringify(signals, null, 2);
 
-    document.getElementById('copy').onclick = async () => {
-      const text = "UA:\n" + ua + "\n\nSignals:\n" + JSON.stringify(signals, null, 2);
-      await navigator.clipboard.writeText(text);
-      document.getElementById('copy').textContent = "已复制 ✓";
-      setTimeout(() => document.getElementById('copy').textContent = "复制全部", 1500);
-    };
+    if (copyEl) {
+      copyEl.onclick = async () => {
+        const text = "UA:\n" + ua + "\n\nSignals:\n" + JSON.stringify(signals, null, 2);
+        await navigator.clipboard.writeText(text);
+        if (copyEl) copyEl.textContent = "已复制 ✓";
+        setTimeout(() => { if (copyEl) copyEl.textContent = "复制全部"; }, 1500);
+      };
+    }
   </script>
 </body>
 </html>
