@@ -35,6 +35,12 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: "CHALLENGE_EXPIRED" }), { status: 400 });
   }
 
+  const credRaw = body.credential as { id?: string } | null;
+  if (!credRaw || typeof credRaw !== "object") {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
+    return new Response(JSON.stringify({ error: "INVALID_CREDENTIAL" }), { status: 400 });
+  }
+
   let verification;
   try {
     verification = await verifyRegistrationResponse({
@@ -44,10 +50,12 @@ export const POST: APIRoute = async ({ request }) => {
       expectedRPID: RP_ID,
     });
   } catch {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
     return new Response(JSON.stringify({ error: "VERIFICATION_FAILED" }), { status: 400 });
   }
 
   if (!verification.verified || !verification.registrationInfo) {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
     return new Response(JSON.stringify({ error: "NOT_VERIFIED" }), { status: 400 });
   }
 
@@ -55,7 +63,8 @@ export const POST: APIRoute = async ({ request }) => {
   const credIdB64 = info.credential.id;
   const pubKeyB64 = bytesToB64(info.credential.publicKey);
 
-  await db
+  try {
+    await db
     .prepare("INSERT INTO passkeys (id, user_id, credential_id, public_key, counter, device_type, backed_up, transports) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)")
     .bind(
       crypto.randomUUID(),
@@ -68,6 +77,11 @@ export const POST: APIRoute = async ({ request }) => {
       JSON.stringify(info.credential.transports || []),
     )
     .run();
+  } catch (insertErr) {
+    await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
+    console.warn("[register-verify] insert failed", insertErr);
+    return new Response(JSON.stringify({ error: "CREDENTIAL_ALREADY_REGISTERED" }), { status: 409 });
+  }
 
   await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
 

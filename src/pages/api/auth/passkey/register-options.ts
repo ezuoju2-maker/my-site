@@ -23,19 +23,18 @@ export const POST: APIRoute = async ({ request }) => {
     .first<{ id: string; username: string }>();
 
   if (!user) {
-    const base = email.split("@")[0].replace(/[^a-z0-9_]/g, "").slice(0, 18) || "user";
-    let username = base.length >= 3 ? base : base.padEnd(3, "_");
-    for (let i = 0; i < 10; i += 1) {
-      const dup = await db.prepare("SELECT id FROM users WHERE lower(username) = ?1 LIMIT 1").bind(username).first();
-      if (!dup) break;
-      username = (base + Math.floor(Math.random() * 10000)).slice(0, 20);
-    }
-    const userId = crypto.randomUUID();
-    await db
-      .prepare("INSERT INTO users (id, username, email, password_hash, session_version, role) VALUES (?1, ?2, ?3, ?4, 1, 'user')")
-      .bind(userId, username, email, "")
-      .run();
-    user = { id: userId, username };
+    // 安全修复：禁止通过 passkey 注册接口自动创建账号（防账号预占攻击）
+    // 必须先用密码注册流程（含邮箱 OTP 验证）创建账号，再用此接口添加 passkey
+    return new Response(
+      JSON.stringify({
+        error: "USER_NOT_FOUND",
+        message: "请先通过密码注册创建账号，再添加 passkey",
+      }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+      },
+    );
   }
 
   const existing = await db
