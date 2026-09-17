@@ -16,6 +16,7 @@ export default function WelcomePage() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [status, setStatus] = useState<"loading" | "ok">("loading");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [fullLoggingOut, setFullLoggingOut] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
