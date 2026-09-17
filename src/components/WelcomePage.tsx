@@ -72,6 +72,27 @@ export default function WelcomePage() {
     window.location.replace(getBase());
   }
 
+  async function handleFullLogout() {
+    if (fullLoggingOut) return;
+    if (
+      !window.confirm(
+        "确认彻底退出？\n\n这将清除此设备的信任状态。\n下次访问需要重新输入密码登录。",
+      )
+    ) {
+      return;
+    }
+    setFullLoggingOut(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout?full=1`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // 忽略网络错误
+    }
+    window.location.replace(getBase());
+  }
+
   if (status === "loading" || !user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-neutral-50">
