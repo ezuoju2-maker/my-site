@@ -4,46 +4,68 @@ import { API_BASE_URL } from "../lib/api";
 import { withBase } from "../lib/url";
 
 function translatePasskeyError(e: unknown): string {
-  if (!(e instanceof Error)) return "操作失败，请重试";
+  if (!e) return "操作失败，请重试";
 
-  const name = (e as { name?: string }).name || "";
-  const msg = e.message || "";
+  const err = e as { name?: string; message?: string };
+  const name = err.name || "";
+  const raw = err.message || "";
+  const msg = raw.toLowerCase();
 
-  // 用户主动取消
-  if (
-    name === "AbortError" ||
-    name === "NotAllowedError" ||
-    msg.includes("cancel") ||
-    msg.includes("Cancel") ||
-    msg.includes("denied permission") ||
-    msg.includes("not allowed")
-  ) {
+  // === 用户主动取消 / 被拒绝 ===
+  // 覆盖：NotAllowedError、AbortError、SecurityError 里的拒绝场景
+  if (name === "AbortError") return "";
+  if (name === "NotAllowedError") {
+    // 包含 "not allowed" / "denied" / "cancel" / "no credentials" 都视为取消
+    if (
+      msg.includes("not allowed") ||
+      msg.includes("denied") ||
+      msg.includes("cancel") ||
+      msg.includes("user denied") ||
+      msg.includes("no credentials") ||
+      msg.includes("not found")
+    ) {
+      return "";
+    }
+    return "该设备暂时无法使用 Passkey，请检查系统设置后重试";
+  }
+
+  // 直接扫 message（不依赖 name）
+  if (msg.includes("user agent") || msg.includes("not allowed by the user agent")) {
+    return "";
+  }
+  if (msg.includes("cancel") || msg.includes("user canceled")) {
     return "";
   }
 
+  // === 其他已知错误 ===
   if (name === "SecurityError") {
-    return "此设备或浏览器不支持 Passkey，或当前环境不安全（需要 HTTPS）";
+    return "当前环境不安全（需要 HTTPS），或浏览器禁止了 Passkey";
   }
   if (name === "NotSupportedError") {
     return "此设备或浏览器不支持 Passkey";
   }
   if (name === "InvalidStateError") {
-    return "此设备已经注册过 Passkey，请直接使用「使用 Passkey 登录」";
+    return "此设备已经注册过 Passkey，请直接点「使用 Passkey 登录」";
   }
   if (name === "TimeoutError") {
     return "验证超时，请重试";
   }
   if (name === "ConstraintError") {
-    return "设备不满足注册要求（需要指纹或面容识别）";
+    return "设备不满足注册要求（需要指纹、面容或设备 PIN）";
+  }
+  if (name === "UnknownError") {
+    return "设备验证失败，请重试";
   }
 
-  if (msg.includes("CHALLENGE_NOT_FOUND")) return "验证已过期，请重试";
-  if (msg.includes("CHALLENGE_EXPIRED")) return "验证已过期，请重试";
-  if (msg.includes("PASSKEY_NOT_FOUND")) return "此设备未注册 Passkey，请先注册";
-  if (msg.includes("NOT_VERIFIED")) return "验证失败，请重试";
-  if (msg.includes("VERIFICATION_FAILED")) return "验证失败，请重试";
-  if (msg.includes("USER_NOT_FOUND")) return "用户不存在";
-  if (msg.includes("EMAIL_REQUIRED")) return "请输入邮箱";
+  // === 后端返回的错误码 ===
+  if (raw.includes("CHALLENGE_NOT_FOUND")) return "验证已过期，请重试";
+  if (raw.includes("CHALLENGE_EXPIRED")) return "验证已过期，请重试";
+  if (raw.includes("PASSKEY_NOT_FOUND")) return "此设备未注册 Passkey，请先注册";
+  if (raw.includes("NOT_VERIFIED")) return "验证失败，请重试";
+  if (raw.includes("VERIFICATION_FAILED")) return "验证失败，请重试";
+  if (raw.includes("USER_NOT_FOUND")) return "用户不存在";
+  if (raw.includes("EMAIL_REQUIRED")) return "请输入邮箱";
+  if (raw.includes("CHALLENGE_")) return "验证已过期，请重试";
 
   return "操作失败，请重试";
 }
