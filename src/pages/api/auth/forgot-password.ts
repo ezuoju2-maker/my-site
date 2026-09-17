@@ -111,11 +111,23 @@ export const POST: APIRoute = async ({ request }) => {
   const dailyKey = `password-reset-daily:${email}`;
   const codeKey = `password-reset-code:${email}`;
   const attemptsKey = `password-reset-attempts:${email}`;
+  const totalAttemptsKey = `password-reset-total-attempts:${email}`;
 
   const [ipCooldown, emailCooldown] = await Promise.all([
     getCooldownRemaining(ipCooldownKey),
     getCooldownRemaining(emailCooldownKey),
   ]);
+
+  const totalAttempts = Number.parseInt((await kv.get(totalAttemptsKey)) ?? "0", 10) || 0;
+  const TOTAL_ATTEMPTS_LIMIT = 30;
+  if (totalAttempts >= TOTAL_ATTEMPTS_LIMIT) {
+    return json(
+      { ok: false, error: "TOO_MANY_REQUESTS", retryAfter: 86400 },
+      429,
+      { "Retry-After": "86400" },
+      origin,
+    );
+  }
 
   if (ipCooldown || emailCooldown) {
     return json(
@@ -152,6 +164,8 @@ export const POST: APIRoute = async ({ request }) => {
     if (!user) {
       await setCooldown(ipCooldownKey, RESEND_COOLDOWN_SECONDS);
       await setCooldown(emailCooldownKey, RESEND_COOLDOWN_SECONDS);
+      // 恒定延迟：模拟邮件发送耗时，防止通过响应时间判断邮箱是否存在
+      await new Promise((r) => setTimeout(r, 300 + Math.random() * 200));
       return json(
         {
           ok: true,
@@ -197,10 +211,11 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     await kv.put(codeKey, digest, { expirationTtl: OTP_TTL_SECONDS });
-    await kv.delete(attemptsKey);
+    // 不重置 attemptsKey：防止攻击者通过反复请求 OTP 循环猜测
     await setCooldown(ipCooldownKey, RESEND_COOLDOWN_SECONDS);
     await setCooldown(emailCooldownKey, RESEND_COOLDOWN_SECONDS);
     await bumpCounter(dailyKey, 86400);
+    await kv.put(totalAttemptsKey, String(totalAttempts + 1), { expirationTtl: 86400 });
 
     recordEmailOp().catch(() => {});
 

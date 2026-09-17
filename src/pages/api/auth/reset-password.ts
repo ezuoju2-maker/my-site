@@ -1,5 +1,8 @@
 import { recordUsage } from "../../../lib/usage-log";
 import { checkBudget } from "../../../lib/budget";
+import { deleteAllTrustedDevices, clearDeviceCookie } from "../../../lib/trusted-device";
+import { sendEmail } from "../../../lib/email";
+import { recordLogin } from "../../../lib/login-log";
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import {
@@ -306,11 +309,42 @@ export const POST: APIRoute = async ({ request }) => {
     await kv.delete(codeKey);
     await kv.delete(attemptsKey);
 
-    return json(
-      { ok: true },
-      200,
-      {},
-      origin,
+    // 踢掉所有信任设备（90 天免密登录全部失效）
+    try {
+      await deleteAllTrustedDevices(user.id);
+    } catch (e) {
+      console.warn("[reset-password] deleteAllTrustedDevices failed", e);
+    }
+
+    // 记录审计日志
+    try {
+      await recordLogin(user.id, request);
+    } catch {}
+
+    // 发"密码已重置"通知（异步，不阻塞主流程）
+    sendEmail({
+      to: email,
+      subject: "my-site 密码已重置",
+      html: `<p>你的 my-site 账号密码刚刚被重置。</p><p>如果这不是你本人的操作，请立即通过"忘记密码"重新设置并检查登录设备。</p>`,
+      text: "你的 my-site 账号密码刚刚被重置。如果这不是你本人的操作，请立即处理。",
+    }).catch(() => {});
+
+    // 构造带 cookie 清理的响应（清 session + device token）
+    const resHeaders = new Headers({
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+    });
+    if (origin) {
+      for (const [k, v] of Object.entries(corsHeaders(origin))) {
+        resHeaders.set(k, v);
+      }
+    }
+    resHeaders.append("Set-Cookie", "session=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0");
+    resHeaders.append("Set-Cookie", clearDeviceCookie());
+
+    return new Response(
+      JSON.stringify({ ok: true, trusted_devices_cleared: true }),
+      { status: 200, headers: resHeaders },
     );
   } catch (error) {
     console.error(
