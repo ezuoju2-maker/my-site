@@ -1,5 +1,6 @@
 import { UAParser } from "ua-parser-js";
 import { randomUUID } from "crypto";
+import { detectAndroidDevice } from "./android-model";
 
 export const DETECTOR_VERSION = "1.3.0";
 
@@ -334,7 +335,25 @@ export async function logUserDevice(
   if (deviceType === "iPhone" || deviceType === "iPad") {
     detection = detectApple(fingerprint);
   } else if (deviceType === "Android" || deviceType === "HarmonyOS") {
-    detection = detectAndroid(fingerprint);
+    const ad = detectAndroidDevice(ua);
+    detection = {
+      family: ad.brand || "Android",
+      generation: ad.series || "",
+      model: ad.displayName,
+      confidence: ad.confidence,
+      identifiability: ad.commercialName ? "exact" : ad.modelRaw ? "probable" : "unknown",
+      candidates: ad.commercialName ? [{ model: ad.commercialName, score: 1.0 }] : ad.modelRaw ? [{ model: ad.modelRaw, score: 0.8 }] : [],
+      topCandidate: ad.commercialName || ad.modelRaw,
+      secondCandidate: null,
+      margin: null,
+      source: ad.commercialName ? "direct" : "inferred",
+      evidence: {
+        rules_fired: ["android_detector"],
+        family_matched: ad.brand,
+        signals_used: { brand: ad.brand, model_raw: ad.modelRaw, commercial_name: ad.commercialName, series: ad.series, form_factor: ad.formFactor, is_harmony: ad.isHarmony },
+        note: "Android detector v1.0.0",
+      },
+    };
   } else {
     detection = {
       family: deviceType, generation: "", model: deviceType,
