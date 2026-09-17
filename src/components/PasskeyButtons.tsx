@@ -3,6 +3,51 @@ import { startRegistration, startAuthentication } from "@simplewebauthn/browser"
 import { API_BASE_URL } from "../lib/api";
 import { withBase } from "../lib/url";
 
+function translatePasskeyError(e: unknown): string {
+  if (!(e instanceof Error)) return "操作失败，请重试";
+
+  const name = (e as { name?: string }).name || "";
+  const msg = e.message || "";
+
+  // 用户主动取消
+  if (
+    name === "AbortError" ||
+    name === "NotAllowedError" ||
+    msg.includes("cancel") ||
+    msg.includes("Cancel") ||
+    msg.includes("denied permission") ||
+    msg.includes("not allowed")
+  ) {
+    return "";
+  }
+
+  if (name === "SecurityError") {
+    return "此设备或浏览器不支持 Passkey，或当前环境不安全（需要 HTTPS）";
+  }
+  if (name === "NotSupportedError") {
+    return "此设备或浏览器不支持 Passkey";
+  }
+  if (name === "InvalidStateError") {
+    return "此设备已经注册过 Passkey，请直接使用「使用 Passkey 登录」";
+  }
+  if (name === "TimeoutError") {
+    return "验证超时，请重试";
+  }
+  if (name === "ConstraintError") {
+    return "设备不满足注册要求（需要指纹或面容识别）";
+  }
+
+  if (msg.includes("CHALLENGE_NOT_FOUND")) return "验证已过期，请重试";
+  if (msg.includes("CHALLENGE_EXPIRED")) return "验证已过期，请重试";
+  if (msg.includes("PASSKEY_NOT_FOUND")) return "此设备未注册 Passkey，请先注册";
+  if (msg.includes("NOT_VERIFIED")) return "验证失败，请重试";
+  if (msg.includes("VERIFICATION_FAILED")) return "验证失败，请重试";
+  if (msg.includes("USER_NOT_FOUND")) return "用户不存在";
+  if (msg.includes("EMAIL_REQUIRED")) return "请输入邮箱";
+
+  return "操作失败，请重试";
+}
+
 export default function PasskeyButtons() {
   const [loading, setLoading] = useState<"register" | "login" | null>(null);
   const [error, setError] = useState("");
@@ -57,12 +102,12 @@ export default function PasskeyButtons() {
 
       window.location.href = withBase("welcome/");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "注册失败";
-      if (msg.includes("cancel") || msg.includes("Cancel")) {
-        setError("");
-      } else {
+      const msg = translatePasskeyError(e);
+      if (msg) {
         setError(msg);
         setShowModal(false);
+      } else {
+        setError("");
       }
     } finally {
       setLoading(null);
@@ -102,11 +147,11 @@ export default function PasskeyButtons() {
 
       window.location.href = withBase("welcome/");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "登录失败";
-      if (msg.includes("cancel") || msg.includes("Cancel")) {
-        setError("");
-      } else {
+      const msg = translatePasskeyError(e);
+      if (msg) {
         setError(msg);
+      } else {
+        setError("");
       }
     } finally {
       setLoading(null);
