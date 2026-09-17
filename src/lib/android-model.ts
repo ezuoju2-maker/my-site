@@ -252,7 +252,24 @@ export type AndroidDetection = {
   displayName: string;
 };
 
-export function detectAndroidDevice(ua: string): AndroidDetection {
+
+// 从浏览器名反推品牌（厂商专属浏览器）
+function inferBrandFromBrowser(ua: string): string | null {
+  if (/HeyTapBrowser|OppoBrowser|OppoBrowserLite/i.test(ua)) return "OPPO";
+  if (/MiuiBrowser|XiaoMi/i.test(ua)) return "小米";
+  if (/HuaweiBrowser/i.test(ua)) return "华为";
+  if (/VivoBrowser/i.test(ua)) return "vivo";
+  if (/HonorBrowser/i.test(ua)) return "荣耀";
+  if (/SamsungBrowser/i.test(ua)) return "三星";
+  return null;
+}
+
+// 物理信号兜底：判定是否移动设备
+function isMobileBySignals(screenWidth: number, maxTouchPoints: number): boolean {
+  return screenWidth > 0 && screenWidth <= 500 && maxTouchPoints > 0;
+}
+
+export function detectAndroidDevice(ua: string, fingerprint?: { screenWidth?: number; maxTouchPoints?: number }): AndroidDetection {
   const { isHarmony, isNative } = detectHarmony(ua);
 
   // 提取型号（Build/ 之前的 token）
@@ -272,6 +289,8 @@ export function detectAndroidDevice(ua: string): AndroidDetection {
   }
   // 鸿蒙兜底
   if (!brand && isHarmony) brand = "华为";
+  // 浏览器反推兜底
+  if (!brand) brand = inferBrandFromBrowser(ua);
 
   // 商业名
   const commercialName = modelRaw ? (COMMERCIAL_NAME[modelRaw] ?? null) : null;
@@ -304,7 +323,13 @@ export function detectAndroidDevice(ua: string): AndroidDetection {
   else if (commercialName) displayName = commercialName;
   else if (modelRaw && brand) displayName = `${brand} ${modelRaw}`;
   else if (modelRaw) displayName = modelRaw;
-  else if (brand) displayName = `${brand} 设备`;
+  else if (brand) {
+    // 浏览器反推的品牌，但没型号 —— 显示品牌 + 屏幕尺寸作辅助
+    const sizeHint = fingerprint?.screenWidth
+      ? `${Math.round(fingerprint.screenWidth)}px`
+      : "";
+    displayName = sizeHint ? `${brand} 手机 (${sizeHint})` : `${brand} 设备`;
+  }
   else if (isNative) displayName = "鸿蒙设备";
   else displayName = "Android 设备";
 

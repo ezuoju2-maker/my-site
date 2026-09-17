@@ -302,6 +302,14 @@ export async function logUserDevice(
   else if (/Android/i.test(ua)) {
     if (/HarmonyOS|HMSCore|OpenHarmony/i.test(ua)) deviceType = "HarmonyOS";
     else deviceType = "Android";
+  } else {
+    // UA 没写 Android，但物理信号暴露它是手机（如 OPPO 浏览器伪造 X11; Windows）
+    const sw = fingerprint?.screenWidth ?? 0;
+    const touch = fingerprint?.maxTouchPoints ?? 0;
+    const isMobileSignals = sw > 0 && sw <= 500 && touch > 0;
+    if (isMobileSignals) {
+      deviceType = /HarmonyOS|HMSCore|OpenHarmony/i.test(ua) ? "HarmonyOS" : "Android";
+    }
   }
 
   // 系统名
@@ -309,8 +317,10 @@ export async function logUserDevice(
     if (deviceType === "iPhone" || deviceType === "iPad") return "iOS";
     if (deviceType === "HarmonyOS") return "HarmonyOS";
     if (deviceType === "Android") {
+      if (/HarmonyOS/i.test(ua)) return "HarmonyOS";
       const m = ua.match(/Android (\d+(?:\.\d+)*)/i);
-      return m ? "Android" : "Android";
+      // UA 里有 Android 版本就报 Android，没有就是伪造 UA 只能标 Android
+      return "Android";
     }
     if (/Windows/i.test(ua)) return "Windows";
     if (/Mac OS X|Macintosh/i.test(ua)) return "macOS";
@@ -335,7 +345,7 @@ export async function logUserDevice(
   if (deviceType === "iPhone" || deviceType === "iPad") {
     detection = detectApple(fingerprint);
   } else if (deviceType === "Android" || deviceType === "HarmonyOS") {
-    const ad = detectAndroidDevice(ua);
+    const ad = detectAndroidDevice(ua, { screenWidth: fingerprint?.screenWidth, maxTouchPoints: fingerprint?.maxTouchPoints });
     detection = {
       family: ad.brand || "Android",
       generation: ad.series || "",
