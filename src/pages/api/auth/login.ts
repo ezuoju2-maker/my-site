@@ -222,7 +222,7 @@ export const POST: APIRoute = async ({ request }) => {
           location,
           browser_name: "unknown",
           os_name: "unknown",
-        }, prev || null);
+        }, (prev as any) || null);
         await env.DB.prepare(
           "UPDATE user_login_devices SET risk_score=?1, risk_level=?2, risk_signals=?3, is_new_device=?4 WHERE user_id=?5 AND device_id=?6"
         ).bind(riskResult.score, riskResult.level, JSON.stringify(riskResult.signals), riskResult.signals.isNewDevice ? 1 : 0, user.id, deviceId).run();
