@@ -75,6 +75,11 @@ export async function logUserDevice(
       (user_id, device_id, device_type, device_model, model_confidence, os_version, browser, ip_address, location)
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
     ON CONFLICT(user_id, device_id) DO UPDATE SET
+      device_type = excluded.device_type,
+      device_model = excluded.device_model,
+      model_confidence = excluded.model_confidence,
+      os_version = excluded.os_version,
+      browser = excluded.browser,
       last_login_at = CURRENT_TIMESTAMP,
       ip_address = excluded.ip_address,
       location = excluded.location`
