@@ -323,15 +323,9 @@ export function detectAndroidDevice(ua: string, fingerprint?: { screenWidth?: nu
   else if (commercialName) displayName = commercialName;
   else if (modelRaw && brand) displayName = `${brand} ${modelRaw}`;
   else if (modelRaw) displayName = modelRaw;
-  else if (brand) {
-    // 浏览器反推的品牌，但没型号 —— 显示品牌 + 屏幕尺寸作辅助
-    const sizeHint = fingerprint?.screenWidth
-      ? `${Math.round(fingerprint.screenWidth)}px`
-      : "";
-    displayName = sizeHint ? `${brand} 手机 (${sizeHint})` : `${brand} 设备`;
-  }
-  else if (isNative) displayName = "鸿蒙设备";
-  else displayName = "Android 设备";
+  else if (brand) displayName = brand;
+  else if (isNative) displayName = "鸿蒙";
+  else displayName = "Android";
 
   // 置信度
   let confidence: "高" | "中" | "低" = "低";

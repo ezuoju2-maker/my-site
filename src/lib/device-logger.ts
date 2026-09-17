@@ -354,7 +354,7 @@ export async function logUserDevice(
         ? unified.brand + " " + unified.commercialName
         : unified.brand && unified.model
           ? unified.brand + " " + unified.model
-          : unified.brand || unified.model || "Android 设备",
+          : unified.brand || "Android",
       confidence: unified.confidence,
       identifiability: unified.commercialName ? "exact" : unified.model ? "probable" : "unknown",
       candidates: unified.commercialName ? [{ model: unified.commercialName, score: 1.0 }] : [],
