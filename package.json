@@ -14,29 +14,34 @@
     "build:pages": "rm -rf src/pages/api && astro build"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "14.3.1",
-    "@astrojs/markdown-remark": "^7.3.0",
-    "@astrojs/react": "^5.0.7",
+    "@astrojs/cloudflare": "12.6.0",
+    "@astrojs/react": "4.3.0",
+    "@boruto_vk7/better-sqlite3-termux": "^1.0.14",
     "@cloudflare/vite-plugin": "1.54.6",
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.0.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
-    "astro": "7.3.2",
+    "astro": "5.14.1",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3",
+    "ua-parser-js": "^2.0.10",
     "wrangler": "4.130.0"
   },
   "allowScripts": {
     "esbuild": true,
-    "workerd": true
+    "workerd": "false",
+    "@boruto_vk7/better-sqlite3-termux@1.0.14": true,
+    "better-sqlite3@12.11.1": true
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
+    "@astrojs/check": "^0.9.10",
     "@cloudflare/workers-types": "^5.20260910.1",
+    "@emnapi/runtime": "^1.11.3",
+    "@napi-rs/wasm-runtime": "^1.2.4",
     "simple-icons": "^16.30.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.6"

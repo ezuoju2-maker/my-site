@@ -11,6 +11,7 @@ import {
 } from "../../../lib/cors";
 import { incrementLimit, resetLimit } from "../../../lib/rate-limit";
 import { createTrustedDevice, deviceCookie } from "../../../lib/trusted-device";
+import { logUserDevice } from "../../../lib/device-logger";
 import {
   createSession,
   sessionCookie,
@@ -28,6 +29,7 @@ type LoginBody = {
   password?: unknown;
   remember?: unknown;
   captchaToken?: unknown;
+  fingerprint?: unknown;
 };
 
 const LOGIN_WINDOW_SECONDS = 15 * 60;
@@ -200,6 +202,18 @@ export const POST: APIRoute = async ({ request }) => {
     // Fire-and-forget: record login history
     recordLogin(user.id, request).catch(() => {});
 
+    // 设备指纹落库
+    let deviceId: string | null = null;
+    try {
+      const cf = (request as any).cf;
+      const location = cf
+        ? [cf.city, cf.region, cf.country].filter(Boolean).join(", ")
+        : "未知";
+      deviceId = await logUserDevice(env.DB, user.id, clientIp, location, (body as any).fingerprint);
+    } catch (err) {
+      console.warn("[login] logUserDevice failed", err);
+    }
+
     // 手动构造 Response（要设置两个 Set-Cookie）
     const resHeaders = new Headers({
       "Content-Type": "application/json; charset=utf-8",
@@ -225,6 +239,7 @@ export const POST: APIRoute = async ({ request }) => {
           email: user.email,
           role: user.role || "user",
         },
+        device_id: deviceId,
       }),
       { status: 200, headers: resHeaders },
     );

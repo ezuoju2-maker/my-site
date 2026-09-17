@@ -48,3 +48,8 @@ package.json.bak-*
 package-lock.json.bak-*
 package.json.before-*
 *.bak[0-9]*
+
+# local backups / logs / one-off sql
+.backup-phase*/
+*.log
+user_login_devices.sql

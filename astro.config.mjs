@@ -1,5 +1,4 @@
 import { defineConfig } from "astro/config";
-import { unified } from "@astrojs/markdown-remark";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -12,26 +11,12 @@ const cloudflareAdapter = isCloudflare
   : undefined;
 
 export default defineConfig({
-  security: {
-    checkOrigin: false,
-  },
+  security: { checkOrigin: false },
   ...(isGitHubPages
-    ? {
-        site: "https://ezuoju2-maker.github.io",
-        base: "/my-site",
-        output: "static",
-      }
+    ? { site: "https://ezuoju2-maker.github.io", base: "/my-site", output: "static" }
     : isCloudflare
-      ? {
-          output: "server",
-          adapter: cloudflareAdapter(),
-        }
-      : {
-          output: "static",
-        }),
-  markdown: {
-    processor: unified(),
-  },
+      ? { output: "server", adapter: cloudflareAdapter() }
+      : { output: "static" }),
   integrations: [react()],
   vite: {
     resolve: {

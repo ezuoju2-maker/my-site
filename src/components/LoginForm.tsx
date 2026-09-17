@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../lib/api";
+import { getDeviceFingerprint } from '../scripts/device-fingerprint';
 import { parseApiResponse } from "../lib/api-response";
 import { useEffect, useRef, useState } from "react";
 import CapWidget from "./CapWidget";
@@ -101,6 +102,7 @@ export default function LoginForm() {
             password,
             remember,
             captchaToken,
+            fingerprint: getDeviceFingerprint(),
           }),
         },
       );
@@ -131,6 +133,9 @@ export default function LoginForm() {
         return;
       }
 
+      if ((data as any)?.device_id) {
+        localStorage.setItem("device_id", (data as any).device_id);
+      }
       window.location.href = withBase("welcome/");
     } catch {
       setPasswordError(t("common.network_error"));
