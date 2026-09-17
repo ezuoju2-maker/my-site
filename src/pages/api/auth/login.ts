@@ -10,6 +10,7 @@ import {
   rejectCrossSiteRequest,
 } from "../../../lib/cors";
 import { incrementLimit, resetLimit } from "../../../lib/rate-limit";
+import { createTrustedDevice, deviceCookie } from "../../../lib/trusted-device";
 import {
   createSession,
   sessionCookie,
@@ -183,11 +184,40 @@ export const POST: APIRoute = async ({ request }) => {
       Number.isInteger(user.session_version) ? user.session_version : 1,
     );
 
+    // 用户勾选"记住登录" → 同时创建 90 天信任设备
+    let deviceToken: string | null = null;
+    if (remember) {
+      try {
+        deviceToken = await createTrustedDevice(
+          user.id,
+          request.headers.get("User-Agent") || "unknown",
+        );
+      } catch (err) {
+        console.warn("[login] createTrustedDevice failed", err);
+      }
+    }
+
     // Fire-and-forget: record login history
     recordLogin(user.id, request).catch(() => {});
 
-    return json(
-      {
+    // 手动构造 Response（要设置两个 Set-Cookie）
+    const resHeaders = new Headers({
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+    });
+    if (origin) {
+      const cors = corsHeaders(origin);
+      for (const [k, v] of Object.entries(cors)) {
+        resHeaders.set(k, v);
+      }
+    }
+    resHeaders.append("Set-Cookie", sessionCookie(session.token, session.maxAge));
+    if (deviceToken) {
+      resHeaders.append("Set-Cookie", deviceCookie(deviceToken));
+    }
+
+    return new Response(
+      JSON.stringify({
         ok: true,
         user: {
           id: user.id,
@@ -195,12 +225,8 @@ export const POST: APIRoute = async ({ request }) => {
           email: user.email,
           role: user.role || "user",
         },
-      },
-      200,
-      {
-        "Set-Cookie": sessionCookie(session.token, session.maxAge),
-      },
-      origin,
+      }),
+      { status: 200, headers: resHeaders },
     );
   } catch (error) {
     console.error("Login error", error);

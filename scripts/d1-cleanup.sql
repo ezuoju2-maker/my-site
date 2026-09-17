@@ -23,3 +23,7 @@ WHERE datetime(expires_at) <= datetime('now');
 -- 5. rate_limits: 删除已过期的限流行
 DELETE FROM rate_limits
 WHERE datetime(expires_at) <= datetime('now');
+
+-- 6. trusted_devices: 删除已过期的信任设备（90 天）
+DELETE FROM trusted_devices
+WHERE datetime(expires_at) <= datetime('now');
