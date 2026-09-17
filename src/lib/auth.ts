@@ -20,7 +20,8 @@ function getPasswordPepper(): string {
   return pepper;
 }
 
-function applyPepper(password: string): string {
+function applyPepper(password: string, withPepper = true): string {
+  if (!withPepper) return password;
   const pepper = getPasswordPepper();
   return pepper ? password + ":" + pepper : password;
 }
@@ -142,24 +143,15 @@ export async function hashPassword(password: string) {
   ].join("$");
 }
 
-export async function verifyPassword(
+async function tryVerify(
   password: string,
-  storedHash: string,
-) {
-  if (
-    password.length < PASSWORD_MIN_LENGTH ||
-    password.length > PASSWORD_MAX_LENGTH
-  ) {
-    return false;
-  }
-
-  const parsed = parsePasswordHash(storedHash);
-  if (!parsed) return false;
-
+  parsed: { iterations: number; salt: Uint8Array; hash: Uint8Array },
+  withPepper: boolean,
+): Promise<boolean> {
   try {
     const keyMaterial = await crypto.subtle.importKey(
       "raw",
-      new TextEncoder().encode(applyPepper(password)),
+      new TextEncoder().encode(applyPepper(password, withPepper)),
       "PBKDF2",
       false,
       ["deriveBits"],
@@ -180,6 +172,48 @@ export async function verifyPassword(
   } catch {
     return false;
   }
+}
+
+/**
+ * 兼容双路径验证：
+ * 1. 先试用 pepper 版本（新密码）
+ * 2. 失败则试用无 pepper 版本（旧密码，加 pepper 前的）
+ * 返回 { ok, needsRehash }：如果旧密码验证成功，调用方应 rehash 并更新 DB
+ */
+export async function verifyPassword(
+  password: string,
+  storedHash: string,
+): Promise<boolean> {
+  const result = await verifyPasswordDetailed(password, storedHash);
+  return result.ok;
+}
+
+export async function verifyPasswordDetailed(
+  password: string,
+  storedHash: string,
+): Promise<{ ok: boolean; needsRehash: boolean }> {
+  if (
+    password.length < PASSWORD_MIN_LENGTH ||
+    password.length > PASSWORD_MAX_LENGTH
+  ) {
+    return { ok: false, needsRehash: false };
+  }
+
+  const parsed = parsePasswordHash(storedHash);
+  if (!parsed) return { ok: false, needsRehash: false };
+
+  // 路径 1：pepper 版本
+  const pepperOk = await tryVerify(password, parsed, true);
+  if (pepperOk) return { ok: true, needsRehash: false };
+
+  // 路径 2：无 pepper 版本（兼容加 pepper 前的旧密码）
+  const legacyOk = await tryVerify(password, parsed, false);
+  if (legacyOk) {
+    // 旧密码验证成功：调用方应 rehash 为 pepper 版本
+    return { ok: true, needsRehash: true };
+  }
+
+  return { ok: false, needsRehash: false };
 }
 
 export async function createSession(
