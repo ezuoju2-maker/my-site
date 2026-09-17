@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
+import { useEffect, useState } from "react";
+import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { API_BASE_URL } from "../lib/api";
 import { withBase } from "../lib/url";
 
@@ -75,6 +75,15 @@ export default function PasskeyButtons() {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
+  const [supports, setSupports] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      setSupports(browserSupportsWebAuthn());
+    } catch {
+      setSupports(false);
+    }
+  }, []);
 
   function openModal() {
     setError("");
@@ -178,6 +187,16 @@ export default function PasskeyButtons() {
     } finally {
       setLoading(null);
     }
+  }
+
+  // 环境检测中 → 渲染占位（避免闪烁）
+  if (supports === null) {
+    return null;
+  }
+
+  // 不支持 WebAuthn → 不渲染任何 Passkey 相关按钮
+  if (supports === false) {
+    return null;
   }
 
   return (
