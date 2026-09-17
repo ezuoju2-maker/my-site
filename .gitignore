@@ -53,3 +53,4 @@ package.json.before-*
 .backup-phase*/
 *.log
 user_login_devices.sql
+p*.mjs
