@@ -7,6 +7,7 @@ import CapWidget from "./CapWidget";
 import { withBase } from "../lib/url";
 import { Requirement } from "./Requirement";
 import { useTranslation } from "../i18n/useTranslation";
+import PasskeyButtons from "./PasskeyButtons";
 
 const ENABLE_CAP = import.meta.env.PUBLIC_ENABLE_CAP !== "false";
 
@@ -927,6 +928,9 @@ export default function RegisterForm() {
         </svg>
         使用 GitHub 注册
       </a>
+
+
+      <PasskeyButtons />
 
       <p className="pt-1 text-center text-sm text-neutral-500">
         {t("register.have_account")}
