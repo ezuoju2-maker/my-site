@@ -7,6 +7,10 @@ import {
   clearSessionCookie,
   deleteSession,
 } from "../../../lib/auth";
+import {
+  deleteTrustedDevice,
+  clearDeviceCookie,
+} from "../../../lib/trusted-device";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -69,18 +73,38 @@ export async function POST({ request }: { request: Request }) {
   }
 
   try {
+    // ?full=1 表示"彻底退出"，同时清除 device_token
+    const full = new URL(request.url).searchParams.get("full") === "1";
+
     await deleteSession(request);
 
-    return json(
-      {
-        ok: true,
-      },
-      200,
-      {
-        "Set-Cookie": clearSessionCookie(),
-      },
-      origin,
-    );
+    if (full) {
+      try {
+        await deleteTrustedDevice(request);
+      } catch (err) {
+        console.warn("[logout] deleteTrustedDevice failed", err);
+      }
+    }
+
+    // 手动构造 Response，需要 append 两个 Set-Cookie
+    const resHeaders = new Headers({
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+    });
+    if (origin) {
+      for (const [k, v] of Object.entries(corsHeaders(origin))) {
+        resHeaders.set(k, v);
+      }
+    }
+    resHeaders.append("Set-Cookie", clearSessionCookie());
+    if (full) {
+      resHeaders.append("Set-Cookie", clearDeviceCookie());
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: resHeaders,
+    });
   } catch {
     return json(
       {

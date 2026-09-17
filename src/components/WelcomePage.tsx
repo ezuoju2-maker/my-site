@@ -137,10 +137,20 @@ export default function WelcomePage() {
         <button
           type="button"
           onClick={handleLogout}
-          disabled={loggingOut}
+          disabled={loggingOut || fullLoggingOut}
           className="mt-4 h-12 w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-600 disabled:opacity-50"
         >
           {loggingOut ? "退出中…" : "退出登录"}
+        </button>
+
+        {/* 彻底退出 */}
+        <button
+          type="button"
+          onClick={handleFullLogout}
+          disabled={loggingOut || fullLoggingOut}
+          className="mt-3 h-12 w-full rounded-xl border border-red-200 bg-white text-sm font-medium text-red-600 disabled:opacity-50"
+        >
+          {fullLoggingOut ? "彻底退出中…" : "彻底退出（清除信任）"}
         </button>
 
         <p className="mt-6 text-center text-xs text-neutral-400">
