@@ -189,15 +189,7 @@ export default function PasskeyButtons() {
     }
   }
 
-  // 环境检测中 → 渲染占位（避免闪烁）
-  if (supports === null) {
-    return null;
-  }
-
-  // 不支持 WebAuthn → 不渲染任何 Passkey 相关按钮
-  if (supports === false) {
-    return null;
-  }
+  const passkeyDisabled = supports !== true;
 
   return (
     <>
@@ -205,19 +197,24 @@ export default function PasskeyButtons() {
         <button
           type="button"
           onClick={openModal}
-          disabled={loading !== null}
-          className="h-12 w-full rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700 disabled:opacity-50"
+          disabled={loading !== null || passkeyDisabled}
+          className="h-12 w-full rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           注册 Passkey（指纹/面容）
         </button>
         <button
           type="button"
           onClick={handleLogin}
-          disabled={loading !== null}
-          className="h-12 w-full rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700 disabled:opacity-50"
+          disabled={loading !== null || passkeyDisabled}
+          className="h-12 w-full rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading === "login" ? "登录中…" : "使用 Passkey 登录"}
         </button>
+        {supports === false && (
+          <p className="text-center text-xs text-neutral-400">
+            此设备或浏览器不支持 Passkey
+          </p>
+        )}
         {error && !showModal && (
           <p className="text-sm text-red-500">{error}</p>
         )}
