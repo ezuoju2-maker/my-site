@@ -8,7 +8,7 @@ export const prerender = import.meta.env.GITHUB_PAGES === "true";
 const RP_ID = "xx-drp.pages.dev";
 const ORIGIN = "https://xx-drp.pages.dev";
 
-function b64ToBytes(input: string): Uint8Array {
+function b64ToBytes(input: string) {
   const bin = atob(input);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);

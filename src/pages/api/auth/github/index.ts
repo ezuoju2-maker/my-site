@@ -6,7 +6,7 @@ export const prerender = import.meta.env.GITHUB_PAGES === "true";
 const FRONTEND_ORIGIN = "https://xx-drp.pages.dev";
 const REDIRECT_URI = `${FRONTEND_ORIGIN}/api/auth/github/callback`;
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async () => {
   const clientId = env.GITHUB_CLIENT_ID;
   if (!clientId) {
     return new Response("GITHUB_CLIENT_ID not configured", { status: 500 });

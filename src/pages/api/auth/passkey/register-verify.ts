@@ -8,15 +8,6 @@ export const prerender = import.meta.env.GITHUB_PAGES === "true";
 const RP_ID = "xx-drp.pages.dev";
 const ORIGIN = "https://xx-drp.pages.dev";
 
-function b64urlToBytes(input: string): Uint8Array {
-  const s = input.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = "=".repeat((4 - (s.length % 4)) % 4);
-  const bin = atob(s + pad);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
 function bytesToB64(bytes: Uint8Array): string {
   let bin = "";
   for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
