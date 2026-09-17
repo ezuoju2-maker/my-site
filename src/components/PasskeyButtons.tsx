@@ -78,11 +78,35 @@ export default function PasskeyButtons() {
   const [supports, setSupports] = useState<boolean | null>(null);
 
   useEffect(() => {
-    try {
-      setSupports(browserSupportsWebAuthn());
-    } catch {
-      setSupports(false);
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        // 第 1 层：浏览器是否有 WebAuthn API
+        const apiOk = browserSupportsWebAuthn();
+        if (!apiOk) {
+          if (!cancelled) setSupports(false);
+          return;
+        }
+
+        // 第 2 层：设备是否真的有平台验证器（指纹/面容/PIN）
+        if (
+          typeof PublicKeyCredential !== "undefined" &&
+          typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function"
+        ) {
+          const uvpaa =
+            await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (!cancelled) setSupports(uvpaa);
+        } else {
+          // 没有这个 API → 保守认为不支持
+          if (!cancelled) setSupports(false);
+        }
+      } catch {
+        if (!cancelled) setSupports(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function openModal() {
