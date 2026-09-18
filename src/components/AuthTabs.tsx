@@ -9,7 +9,7 @@ type IconName = "lock" | "mail" | "github" | "fingerprint" | "arrow-left" | "che
 
 const METHODS: { id: Method; label: string; desc: string; icon: IconName }[] = [
   { id: "account", label: "账密登录", desc: "账号 + 密码", icon: "lock" },
-  { id: "emailuser", label: "邮箱", desc: "邮箱 + 密码", icon: "mail" },
+  { id: "emailuser", label: "邮箱登录", desc: "邮箱 + 密码", icon: "mail" },
   { id: "github", label: "GitHub 登录", desc: "使用 GitHub 账号快速登录", icon: "github" },
   { id: "passkey", label: "Passkey 登录", desc: "使用指纹 / 面容 / 设备 PIN", icon: "fingerprint" },
 ];
@@ -176,7 +176,7 @@ export default function AuthTabs() {
 
   // ============ 登录表单页 ============
   if (view === "login-form") {
-    const title = method === "account" ? "账密登录" : "邮箱 / 用户名登录";
+    const title = method === "account" ? "账密登录" : "邮箱登录";
     return (
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="flex items-center gap-2 border-b border-neutral-100 px-3 py-3">
