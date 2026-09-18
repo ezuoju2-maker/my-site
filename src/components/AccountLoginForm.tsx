@@ -7,6 +7,7 @@ export default function AccountLoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,7 +25,7 @@ export default function AccountLoginForm() {
         body: JSON.stringify({
           identifier: username.trim(),
           password,
-          remember: false,
+          remember,
           captchaToken: "",
         }),
       });
@@ -98,6 +99,25 @@ export default function AccountLoginForm() {
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
+
+      <div className="flex items-center justify-between text-sm">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-neutral-600">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="h-4 w-4 rounded border-neutral-300"
+          />
+          记住登录
+        </label>
+
+        <a
+          href={withBase("forgot-password/")}
+          className="py-2 text-neutral-600 underline-offset-4"
+        >
+          忘记密码？
+        </a>
+      </div>
 
       <button
         type="submit"
