@@ -28,8 +28,13 @@ export const GET: APIRoute = async ({ request }) => {
   }
   await kv.delete(`github_oauth_state:${state}`);
 
-  const clientId = env.GITHUB_CLIENT_ID;
-  const clientSecret = env.GITHUB_CLIENT_SECRET;
+  const isPages = FRONTEND_ORIGIN.includes("xx-drp.pages.dev");
+  const clientId = isPages
+    ? (env as any).GITHUB_CLIENT_ID_PAGES || env.GITHUB_CLIENT_ID
+    : env.GITHUB_CLIENT_ID;
+  const clientSecret = isPages
+    ? (env as any).GITHUB_CLIENT_SECRET_PAGES || env.GITHUB_CLIENT_SECRET
+    : env.GITHUB_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     return Response.redirect(`${FRONTEND_ORIGIN}/?error=github_not_configured`, 302);
   }

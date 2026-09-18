@@ -4,11 +4,16 @@ import { env } from "cloudflare:workers";
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
 export const GET: APIRoute = async ({ request }) => {
-  // 动态获取当前域名（支持 q8top.cc.cd / xx-drp.pages.dev / workers.dev）
+  // 动态获取当前域名（支持 q8top.cc.cd / xx-drp.pages.dev）
   const origin = new URL(request.url).origin;
   const REDIRECT_URI = `${origin}/api/auth/github/callback`;
 
-  const clientId = env.GITHUB_CLIENT_ID;
+  // 根据访问域名选择对应的 GitHub App
+  const isPages = origin.includes("xx-drp.pages.dev");
+  const clientId = isPages
+    ? (env as any).GITHUB_CLIENT_ID_PAGES || env.GITHUB_CLIENT_ID
+    : env.GITHUB_CLIENT_ID;
+
   if (!clientId) {
     return new Response("GITHUB_CLIENT_ID not configured", { status: 500 });
   }
