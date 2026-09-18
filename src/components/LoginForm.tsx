@@ -286,7 +286,7 @@ export default function LoginForm() {
             {t("login.captcha")}
           </label>
 
-          <div className="flex min-h-[60px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-1">
+          <div className="flex min-h-[54px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-1">
             <CapWidget
               key={capKey}
               onSolve={(token) => {
@@ -333,7 +333,7 @@ export default function LoginForm() {
       </button>
 
       {/* GitHub 登录 */}
-      <div className="relative my-1">
+      <div className="relative my-0.5">
         <div className="absolute inset-x-0 top-1/2 h-px bg-neutral-200" />
         <div className="relative flex justify-center">
           <span className="bg-white px-3 text-xs text-neutral-400">或</span>
