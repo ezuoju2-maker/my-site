@@ -15,7 +15,12 @@ export default function LoginBrand() {
 
   return (
     <div className="mb-6 text-center">
-      <img src="/q8-logo.svg" alt="Q8" className="mx-auto h-14 w-14 text-neutral-900" />
+      <img
+        src="/q8-logo.png"
+        alt="Q8"
+        className="mx-auto h-14 w-14 object-contain"
+        style={{ mixBlendMode: "multiply" }}
+      />
 
       <h1 className="text-xl font-semibold tracking-tight text-neutral-900">
         {t("login.site_name")}

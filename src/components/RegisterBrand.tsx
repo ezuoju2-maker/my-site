@@ -7,7 +7,12 @@ export default function RegisterBrand() {
   return (
     <header className="text-center">
       <a href={getBase()} className="inline-block">
-        <img src="/q8-logo.svg" alt="Q8" className="mx-auto h-14 w-14 text-neutral-900" />
+        <img
+        src="/q8-logo.png"
+        alt="Q8"
+        className="mx-auto h-14 w-14 object-contain"
+        style={{ mixBlendMode: "multiply" }}
+      />
       </a>
 
       <h1 className="mt-3 text-lg font-semibold tracking-tight text-neutral-900">
