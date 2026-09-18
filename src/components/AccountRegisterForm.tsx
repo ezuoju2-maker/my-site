@@ -21,6 +21,11 @@ export default function AccountRegisterForm() {
   const [error, setError] = useState("");
   const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
 
+  const passwordMismatch = useMemo(
+    () => confirm.length > 0 && password !== confirm,
+    [password, confirm],
+  );
+
   const rules = useMemo(() => ({
     length: password.length >= 8 && password.length <= 20,
     upper: /[A-Z]/.test(password),
@@ -225,7 +230,7 @@ export default function AccountRegisterForm() {
             autoComplete="new-password"
             maxLength={20}
             className={`h-11 w-full rounded-lg border bg-white px-3 pr-24 text-base outline-none ${
-              fieldErr.confirm ? "border-red-400" : "border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
+              (passwordMismatch || fieldErr.confirm) ? "border-red-400" : "border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
             }`}
           />
           <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
@@ -250,7 +255,11 @@ export default function AccountRegisterForm() {
             </button>
           </div>
         </div>
-        {fieldErr.confirm && <p className="mt-1.5 text-xs text-red-500">{fieldErr.confirm}</p>}
+        {(passwordMismatch || fieldErr.confirm) && (
+          <p className="mt-1.5 text-xs text-red-500">
+            {fieldErr.confirm || "两次输入的密码不一致"}
+          </p>
+        )}
       </div>
 
       {ENABLE_CAP && (
