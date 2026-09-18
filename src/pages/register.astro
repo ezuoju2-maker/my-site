@@ -1,17 +1,4 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import RegisterBrand from "../components/RegisterBrand";
-import RegisterForm from "../components/RegisterForm";
+// 旧注册页：已弃用，302 重定向到主入口的注册 Tab
+return Astro.redirect("/?tab=register", 302);
 ---
-
-<Layout title="注册">
-  <main class="min-h-screen bg-white px-5 py-10 sm:px-6 sm:py-14">
-    <div class="mx-auto w-full max-w-md">
-      <RegisterBrand client:load />
-
-      <div class="mt-9">
-        <RegisterForm client:load />
-      </div>
-    </div>
-  </main>
-</Layout>
