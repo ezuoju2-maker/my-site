@@ -72,6 +72,24 @@ export default function ForgotPasswordForm() {
     [newPassword, confirmPassword],
   );
 
+  const passwordRules = useMemo(() => ({
+    length: newPassword.length >= 8 && newPassword.length <= 20,
+    upper: /[A-Z]/.test(newPassword),
+    lower: /[a-z]/.test(newPassword),
+    number: /[0-9]/.test(newPassword),
+    special: /[^A-Za-z0-9]/.test(newPassword),
+  }), [newPassword]);
+
+  const validCount = Object.values(passwordRules).filter(Boolean).length;
+
+  const passwordStrength = useMemo(() => {
+    if (!newPassword) return { pct: 0, label: "未设置", cls: "text-neutral-500" };
+    if (validCount <= 2) return { pct: 25, label: "弱", cls: "text-red-600" };
+    if (validCount === 3) return { pct: 50, label: "一般", cls: "text-amber-600" };
+    if (validCount === 4) return { pct: 75, label: "较强", cls: "text-neutral-700" };
+    return { pct: 100, label: "强", cls: "text-green-600" };
+  }, [newPassword, validCount]);
+
   const emailRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -390,6 +408,55 @@ export default function ForgotPasswordForm() {
               <EyeIcon hidden={!showNewPassword} />
             </button>
           </div>
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-medium">密码要求</p>
+        <div className="grid grid-cols-2 gap-x-5 gap-y-1.5 text-xs text-neutral-600">
+          <span className="flex items-center gap-1.5">
+            <span className={passwordRules.length ? "text-green-600" : "text-neutral-400"}>
+              {passwordRules.length ? "✓" : "×"}
+            </span>
+            8～20 个字符
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className={passwordRules.upper ? "text-green-600" : "text-neutral-400"}>
+              {passwordRules.upper ? "✓" : "×"}
+            </span>
+            大写字母
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className={passwordRules.lower ? "text-green-600" : "text-neutral-400"}>
+              {passwordRules.lower ? "✓" : "×"}
+            </span>
+            小写字母
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className={passwordRules.number ? "text-green-600" : "text-neutral-400"}>
+              {passwordRules.number ? "✓" : "×"}
+            </span>
+            数字
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className={passwordRules.special ? "text-green-600" : "text-neutral-400"}>
+              {passwordRules.special ? "✓" : "×"}
+            </span>
+            特殊符号
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-sm font-medium">密码强度</span>
+          <span className={`text-sm ${passwordStrength.cls}`}>{passwordStrength.label}</span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+          <div
+            className="h-full rounded-full bg-neutral-800 transition-all"
+            style={{ width: `${passwordStrength.pct}%` }}
+          />
         </div>
       </div>
 
