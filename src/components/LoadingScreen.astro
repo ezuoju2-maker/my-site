@@ -1,0 +1,283 @@
+---
+// 首屏加载动画 · Glitch 故障风格
+// 特性：sessionStorage 记忆、时长自适应、跳过按钮、移动端简化
+---
+
+<div id="q8-loader" class="q8-loader" aria-hidden="true">
+  <div class="q8-loader-inner">
+    <!-- Logo 三层叠加（主 + 红 + 白），制造 RGB 分离 -->
+    <div class="q8-logo-wrap">
+      <img src="/q8-logo.png" alt="" class="q8-logo q8-logo-base" />
+      <img src="/q8-logo.png" alt="" class="q8-logo q8-logo-r" />
+      <img src="/q8-logo.png" alt="" class="q8-logo q8-logo-w" />
+      <div class="q8-scanline"></div>
+      <div class="q8-tear q8-tear-1"></div>
+      <div class="q8-tear q8-tear-2"></div>
+    </div>
+
+    <div class="q8-text">Q8TOP</div>
+
+    <div class="q8-bar">
+      <div class="q8-bar-fill" id="q8-bar-fill"></div>
+    </div>
+  </div>
+
+  <button id="q8-skip" class="q8-skip" type="button">跳过 →</button>
+</div>
+
+<style>
+  .q8-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.4s ease;
+  }
+  .q8-loader.q8-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .q8-loader-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  /* ========== Logo 容器 ========== */
+  .q8-logo-wrap {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    animation: q8-pulse 2.4s ease-in-out infinite;
+  }
+  .q8-logo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    user-select: none;
+    pointer-events: none;
+  }
+  .q8-logo-base {
+    position: relative;
+  }
+  /* 红色通道：周期性位移，制造 RGB 分离 */
+  .q8-logo-r {
+    filter: url(#q8-red) ;
+    mix-blend-mode: multiply;
+    animation: q8-rgb-r 2.4s steps(1) infinite;
+  }
+  /* 白色通道：反相后做位移，制造"闪白"感 */
+  .q8-logo-w {
+    filter: invert(1) brightness(2);
+    mix-blend-mode: screen;
+    opacity: 0;
+    animation: q8-rgb-w 2.4s steps(1) infinite;
+  }
+
+  @keyframes q8-rgb-r {
+    0%, 60%, 100% { transform: translate(0, 0); opacity: 0; }
+    61% { transform: translate(-3px, 0); opacity: 0.7; }
+    63% { transform: translate(3px, 1px); opacity: 0.5; }
+    65% { transform: translate(-2px, -1px); opacity: 0.4; }
+    67% { transform: translate(0, 0); opacity: 0; }
+  }
+  @keyframes q8-rgb-w {
+    0%, 62%, 100% { opacity: 0; transform: translate(0, 0); }
+    63% { opacity: 0.6; transform: translate(2px, -1px); }
+    64% { opacity: 0.9; transform: translate(-2px, 1px); }
+    65% { opacity: 0; transform: translate(0, 0); }
+  }
+
+  /* ========== 扫描线 ========== */
+  .q8-scanline {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      rgba(0, 0, 0, 0.06) 2px,
+      rgba(0, 0, 0, 0.06) 3px
+    );
+    opacity: 0;
+    animation: q8-scan 2.4s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes q8-scan {
+    0%, 60%, 100% { opacity: 0; }
+    62% { opacity: 0.8; }
+    65% { opacity: 0.3; }
+    68% { opacity: 0; }
+  }
+
+  /* ========== 局部撕裂（clip-path 切片） ========== */
+  .q8-tear {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    mix-blend-mode: normal;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .q8-tear-1 {
+    clip-path: polygon(0 30%, 100% 30%, 100% 38%, 0 38%);
+    animation: q8-tear-a 2.4s steps(1) infinite;
+  }
+  .q8-tear-2 {
+    clip-path: polygon(0 62%, 100% 62%, 100% 68%, 0 68%);
+    animation: q8-tear-b 2.4s steps(1) infinite;
+  }
+  @keyframes q8-tear-a {
+    0%, 58%, 100% { opacity: 0; }
+    60% { opacity: 1; }
+    61% { opacity: 0; }
+  }
+  @keyframes q8-tear-b {
+    0%, 72%, 100% { opacity: 0; }
+    74% { opacity: 1; }
+    75% { opacity: 0; }
+  }
+
+  /* ========== 整体脉冲（不是缩放，只是轻微透明度呼吸） ========== */
+  @keyframes q8-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.92; }
+  }
+
+  /* ========== 文字 ========== */
+  .q8-text {
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.4em;
+    font-weight: 600;
+    color: #171717;
+    margin-left: 0.4em;
+  }
+
+  /* ========== 进度条 ========== */
+  .q8-bar {
+    width: 160px;
+    height: 2px;
+    background: #e5e5e5;
+    overflow: hidden;
+    border-radius: 1px;
+  }
+  .q8-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #171717;
+    transition: width 0.3s ease;
+  }
+
+  /* ========== 跳过按钮 ========== */
+  .q8-skip {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 12px;
+    color: #737373;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid #e5e5e5;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  .q8-skip:hover {
+    color: #171717;
+    border-color: #171717;
+  }
+
+  /* ========== 移动端简化：关掉粒子/撕裂 ========== */
+  @media (max-width: 640px) {
+    .q8-scanline, .q8-tear { display: none; }
+    .q8-logo-wrap { animation: none; }
+  }
+</style>
+
+<script>
+  // ==== 配置 ====
+  const SESSION_KEY = "q8_loader_seen";
+  const MIN_DURATION = 1500;   // 最少显示 1.5s（让动画至少播一轮）
+  const MAX_DURATION = 3000;   // 最多显示 3s（防止资源慢一直等）
+  const SESSION_TTL = 30 * 60 * 1000; // 30 分钟内不再显示
+
+  // ==== 1. 判断是否该显示 ====
+  const loader = document.getElementById("q8-loader");
+  if (!loader) {
+    // 没找到元素，直接跳过
+  } else {
+    const lastSeen = Number(sessionStorage.getItem(SESSION_KEY) || 0);
+    const isRecent = Date.now() - lastSeen < SESSION_TTL;
+
+    if (isRecent) {
+      // 已看过，直接隐藏
+      loader.remove();
+    } else {
+      // 首次显示，启动进度与退出逻辑
+      const startTime = Date.now();
+      const barFill = document.getElementById("q8-bar-fill");
+      const skipBtn = document.getElementById("q8-skip");
+
+      // 模拟进度（0 → 90%，剩下 10% 等真实 load）
+      let fakeProgress = 0;
+      const fakeTimer = setInterval(() => {
+        fakeProgress = Math.min(90, fakeProgress + 6);
+        if (barFill) barFill.style.width = fakeProgress + "%";
+      }, 100);
+
+      let realLoaded = false;
+      let exited = false;
+
+      function hideLoader(reason: string) {
+        if (exited) return;
+        exited = true;
+        clearInterval(fakeTimer);
+        if (barFill) barFill.style.width = "100%";
+        sessionStorage.setItem(SESSION_KEY, String(Date.now()));
+        // 等进度条走完动画再淡出
+        setTimeout(() => {
+          loader!.classList.add("q8-hidden");
+          setTimeout(() => loader!.remove(), 450);
+        }, 200);
+        console.log("[loader] hidden, reason:", reason, "total:", Date.now() - startTime, "ms");
+      }
+
+      // 真实页面加载完 → 立刻可以走
+      if (document.readyState === "complete") {
+        realLoaded = true;
+      } else {
+        window.addEventListener("load", () => { realLoaded = true; }, { once: true });
+      }
+
+      // 每秒检查：如果加载完了 + 最少时长到了 → 走
+      const checkTimer = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        if (realLoaded && elapsed >= MIN_DURATION) {
+          clearInterval(checkTimer);
+          hideLoader("load-complete");
+        }
+      }, 100);
+
+      // 超时保护：最多 3s
+      setTimeout(() => {
+        clearInterval(checkTimer);
+        hideLoader("max-duration");
+      }, MAX_DURATION);
+
+      // 跳过按钮
+      skipBtn?.addEventListener("click", () => hideLoader("user-skip"));
+    }
+  }
+</script>
