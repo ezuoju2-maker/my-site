@@ -1,14 +1,21 @@
 import { IcoFire, IcoArrow } from "./icons";
+import { ICONS } from "./assets";
 
-type Game = { id: string; name: string; hot: boolean; bg: string; emoji: string };
+type Game = {
+  id: string;
+  name: string;
+  hot: boolean;
+  bg: string;
+  icon: string;
+};
 
 const GAMES: Game[] = [
-  { id: "1", name: "GO 棋牌", hot: true, bg: "from-red-700 via-red-800 to-red-950", emoji: "🀄" },
-  { id: "2", name: "WG 棋牌", hot: false, bg: "from-slate-700 via-slate-800 to-neutral-950", emoji: "🃏" },
-  { id: "3", name: "KY 棋牌", hot: true, bg: "from-slate-800 via-neutral-900 to-black", emoji: "♠️" },
-  { id: "4", name: "LEG 棋牌", hot: false, bg: "from-slate-700 via-slate-800 to-neutral-950", emoji: "♠️" },
-  { id: "5", name: "百胜棋牌", hot: true, bg: "from-red-700 via-red-800 to-red-950", emoji: "🎲" },
-  { id: "6", name: "WL 棋牌", hot: false, bg: "from-slate-700 via-slate-800 to-neutral-950", emoji: "🃏" },
+  { id: "1", name: "GO 棋牌", hot: true, bg: "from-red-700 via-red-800 to-red-950", icon: ICONS.mahjong },
+  { id: "2", name: "WG 棋牌", hot: false, bg: "from-slate-700 via-slate-800 to-neutral-950", icon: ICONS.joker },
+  { id: "3", name: "KY 棋牌", hot: true, bg: "from-slate-800 via-neutral-900 to-black", icon: ICONS.spade },
+  { id: "4", name: "LEG 棋牌", hot: false, bg: "from-slate-700 via-slate-800 to-neutral-950", icon: ICONS.ace },
+  { id: "5", name: "百胜棋牌", hot: true, bg: "from-red-700 via-red-800 to-red-950", icon: ICONS.dice },
+  { id: "6", name: "WL 棋牌", hot: false, bg: "from-slate-700 via-slate-800 to-neutral-950", icon: ICONS.cardDraw },
 ];
 
 export default function GameGrid() {
@@ -32,9 +39,13 @@ export default function GameGrid() {
             <div className={`relative aspect-[4/3] overflow-hidden rounded-xl bg-gradient-to-br ${g.bg} shadow-[0_4px_16px_-4px_rgba(0,0,0,0.35)]`}>
               {/* 暗角 */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-              {/* emoji 中偏右 */}
-              <div className="relative flex h-full items-center justify-end pr-3 text-[58px] leading-none drop-shadow-xl">
-                {g.emoji}
+              {/* 图标居中偏右 */}
+              <div className="relative flex h-full items-center justify-center">
+                <img
+                  src={g.icon}
+                  alt=""
+                  className="h-[68px] w-[68px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"
+                />
               </div>
               {/* HOT / 推荐 标签（左上） */}
               <div className="absolute left-2 top-2">
