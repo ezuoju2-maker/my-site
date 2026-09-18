@@ -62,7 +62,7 @@ export default function VerifyCodeForm() {
             <path d="m12 19-7-7 7-7" />
           </svg>
         </button>
-        <h2 className="text-sm font-medium text-neutral-900">输入验证码</h2>
+        <h2 className="text-sm font-medium text-neutral-900">人机验证</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6">

@@ -750,7 +750,7 @@ export default function RegisterForm() {
       {ENABLE_CAP && (
         <div>
           <label className="mb-2 block text-sm font-medium text-neutral-700">
-            {t("register.captcha")}
+            人机验证
           </label>
 
           <div className="flex min-h-[78px] w-full items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 py-2">
@@ -811,7 +811,7 @@ export default function RegisterForm() {
         disabled={loading}
         className="h-12 w-full rounded-lg bg-neutral-900 px-4 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
       >
-        验证码并注册
+        验证并注册
       </button>
     </form>
   );
