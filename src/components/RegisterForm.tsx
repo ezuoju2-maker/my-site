@@ -145,6 +145,21 @@ export default function RegisterForm() {
     }
   }
 
+  async function handleGoToVerify() {
+    // 保存表单数据到 sessionStorage，供下一步使用
+    try {
+      sessionStorage.setItem("register_form", JSON.stringify({
+        username: username.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        agreement,
+      }));
+    } catch {}
+
+    // 直接跳转到验证码页
+    window.location.href = withBase("register/verify/?email=" + encodeURIComponent(email.trim().toLowerCase()));
+  }
+
   async function handleSendEmailCode() {
     if (!email.trim()) {
       setEmailCodeError(t("register.error.email_required_first"));
@@ -478,64 +493,6 @@ export default function RegisterForm() {
       />
       <div>
         <label
-          htmlFor="register-username"
-          className="mb-2 block text-sm font-medium text-neutral-700"
-        >
-          {t("register.username")}
-        </label>
-
-        <div className="relative">
-          <input
-            id="register-username"
-            ref={usernameInputRef}
-            name="username"
-            value={username}
-            onChange={(event) =>
-              handleUsernameChange(event.target.value)
-            }
-            type="text"
-            autoComplete="username"
-            maxLength={20}
-            placeholder={t("register.error.username_required")}
-            aria-invalid={Boolean(usernameError)}
-            className={`h-12 w-full rounded-lg bg-white px-4 pr-12 text-base outline-none ${
-              usernameError
-                ? "border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                : "border border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
-            }`}
-          />
-
-          <button
-            type="button"
-            onClick={() => {
-              setUsername("");
-              setUsernameError("");
-            }}
-            disabled={!username}
-            className={`absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full ${
-              username
-                ? "text-neutral-500"
-                : "pointer-events-none text-transparent"
-            }`}
-            aria-label={t("register.username_clear")}
-          >
-            <ClearIcon />
-          </button>
-        </div>
-
-        {usernameError ? (
-          <p className="mt-1.5 text-sm text-red-500">
-            {usernameError}
-          </p>
-        ) : (
-          <p className="mt-1.5 text-xs leading-5 text-neutral-500">
-            3～20 个字符，支持字母、数字和下划线
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label
           htmlFor="register-email"
           className="mb-2 block text-sm font-medium text-neutral-700"
         >
@@ -789,56 +746,6 @@ export default function RegisterForm() {
         )}
       </div>
 
-      {/* 邮箱验证码 */}
-      <div>
-        <label
-          htmlFor="register-email-code"
-          className="mb-2 block text-sm font-medium text-neutral-700"
-        >
-          {t("register.email_code")}
-        </label>
-
-        <div className="flex h-12 w-full gap-2">
-          <input
-            id="register-email-code"
-            ref={emailCodeInputRef}
-            name="emailCode"
-            value={emailCode}
-            onChange={(event) =>
-              handleEmailCodeChange(event.target.value)
-            }
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            placeholder={t("register.error.email_code_required")}
-            aria-invalid={Boolean(emailCodeError)}
-            className={`min-w-0 flex-1 rounded-lg bg-white px-4 text-base outline-none ${
-              emailCodeError
-                ? "border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                : "border border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
-            }`}
-          />
-
-          <button
-            type="button"
-            onClick={handleSendEmailCode}
-            disabled={emailCodeCooldown > 0}
-            className="h-12 w-[108px] shrink-0 rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {emailCodeCooldown > 0
-              ? t("register.resend_in_seconds").replace("{n}", String(emailCodeCooldown))
-              : t("register.send_code")}
-          </button>
-        </div>
-
-        {emailCodeError && (
-          <p className="mt-1.5 text-sm text-red-500">
-            {emailCodeError}
-          </p>
-        )}
-      </div>
-
       {/* 人机验证 */}
       {ENABLE_CAP && (
         <div>
@@ -899,11 +806,12 @@ export default function RegisterForm() {
       </div>
 
       <button
-        type="submit"
+        type="button"
+        onClick={handleGoToVerify}
         disabled={loading}
         className="h-12 w-full rounded-lg bg-neutral-900 px-4 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? t("register.submitting") : t("register.submit")}
+        验证码并注册
       </button>
     </form>
   );
