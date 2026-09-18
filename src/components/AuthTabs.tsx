@@ -285,6 +285,13 @@ export default function AuthTabs() {
         {passkeyError && (
           <p className="px-4 pb-3 text-center text-sm text-red-500">{passkeyError}</p>
         )}
+
+        {showPasskeyEmailModal && (
+          <PasskeyEmailModal
+            onClose={() => setShowPasskeyEmailModal(false)}
+            onConfirm={(email) => handlePasskeyRegister(email)}
+          />
+        )}
       </div>
     );
   }
@@ -344,12 +351,6 @@ export default function AuthTabs() {
           <RegisterForm />
         )}
       </div>
-      {showPasskeyEmailModal && (
-        <PasskeyEmailModal
-          onClose={() => setShowPasskeyEmailModal(false)}
-          onConfirm={(email) => handlePasskeyRegister(email)}
-        />
-      )}
     </div>
   );
 }
