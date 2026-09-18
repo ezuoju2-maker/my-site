@@ -1,0 +1,16 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import RegisterBrand from "../../components/RegisterBrand";
+import PasskeyRecoverForm from "../../components/PasskeyRecoverForm";
+---
+
+<Layout title="找回 Passkey">
+  <main class="min-h-screen bg-white px-5 py-6 sm:px-6 sm:py-8">
+    <div class="mx-auto w-full max-w-md">
+      <RegisterBrand client:load />
+      <div class="mt-6">
+        <PasskeyRecoverForm client:load />
+      </div>
+    </div>
+  </main>
+</Layout>
