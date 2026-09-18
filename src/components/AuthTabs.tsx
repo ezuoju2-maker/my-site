@@ -1,6 +1,8 @@
 import { useState } from "react";
 import RegisterForm from "./RegisterForm";
+import AccountRegisterForm from "./AccountRegisterForm";
 import LoginForm from "./LoginForm";
+import AccountLoginForm from "./AccountLoginForm";
 import { API_BASE_URL } from "../lib/api";
 import PasskeyEmailModal from "./PasskeyEmailModal";
 
@@ -313,14 +315,7 @@ export default function AuthTabs() {
           <h2 className="text-sm font-medium text-neutral-900">{title}</h2>
         </div>
         <div className="p-5">
-          {loginMethod === "account" ? (
-            <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-10 text-center">
-              <p className="text-sm font-medium text-neutral-700">账密登录 · 开发中</p>
-              <p className="mt-1 text-xs text-neutral-400">此功能即将上线</p>
-            </div>
-          ) : (
-            <LoginForm />
-          )}
+          {loginMethod === "account" ? <AccountLoginForm /> : <LoginForm />}
         </div>
       </div>
     );
@@ -342,14 +337,7 @@ export default function AuthTabs() {
         <h2 className="text-sm font-medium text-neutral-900">{regTitle}</h2>
       </div>
       <div className="p-5">
-        {registerMethod === "account-reg" ? (
-          <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-10 text-center">
-            <p className="text-sm font-medium text-neutral-700">账密注册 · 开发中</p>
-            <p className="mt-1 text-xs text-neutral-400">此功能即将上线</p>
-          </div>
-        ) : (
-          <RegisterForm />
-        )}
+        {registerMethod === "account-reg" ? <AccountRegisterForm /> : <RegisterForm />}
       </div>
     </div>
   );
