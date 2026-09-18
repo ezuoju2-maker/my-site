@@ -311,7 +311,6 @@ export default function RegisterForm() {
       return;
     }
 
-    const usernameValidation = validateUsername(username);
     const emailValidation = validateEmail(email);
 
     const nextPasswordError = !password
@@ -336,7 +335,6 @@ export default function RegisterForm() {
       ? ""
       : t("register.error.agreement_required");
 
-    setUsernameError(usernameValidation);
     setEmailError(emailValidation);
     setPasswordError(nextPasswordError);
     setConfirmPasswordError(nextConfirmPasswordError);
@@ -344,16 +342,13 @@ export default function RegisterForm() {
     setAgreementError(nextAgreementError);
 
     if (
-      usernameValidation ||
       emailValidation ||
       nextPasswordError ||
       nextConfirmPasswordError ||
       nextEmailCodeError ||
       nextAgreementError
     ) {
-      if (usernameValidation) {
-        scrollToRegisterError("username");
-      } else if (emailValidation) {
+      if (emailValidation) {
         scrollToRegisterError("email");
       } else if (nextEmailCodeError) {
         scrollToRegisterError("emailCode");
@@ -380,7 +375,6 @@ export default function RegisterForm() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: username.trim(),
             email: email.trim(),
             password,
             emailCode: emailCode.trim(),
@@ -394,10 +388,9 @@ export default function RegisterForm() {
         const error = data?.error;
 
         if (error === "ACCOUNT_EXISTS") {
-          setUsernameError(t("register.error.account_exists"));
-          setEmailError("");
+          setEmailError(t("register.error.account_exists"));
           setEmailCodeError("");
-          scrollToRegisterError("username");
+          scrollToRegisterError("email");
         } else if (error === "EMAIL_CODE_EXPIRED") {
           setUsernameError("");
           setEmailError("");

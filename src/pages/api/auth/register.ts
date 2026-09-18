@@ -116,8 +116,13 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ ok: false, error: guard.error }, 400, {}, origin);
   }
 
-  const username = normalizeUsername(body.username);
   const email = normalizeEmail(body.email);
+  let username = normalizeUsername(body.username);
+  // 若前端未提供用户名，从邮箱前缀自动生成
+  if (!username) {
+    const base = email.split("@")[0].replace(/[^a-z0-9_]/g, "").slice(0, 20) || "user";
+    username = base.length >= 3 ? base : base.padEnd(3, "_");
+  }
   const password =
     typeof body.password === "string" ? body.password : "";
   const emailCode =
