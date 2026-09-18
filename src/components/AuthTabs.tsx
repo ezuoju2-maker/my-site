@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RegisterForm from "./RegisterForm";
 import AccountRegisterForm from "./AccountRegisterForm";
 import LoginForm from "./LoginForm";
@@ -84,6 +84,37 @@ export default function AuthTabs() {
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState("");
   const [showPasskeyEmailModal, setShowPasskeyEmailModal] = useState(false);
+
+  // 读 URL 参数，自动打开对应视图
+  // 支持 ?tab=login&method=account 或 ?tab=register&method=email-reg 等
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      const methodParam = params.get("method");
+
+      if (tabParam === "register") {
+        setTab("register");
+      } else if (tabParam === "login") {
+        setTab("login");
+      }
+
+      if (methodParam) {
+        // 登录方式
+        if (["account", "emailuser"].includes(methodParam)) {
+          setTab("login");
+          setLoginMethod(methodParam as LoginMethod);
+          setView("login-form");
+        }
+        // 注册方式
+        else if (["account-reg", "email-reg"].includes(methodParam)) {
+          setTab("register");
+          setRegisterMethod(methodParam as RegisterMethod);
+          setView("register-form");
+        }
+      }
+    } catch {}
+  }, []);
 
   // ============ Passkey 登录 ============
   async function handlePasskeyLogin() {
