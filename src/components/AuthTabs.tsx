@@ -2,6 +2,7 @@ import { useState } from "react";
 import RegisterForm from "./RegisterForm";
 import LoginForm from "./LoginForm";
 import { API_BASE_URL } from "../lib/api";
+import PasskeyEmailModal from "./PasskeyEmailModal";
 
 type LoginMethod = "account" | "emailuser" | "github" | "passkey";
 type RegisterMethod = "account-reg" | "email-reg" | "github-reg" | "passkey-reg";
@@ -80,6 +81,7 @@ export default function AuthTabs() {
   const [registerMethod, setRegisterMethod] = useState<RegisterMethod | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState("");
+  const [showPasskeyEmailModal, setShowPasskeyEmailModal] = useState(false);
 
   // ============ Passkey 登录 ============
   async function handlePasskeyLogin() {
@@ -118,14 +120,15 @@ export default function AuthTabs() {
   }
 
   // ============ Passkey 注册 ============
-  async function handlePasskeyRegister() {
+  async function handlePasskeyRegister(email: string) {
+    setShowPasskeyEmailModal(false);
     setPasskeyError("");
     setPasskeyLoading(true);
     try {
       const optRes = await fetch(`${API_BASE_URL}/api/auth/passkey/register-options`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ email }),
       });
       const optData = (await optRes.json()) as { challengeId?: string; options?: unknown; error?: string };
       if (!optData.challengeId || !optData.options) throw new Error(optData.error || "获取选项失败");
@@ -174,7 +177,7 @@ export default function AuthTabs() {
       return;
     }
     if (id === "passkey-reg") {
-      void handlePasskeyRegister();
+      setShowPasskeyEmailModal(true);
       return;
     }
     setRegisterMethod(id);
@@ -326,6 +329,12 @@ export default function AuthTabs() {
           <RegisterForm />
         )}
       </div>
+      {showPasskeyEmailModal && (
+        <PasskeyEmailModal
+          onClose={() => setShowPasskeyEmailModal(false)}
+          onConfirm={(email) => handlePasskeyRegister(email)}
+        />
+      )}
     </div>
   );
 }
