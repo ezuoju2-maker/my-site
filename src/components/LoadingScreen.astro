@@ -25,7 +25,6 @@
     </div>
   </div>
 
-  <button id="q8-skip" class="q8-skip" type="button">跳过 →</button>
 </div>
 
 <style>
@@ -298,26 +297,6 @@
     transition: width 0.3s ease;
   }
 
-  /* ========== 跳过按钮 ========== */
-  .q8-skip {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 12px;
-    color: #737373;
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: 1px solid #e5e5e5;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(4px);
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-  }
-  .q8-skip:hover {
-    color: #171717;
-    border-color: #171717;
-  }
 
   /* ========== 移动端简化 ========== */
   @media (max-width: 640px) {
@@ -333,13 +312,9 @@
 
   const loader = document.getElementById("q8-loader");
   if (loader) {
-    const lastSeen = Number(sessionStorage.getItem(SESSION_KEY) || 0);
-    if (Date.now() - lastSeen < SESSION_TTL) {
-      loader.remove();
-    } else {
+    {
       const startTime = Date.now();
       const barFill = document.getElementById("q8-bar-fill");
-      const skipBtn = document.getElementById("q8-skip");
 
       let fakeProgress = 0;
       const fakeTimer = setInterval(() => {
@@ -357,7 +332,6 @@
         exited = true;
         clearInterval(fakeTimer);
         if (barFill) barFill.style.width = "100%";
-        sessionStorage.setItem(SESSION_KEY, String(Date.now()));
         setTimeout(() => {
           loader!.classList.add("q8-hidden");
           setTimeout(() => loader!.remove(), 550);
@@ -384,7 +358,6 @@
         hideLoader("max-duration");
       }, MAX_DURATION);
 
-      skipBtn?.addEventListener("click", () => hideLoader("user-skip"));
     }
   }
 </script>
