@@ -8,8 +8,8 @@ type View = "auth" | "login-form" | "register-form";
 type IconName = "lock" | "mail" | "github" | "fingerprint" | "arrow-left" | "chevron-right";
 
 const METHODS: { id: Method; label: string; desc: string; icon: IconName }[] = [
-  { id: "account", label: "账密登录", desc: "用户名 + 密码", icon: "lock" },
-  { id: "emailuser", label: "邮箱 / 用户名登录", desc: "输入邮箱或用户名 + 密码", icon: "mail" },
+  { id: "account", label: "账密登录", desc: "账号 + 名称", icon: "lock" },
+  { id: "emailuser", label: "邮箱", desc: "邮箱 + 密码", icon: "mail" },
   { id: "github", label: "GitHub 登录", desc: "使用 GitHub 账号快速登录", icon: "github" },
   { id: "passkey", label: "Passkey 登录", desc: "使用指纹 / 面容 / 设备 PIN", icon: "fingerprint" },
 ];
@@ -40,10 +40,13 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
     case "fingerprint":
       return (
         <svg viewBox="0 0 24 24" {...common} className={className}>
-          <path d="M12 11v2a8 8 0 0 1-.7 3.3" />
-          <path d="M8.5 15.5a8 8 0 0 0 1-4V11a2.5 2.5 0 0 1 5 0v1" />
-          <path d="M5.5 15.5A10 10 0 0 0 7 11V9a5 5 0 0 1 10 0v1" />
-          <path d="M3 12a9 9 0 0 1 18 0" />
+          <path d="M7 3H5a2 2 0 0 0-2 2v2" />
+          <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+          <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+          <path d="M17 21h2a2 2 0 0 0 2-2v-2" />
+          <path d="M9 10v1" />
+          <path d="M15 10v1" />
+          <path d="M9 15s1.2 1.5 3 1.5 3-1.5 3-1.5" />
         </svg>
       );
     case "arrow-left":
