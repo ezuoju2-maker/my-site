@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../lib/api";
 import VerifyCodeInput from "./VerifyCodeInput";
 
-type Step = "email" | "code" | "done";
+type Step = "email" | "code" | "choice" | "done";
 
 export default function PasskeyRecoverForm() {
   const [step, setStep] = useState<Step>("email");
@@ -15,6 +15,7 @@ export default function PasskeyRecoverForm() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [registering, setRegistering] = useState(false);
+  const [revokeOld, setRevokeOld] = useState(true);
   const verifyingRef = useRef(false);
 
   useEffect(() => {
@@ -70,9 +71,7 @@ export default function PasskeyRecoverForm() {
       const data = (await res.json()) as { ok?: boolean; error?: string; ticket?: string };
       if (data.ok && data.ticket) {
         setCodeStatus("success");
-        setInfo("验证成功，正在注册新 Passkey…");
-        // 自动在新设备上注册 Passkey
-        setTimeout(() => registerNewPasskey(), 600);
+        setTimeout(() => setStep("choice"), 700);
       } else {
         setCodeStatus("error");
         const map: Record<string, string> = {
@@ -92,7 +91,7 @@ export default function PasskeyRecoverForm() {
     }
   }
 
-  async function registerNewPasskey() {
+  async function registerNewPasskey(revoke: boolean) {
     setRegistering(true);
     setError("");
     try {
@@ -114,7 +113,7 @@ export default function PasskeyRecoverForm() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId: optData.challengeId, credential }),
+        body: JSON.stringify({ challengeId: optData.challengeId, credential, revokeOld: revoke }),
       });
       const verData = (await verRes.json()) as { ok?: boolean; error?: string };
       if (!verData.ok) throw new Error(verData.error || "注册失败");
@@ -167,7 +166,7 @@ export default function PasskeyRecoverForm() {
           </svg>
         </button>
         <h2 className="text-sm font-medium text-neutral-900">
-          {step === "email" ? "找回 Passkey" : step === "code" ? "输入验证码" : "验证成功"}
+          {step === "email" ? "找回 Passkey" : step === "code" ? "输入验证码" : step === "choice" ? "处理旧 Passkey" : "完成"}
         </h2>
       </div>
 
@@ -237,12 +236,79 @@ export default function PasskeyRecoverForm() {
           {registering && error && (
             <button
               type="button"
-              onClick={() => registerNewPasskey()}
+              onClick={() => registerNewPasskey(revokeOld)}
               className="mt-4 w-full text-xs text-neutral-700 underline underline-offset-4"
             >
               重新注册 Passkey
             </button>
           )}
+        </div>
+      )}
+
+      {step === "choice" && (
+        <div className="p-6">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </div>
+          <p className="mt-4 text-center text-sm font-medium text-neutral-900">验证成功</p>
+
+          <p className="mt-6 text-sm font-medium text-neutral-700">旧设备上的 Passkey 如何处理？</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            你正在新设备上注册 Passkey。旧设备上的那个是否保留？
+          </p>
+
+          <div className="mt-4 space-y-2">
+            <button
+              type="button"
+              onClick={() => setRevokeOld(false)}
+              className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                !revokeOld
+                  ? "border-neutral-900 bg-neutral-50"
+                  : "border-neutral-200 hover:border-neutral-400"
+              }`}
+            >
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-neutral-400">
+                {!revokeOld && <span className="h-2 w-2 rounded-full bg-neutral-900" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-neutral-900">保留</span>
+                <span className="mt-0.5 block text-xs text-neutral-500">旧设备仍然可以用 Passkey 登录</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRevokeOld(true)}
+              className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                revokeOld
+                  ? "border-neutral-900 bg-neutral-50"
+                  : "border-neutral-200 hover:border-neutral-400"
+              }`}
+            >
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-neutral-400">
+                {revokeOld && <span className="h-2 w-2 rounded-full bg-neutral-900" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-neutral-900">
+                  作废 <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">推荐</span>
+                </span>
+                <span className="mt-0.5 block text-xs text-neutral-500">只保留新设备，更安全</span>
+              </span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => registerNewPasskey(revokeOld)}
+            disabled={registering}
+            className="mt-6 h-11 w-full rounded-lg bg-neutral-900 text-base font-medium text-white disabled:opacity-50"
+          >
+            {registering ? "正在注册…" : "继续注册新 Passkey"}
+          </button>
+
+          {error && <p className="mt-3 text-center text-sm text-red-500">{error}</p>}
         </div>
       )}
 

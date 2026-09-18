@@ -18,6 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
   const body = (await request.json()) as {
     challengeId?: string;
     credential?: unknown;
+    revokeOld?: boolean;
   };
 
   const db = env.DB;
@@ -81,6 +82,19 @@ export const POST: APIRoute = async ({ request }) => {
     await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
     console.warn("[register-verify] insert failed", insertErr);
     return new Response(JSON.stringify({ error: "CREDENTIAL_ALREADY_REGISTERED" }), { status: 409 });
+  }
+
+  // 若用户选择"作废旧 Passkey"：删除该用户其他所有 Passkey
+  if (body.revokeOld === true) {
+    try {
+      await db
+        .prepare("DELETE FROM passkeys WHERE user_id = ?1 AND credential_id != ?2")
+        .bind(row.user_id, credIdB64)
+        .run();
+      console.log("[register-verify] revoked old passkeys for user", row.user_id);
+    } catch (revErr) {
+      console.warn("[register-verify] revoke old passkeys failed", revErr);
+    }
   }
 
   await db.prepare("DELETE FROM passkey_challenges WHERE id = ?1").bind(body.challengeId).run();
