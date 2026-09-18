@@ -442,7 +442,7 @@ export default function RegisterForm() {
         return;
       }
 
-      window.location.href = withBase(`register-success/?username=${encodeURIComponent(username.trim())}`);
+      window.location.href = withBase(`register-success/?email=${encodeURIComponent(email.trim())}&from=email`);
     } catch {
       setUsernameError(t("common.network_error"));
       setCaptchaToken("");

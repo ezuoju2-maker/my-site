@@ -1,41 +1,77 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import RegisterBrand from "../../components/RegisterBrand";
 import { getBase } from "../../lib/url";
 
 const username = Astro.url.searchParams.get("username")?.trim() ?? "";
+const email = Astro.url.searchParams.get("email")?.trim() ?? "";
+const from = Astro.url.searchParams.get("from") ?? "account"; // account | email
+
 const base = getBase();
-const loginUrl = username
-  ? `${base}?username=${encodeURIComponent(username)}`
-  : base;
+// 跳转到登录页并自动打开对应登录方式
+const loginUrl = `${base}?tab=login&method=${from}`;
 ---
 
 <Layout title="注册成功">
-  <main class="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
-    <section class="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
-      <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
-        ✓
+  <main class="min-h-screen bg-white px-5 py-6 sm:px-6 sm:py-8">
+    <div class="mx-auto w-full max-w-md">
+      <RegisterBrand client:load />
+
+      <div class="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div class="p-8 text-center">
+          <!-- 绿色勾：SVG + 描边动画 -->
+          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="q8-check">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </div>
+
+          <h1 class="mt-5 text-xl font-semibold text-neutral-900">注册成功</h1>
+          <p class="mt-2 text-sm text-neutral-500">您的账号已创建，可以立即登录</p>
+
+          {(username || email) && (
+            <div class="mt-5 rounded-lg bg-neutral-50 px-4 py-3 text-left">
+              {username && (
+                <p class="text-xs text-neutral-500">
+                  账号：<span class="font-medium text-neutral-900">{username}</span>
+                </p>
+              )}
+              {email && (
+                <p class="mt-1 text-xs text-neutral-500">
+                  邮箱：<span class="font-medium text-neutral-900">{email}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          <a
+            href={loginUrl}
+            class="mt-7 flex h-11 w-full items-center justify-center rounded-lg bg-neutral-900 text-base font-medium text-white transition-colors hover:bg-neutral-800"
+          >
+            立即登录
+          </a>
+
+          <p class="mt-4 text-xs leading-5 text-neutral-400">
+            小提示：登录后可在设置中添加 Passkey，下次用面容/指纹秒登录
+          </p>
+        </div>
       </div>
 
-      <h1 class="text-2xl font-semibold text-neutral-900">
-        注册成功
-      </h1>
-
-      <p class="mt-3 text-sm leading-6 text-neutral-500">
-        您的账号已经注册成功。
+      <p class="mt-6 text-center text-xs text-neutral-400">
+        {from === "email" ? "使用邮箱 + 密码登录" : "使用账号 + 密码登录"}
       </p>
-
-      {username && (
-        <p class="mt-2 text-sm text-neutral-600">
-          用户名：<span class="font-medium text-neutral-900">{username}</span>
-        </p>
-      )}
-
-      <a
-        href={loginUrl}
-        class="mt-7 flex h-12 w-full items-center justify-center rounded-lg bg-neutral-900 px-4 text-base font-medium text-white"
-      >
-        立即登录
-      </a>
-    </section>
+    </div>
   </main>
+
+  <style>
+    /* 绿色勾描边动画 */
+    .q8-check {
+      stroke-dasharray: 30;
+      stroke-dashoffset: 30;
+      animation: q8-draw 0.5s ease-out 0.1s forwards;
+    }
+    @keyframes q8-draw {
+      to { stroke-dashoffset: 0; }
+    }
+  </style>
 </Layout>

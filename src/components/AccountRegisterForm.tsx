@@ -85,7 +85,7 @@ export default function AccountRegisterForm() {
         setCapKey((k) => k + 1);
         return;
       }
-      window.location.href = withBase("welcome/");
+      window.location.href = withBase(`register-success/?username=${encodeURIComponent(username.trim())}&email=${encodeURIComponent(email.trim())}&from=account`);
     } catch {
       setError("网络错误");
     } finally {
