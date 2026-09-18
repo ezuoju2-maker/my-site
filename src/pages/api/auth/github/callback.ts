@@ -4,10 +4,9 @@ import { createSession, sessionCookie } from "../../../../lib/auth";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
-const FRONTEND_ORIGIN = "https://xx-drp.pages.dev";
-
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
+  const FRONTEND_ORIGIN = url.origin;
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const err = url.searchParams.get("error");

@@ -3,10 +3,11 @@ import { env } from "cloudflare:workers";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
-const FRONTEND_ORIGIN = "https://xx-drp.pages.dev";
-const REDIRECT_URI = `${FRONTEND_ORIGIN}/api/auth/github/callback`;
+export const GET: APIRoute = async ({ request }) => {
+  // 动态获取当前域名（支持 q8top.cc.cd / xx-drp.pages.dev / workers.dev）
+  const origin = new URL(request.url).origin;
+  const REDIRECT_URI = `${origin}/api/auth/github/callback`;
 
-export const GET: APIRoute = async () => {
   const clientId = env.GITHUB_CLIENT_ID;
   if (!clientId) {
     return new Response("GITHUB_CLIENT_ID not configured", { status: 500 });
