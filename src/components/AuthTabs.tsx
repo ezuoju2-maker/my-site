@@ -3,15 +3,23 @@ import RegisterForm from "./RegisterForm";
 import LoginForm from "./LoginForm";
 import { API_BASE_URL } from "../lib/api";
 
-type Method = "account" | "emailuser" | "github" | "passkey";
+type LoginMethod = "account" | "emailuser" | "github" | "passkey";
+type RegisterMethod = "account-reg" | "email-reg" | "github-reg" | "passkey-reg";
 type View = "auth" | "login-form" | "register-form";
 type IconName = "lock" | "mail" | "github" | "fingerprint" | "arrow-left" | "chevron-right";
 
-const METHODS: { id: Method; label: string; desc: string; icon: IconName }[] = [
+const LOGIN_METHODS: { id: LoginMethod; label: string; desc: string; icon: IconName }[] = [
   { id: "account", label: "账密登录", desc: "账号 + 密码", icon: "lock" },
   { id: "emailuser", label: "邮箱登录", desc: "邮箱 + 密码", icon: "mail" },
   { id: "github", label: "GitHub 登录", desc: "使用 GitHub 账号快速登录", icon: "github" },
   { id: "passkey", label: "Passkey 登录", desc: "使用指纹 / 面容 / 设备 PIN", icon: "fingerprint" },
+];
+
+const REGISTER_METHODS: { id: RegisterMethod; label: string; desc: string; icon: IconName }[] = [
+  { id: "account-reg", label: "账密注册", desc: "创建账号 + 密码", icon: "lock" },
+  { id: "email-reg", label: "邮箱注册", desc: "邮箱 + 密码", icon: "mail" },
+  { id: "github-reg", label: "GitHub 注册", desc: "使用 GitHub 账号快速注册", icon: "github" },
+  { id: "passkey-reg", label: "Passkey 注册", desc: "使用指纹 / 面容 / 设备 PIN", icon: "fingerprint" },
 ];
 
 function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
@@ -67,10 +75,13 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
 
 export default function AuthTabs() {
   const [view, setView] = useState<View>("auth");
-  const [method, setMethod] = useState<Method | null>(null);
+  const [tab, setTab] = useState<"login" | "register">("login");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod | null>(null);
+  const [registerMethod, setRegisterMethod] = useState<RegisterMethod | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState("");
 
+  // ============ Passkey 登录 ============
   async function handlePasskeyLogin() {
     setPasskeyError("");
     setPasskeyLoading(true);
@@ -106,7 +117,45 @@ export default function AuthTabs() {
     }
   }
 
-  function handleMethodClick(id: Method) {
+  // ============ Passkey 注册 ============
+  async function handlePasskeyRegister() {
+    setPasskeyError("");
+    setPasskeyLoading(true);
+    try {
+      // 无邮箱，触发 Discoverable Credential 流程（浏览器会弹出所有可用的 passkey）
+      const optRes = await fetch(`${API_BASE_URL}/api/auth/passkey/register-options`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const optData = (await optRes.json()) as { challengeId?: string; options?: unknown; error?: string };
+      if (!optData.challengeId || !optData.options) throw new Error(optData.error || "获取选项失败");
+
+      const { startRegistration } = await import("@simplewebauthn/browser");
+      const credential = await startRegistration({ optionsJSON: optData.options as never });
+
+      const verRes = await fetch(`${API_BASE_URL}/api/auth/passkey/register-verify`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: optData.challengeId, credential }),
+      });
+      const verData = (await verRes.json()) as { ok?: boolean; error?: string };
+      if (!verData.ok) throw new Error(verData.error || "注册失败");
+
+      window.location.href = "/welcome/";
+    } catch (e: any) {
+      const name = e?.name || "";
+      if (name !== "AbortError" && name !== "NotAllowedError") {
+        setPasskeyError("Passkey 注册失败，请重试");
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
+  }
+
+  // ============ 登录方式点击 ============
+  function handleLoginClick(id: LoginMethod) {
     if (id === "github") {
       window.location.href = `${API_BASE_URL}/api/auth/github`;
       return;
@@ -115,13 +164,28 @@ export default function AuthTabs() {
       void handlePasskeyLogin();
       return;
     }
-    setMethod(id);
+    setLoginMethod(id);
     setView("login-form");
+  }
+
+  // ============ 注册方式点击 ============
+  function handleRegisterClick(id: RegisterMethod) {
+    if (id === "github-reg") {
+      window.location.href = `${API_BASE_URL}/api/auth/github`;
+      return;
+    }
+    if (id === "passkey-reg") {
+      void handlePasskeyRegister();
+      return;
+    }
+    setRegisterMethod(id);
+    setView("register-form");
   }
 
   function goBack() {
     setView("auth");
-    setMethod(null);
+    setLoginMethod(null);
+    setRegisterMethod(null);
     setPasskeyError("");
   }
 
@@ -129,39 +193,73 @@ export default function AuthTabs() {
   if (view === "auth") {
     return (
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        {/* 一级 Tab */}
         <div className="flex border-b border-neutral-100">
-          <button type="button" className="relative flex-1 py-3 text-sm font-medium text-neutral-900">
+          <button
+            type="button"
+            onClick={() => setTab("login")}
+            className={`relative flex-1 py-3 text-sm font-medium transition-colors ${
+              tab === "login" ? "text-neutral-900" : "text-neutral-400 hover:text-neutral-600"
+            }`}
+          >
             登录
-            <span className="absolute inset-x-8 -bottom-px h-0.5 rounded-full bg-neutral-900" />
+            {tab === "login" && (
+              <span className="absolute inset-x-8 -bottom-px h-0.5 rounded-full bg-neutral-900" />
+            )}
           </button>
           <button
             type="button"
-            onClick={() => setView("register-form")}
-            className="relative flex-1 py-3 text-sm font-medium text-neutral-400 transition-colors hover:text-neutral-600"
+            onClick={() => setTab("register")}
+            className={`relative flex-1 py-3 text-sm font-medium transition-colors ${
+              tab === "register" ? "text-neutral-900" : "text-neutral-400 hover:text-neutral-600"
+            }`}
           >
             注册
+            {tab === "register" && (
+              <span className="absolute inset-x-8 -bottom-px h-0.5 rounded-full bg-neutral-900" />
+            )}
           </button>
         </div>
 
+        {/* 方式列表 */}
         <div className="space-y-2 p-4">
-          {METHODS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => handleMethodClick(m.id)}
-              disabled={passkeyLoading && m.id === "passkey"}
-              className="flex w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left transition-colors hover:border-neutral-400 hover:bg-neutral-50 disabled:opacity-60"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
-                <Icon name={m.icon} className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-neutral-900">{m.label}</span>
-                <span className="mt-0.5 block text-xs text-neutral-500">{m.desc}</span>
-              </span>
-              <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-neutral-400" />
-            </button>
-          ))}
+          {tab === "login"
+            ? LOGIN_METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => handleLoginClick(m.id)}
+                  disabled={passkeyLoading && m.id === "passkey"}
+                  className="flex w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left transition-colors hover:border-neutral-400 hover:bg-neutral-50 disabled:opacity-60"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
+                    <Icon name={m.icon} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-neutral-900">{m.label}</span>
+                    <span className="mt-0.5 block text-xs text-neutral-500">{m.desc}</span>
+                  </span>
+                  <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-neutral-400" />
+                </button>
+              ))
+            : REGISTER_METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => handleRegisterClick(m.id)}
+                  disabled={passkeyLoading && m.id === "passkey-reg"}
+                  className="flex w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left transition-colors hover:border-neutral-400 hover:bg-neutral-50 disabled:opacity-60"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
+                    <Icon name={m.icon} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-neutral-900">{m.label}</span>
+                    <span className="mt-0.5 block text-xs text-neutral-500">{m.desc}</span>
+                  </span>
+                  <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-neutral-400" />
+                </button>
+              ))}
         </div>
 
         {passkeyLoading && (
@@ -176,7 +274,7 @@ export default function AuthTabs() {
 
   // ============ 登录表单页 ============
   if (view === "login-form") {
-    const title = method === "account" ? "账密登录" : "邮箱登录";
+    const title = loginMethod === "account" ? "账密登录" : "邮箱登录";
     return (
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="flex items-center gap-2 border-b border-neutral-100 px-3 py-3">
@@ -191,7 +289,7 @@ export default function AuthTabs() {
           <h2 className="text-sm font-medium text-neutral-900">{title}</h2>
         </div>
         <div className="p-5">
-          {method === "account" ? (
+          {loginMethod === "account" ? (
             <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-10 text-center">
               <p className="text-sm font-medium text-neutral-700">账密登录 · 开发中</p>
               <p className="mt-1 text-xs text-neutral-400">此功能即将上线</p>
@@ -205,6 +303,7 @@ export default function AuthTabs() {
   }
 
   // ============ 注册表单页 ============
+  const regTitle = registerMethod === "account-reg" ? "账密注册" : "邮箱注册";
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <div className="flex items-center gap-2 border-b border-neutral-100 px-3 py-3">
@@ -216,10 +315,17 @@ export default function AuthTabs() {
         >
           <Icon name="arrow-left" className="h-4 w-4" />
         </button>
-        <h2 className="text-sm font-medium text-neutral-900">注册</h2>
+        <h2 className="text-sm font-medium text-neutral-900">{regTitle}</h2>
       </div>
       <div className="p-5">
-        <RegisterForm />
+        {registerMethod === "account-reg" ? (
+          <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-10 text-center">
+            <p className="text-sm font-medium text-neutral-700">账密注册 · 开发中</p>
+            <p className="mt-1 text-xs text-neutral-400">此功能即将上线</p>
+          </div>
+        ) : (
+          <RegisterForm />
+        )}
       </div>
     </div>
   );
