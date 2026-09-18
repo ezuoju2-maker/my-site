@@ -3,6 +3,8 @@ import { startRegistration, startAuthentication, browserSupportsWebAuthn } from 
 import { API_BASE_URL } from "../lib/api";
 import { withBase } from "../lib/url";
 
+type Mode = "login" | "register" | "both";
+
 function translatePasskeyError(e: unknown): string {
   if (!e) return "操作失败，请重试";
 
@@ -11,11 +13,8 @@ function translatePasskeyError(e: unknown): string {
   const raw = err.message || "";
   const msg = raw.toLowerCase();
 
-  // === 用户主动取消 / 被拒绝 ===
-  // 覆盖：NotAllowedError、AbortError、SecurityError 里的拒绝场景
   if (name === "AbortError") return "";
   if (name === "NotAllowedError") {
-    // 包含 "not allowed" / "denied" / "cancel" / "no credentials" 都视为取消
     if (
       msg.includes("not allowed") ||
       msg.includes("denied") ||
@@ -29,35 +28,16 @@ function translatePasskeyError(e: unknown): string {
     return "该设备暂时无法使用 Passkey，请检查系统设置后重试";
   }
 
-  // 直接扫 message（不依赖 name）
-  if (msg.includes("user agent") || msg.includes("not allowed by the user agent")) {
-    return "";
-  }
-  if (msg.includes("cancel") || msg.includes("user canceled")) {
-    return "";
-  }
+  if (msg.includes("user agent") || msg.includes("not allowed by the user agent")) return "";
+  if (msg.includes("cancel") || msg.includes("user canceled")) return "";
 
-  // === 其他已知错误 ===
-  if (name === "SecurityError") {
-    return "当前环境不安全（需要 HTTPS），或浏览器禁止了 Passkey";
-  }
-  if (name === "NotSupportedError") {
-    return "此设备或浏览器不支持 Passkey";
-  }
-  if (name === "InvalidStateError") {
-    return "此设备已经注册过 Passkey，请直接点「使用 Passkey 登录」";
-  }
-  if (name === "TimeoutError") {
-    return "验证超时，请重试";
-  }
-  if (name === "ConstraintError") {
-    return "设备不满足注册要求（需要指纹、面容或设备 PIN）";
-  }
-  if (name === "UnknownError") {
-    return "设备验证失败，请重试";
-  }
+  if (name === "SecurityError") return "当前环境不安全（需要 HTTPS），或浏览器禁止了 Passkey";
+  if (name === "NotSupportedError") return "此设备或浏览器不支持 Passkey";
+  if (name === "InvalidStateError") return "此设备已经注册过 Passkey，请直接点「使用 Passkey 登录」";
+  if (name === "TimeoutError") return "验证超时，请重试";
+  if (name === "ConstraintError") return "设备不满足注册要求（需要指纹、面容或设备 PIN）";
+  if (name === "UnknownError") return "设备验证失败，请重试";
 
-  // === 后端返回的错误码 ===
   if (raw.includes("CHALLENGE_NOT_FOUND")) return "验证已过期，请重试";
   if (raw.includes("CHALLENGE_EXPIRED")) return "验证已过期，请重试";
   if (raw.includes("PASSKEY_NOT_FOUND")) return "此设备未注册 Passkey，请先注册";
@@ -70,34 +50,32 @@ function translatePasskeyError(e: unknown): string {
   return "操作失败，请重试";
 }
 
-export default function PasskeyButtons() {
+export default function PasskeyButtons({ mode = "both" }: { mode?: Mode }) {
   const [loading, setLoading] = useState<"register" | "login" | null>(null);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [supports, setSupports] = useState<boolean | null>(null);
 
+  const showRegister = mode === "register" || mode === "both";
+  const showLogin = mode === "login" || mode === "both";
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        // 第 1 层：浏览器是否有 WebAuthn API
         const apiOk = browserSupportsWebAuthn();
         if (!apiOk) {
           if (!cancelled) setSupports(false);
           return;
         }
-
-        // 第 2 层：设备是否真的有平台验证器（指纹/面容/PIN）
         if (
           typeof PublicKeyCredential !== "undefined" &&
           typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function"
         ) {
-          const uvpaa =
-            await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          const uvpaa = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
           if (!cancelled) setSupports(uvpaa);
         } else {
-          // 没有这个 API → 保守认为不支持
           if (!cancelled) setSupports(false);
         }
       } catch {
@@ -133,11 +111,7 @@ export default function PasskeyButtons() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const optData = (await optRes.json()) as {
-        challengeId?: string;
-        options?: unknown;
-        error?: string;
-      };
+      const optData = (await optRes.json()) as { challengeId?: string; options?: unknown; error?: string };
       if (optData.error || !optData.challengeId || !optData.options) {
         throw new Error(optData.error || "获取选项失败");
       }
@@ -178,11 +152,7 @@ export default function PasskeyButtons() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      const optData = (await optRes.json()) as {
-        challengeId?: string;
-        options?: unknown;
-        error?: string;
-      };
+      const optData = (await optRes.json()) as { challengeId?: string; options?: unknown; error?: string };
       if (optData.error || !optData.challengeId || !optData.options) {
         throw new Error(optData.error || "获取选项失败");
       }
@@ -217,23 +187,27 @@ export default function PasskeyButtons() {
 
   return (
     <>
-      <div className="space-y-3">
-        <button
-          type="button"
-          onClick={openModal}
-          disabled={loading !== null || passkeyDisabled}
-          className="h-12 w-full rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          注册 Passkey（指纹/面容）
-        </button>
-        <button
-          type="button"
-          onClick={handleLogin}
-          disabled={loading !== null || passkeyDisabled}
-          className="h-12 w-full rounded-lg border border-neutral-300 bg-white text-base font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading === "login" ? "登录中…" : "使用 Passkey 登录"}
-        </button>
+      <div className="space-y-2">
+        {showRegister && (
+          <button
+            type="button"
+            onClick={openModal}
+            disabled={loading !== null || passkeyDisabled}
+            className="h-11 w-full rounded-lg border border-neutral-300 bg-white text-sm font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            注册 Passkey（指纹/面容）
+          </button>
+        )}
+        {showLogin && (
+          <button
+            type="button"
+            onClick={handleLogin}
+            disabled={loading !== null || passkeyDisabled}
+            className="h-11 w-full rounded-lg border border-neutral-300 bg-white text-sm font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading === "login" ? "登录中…" : "使用 Passkey 登录"}
+          </button>
+        )}
         {supports === false && (
           <p className="text-center text-xs text-neutral-400">
             此设备或浏览器不支持 Passkey
@@ -244,7 +218,7 @@ export default function PasskeyButtons() {
         )}
       </div>
 
-      {showModal && (
+      {showModal && showRegister && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
           onClick={(e) => {
@@ -263,7 +237,7 @@ export default function PasskeyButtons() {
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="your@email.com"
               autoFocus
-              className="mt-4 h-12 w-full rounded-lg border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
+              className="mt-4 h-11 w-full rounded-lg border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
             />
 
             {error && (

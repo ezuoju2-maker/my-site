@@ -925,7 +925,7 @@ export default function RegisterForm() {
       </a>
 
 
-      <PasskeyButtons />
+      <PasskeyButtons mode="register" />
 
       <p className="pt-1 text-center text-sm text-neutral-500">
         {t("register.have_account")}
