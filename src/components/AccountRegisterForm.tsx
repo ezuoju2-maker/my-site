@@ -3,6 +3,8 @@ import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { withBase } from "../lib/url";
 import CapWidget from "./CapWidget";
+import { EyeIcon } from "./icons/EyeIcon";
+import { ClearIcon } from "./icons/ClearIcon";
 
 const ENABLE_CAP = import.meta.env.PUBLIC_ENABLE_CAP !== "false";
 
@@ -125,17 +127,31 @@ export default function AccountRegisterForm() {
             placeholder="请输入密码"
             autoComplete="new-password"
             maxLength={20}
-            className={`h-11 w-full rounded-lg border bg-white px-3 pr-11 text-base outline-none ${
+            className={`h-11 w-full rounded-lg border bg-white px-3 pr-24 text-base outline-none ${
               fieldErr.password ? "border-red-400" : "border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
             }`}
           />
-          <button
-            type="button"
-            onClick={() => setShowPw((v) => !v)}
-            className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-neutral-500"
-          >
-            {showPw ? "🙈" : "👁"}
-          </button>
+          <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
+            <button
+              type="button"
+              onClick={() => { setPassword(""); setFieldErr((p) => ({ ...p, password: "" })); }}
+              disabled={!password}
+              className={`flex h-10 w-10 items-center justify-center ${
+                password ? "text-neutral-500" : "pointer-events-none text-transparent"
+              }`}
+              aria-label="清空密码"
+            >
+              <ClearIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPw((v) => !v)}
+              className="flex h-10 w-10 items-center justify-center text-neutral-500"
+              aria-label={showPw ? "隐藏密码" : "显示密码"}
+            >
+              <EyeIcon hidden={!showPw} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -200,17 +216,40 @@ export default function AccountRegisterForm() {
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-neutral-700">确认密码</label>
-        <input
-          type={showPw ? "text" : "password"}
-          value={confirm}
-          onChange={(e) => { setConfirm(e.target.value); setFieldErr((p) => ({ ...p, confirm: "" })); }}
-          placeholder="请再次输入密码"
-          autoComplete="new-password"
-          maxLength={20}
-          className={`h-11 w-full rounded-lg border bg-white px-3 text-base outline-none ${
-            fieldErr.confirm ? "border-red-400" : "border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
-          }`}
-        />
+        <div className="relative">
+          <input
+            type={showPw ? "text" : "password"}
+            value={confirm}
+            onChange={(e) => { setConfirm(e.target.value); setFieldErr((p) => ({ ...p, confirm: "" })); }}
+            placeholder="请再次输入密码"
+            autoComplete="new-password"
+            maxLength={20}
+            className={`h-11 w-full rounded-lg border bg-white px-3 pr-24 text-base outline-none ${
+              fieldErr.confirm ? "border-red-400" : "border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
+            }`}
+          />
+          <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
+            <button
+              type="button"
+              onClick={() => { setConfirm(""); setFieldErr((p) => ({ ...p, confirm: "" })); }}
+              disabled={!confirm}
+              className={`flex h-10 w-10 items-center justify-center ${
+                confirm ? "text-neutral-500" : "pointer-events-none text-transparent"
+              }`}
+              aria-label="清空确认密码"
+            >
+              <ClearIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPw((v) => !v)}
+              className="flex h-10 w-10 items-center justify-center text-neutral-500"
+              aria-label={showPw ? "隐藏密码" : "显示密码"}
+            >
+              <EyeIcon hidden={!showPw} />
+            </button>
+          </div>
+        </div>
         {fieldErr.confirm && <p className="mt-1.5 text-xs text-red-500">{fieldErr.confirm}</p>}
       </div>
 
