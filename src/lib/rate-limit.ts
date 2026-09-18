@@ -110,11 +110,11 @@ export async function bumpCounter(
        VALUES (?1, 1, ?2)
        ON CONFLICT(key) DO UPDATE SET
          count = CASE
-           WHEN datetime(rate_limits.expires_at) <= datetime(now) THEN 1
+           WHEN datetime(rate_limits.expires_at) <= datetime('now') THEN 1
            ELSE rate_limits.count + 1
          END,
          expires_at = CASE
-           WHEN datetime(rate_limits.expires_at) <= datetime(now)
+           WHEN datetime(rate_limits.expires_at) <= datetime('now')
              THEN excluded.expires_at
            ELSE rate_limits.expires_at
          END,
