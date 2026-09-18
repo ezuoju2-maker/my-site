@@ -312,15 +312,19 @@
 
   const loader = document.getElementById("q8-loader");
   if (loader) {
-    // 检测返回/前进导航：不显示加载动画
-    let isBackForward = false;
+    // 检测返回/前进导航 或 ?skip_loader=1：不显示加载动画
+    let shouldSkip = false;
     try {
       const navEntries = performance.getEntriesByType("navigation");
       const navType = (navEntries[0] as PerformanceNavigationTiming | undefined)?.type;
-      if (navType === "back_forward") isBackForward = true;
+      if (navType === "back_forward") shouldSkip = true;
+    } catch {}
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("skip_loader") === "1") shouldSkip = true;
     } catch {}
 
-    if (isBackForward) {
+    if (shouldSkip) {
       loader.remove();
       // @ts-ignore
       window.__q8_loader_done = true;

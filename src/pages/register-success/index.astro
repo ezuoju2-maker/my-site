@@ -9,7 +9,7 @@ const from = Astro.url.searchParams.get("from") ?? "account"; // account | email
 
 const base = getBase();
 // 跳转到登录页并自动打开对应登录方式
-const loginUrl = `${base}?tab=login&method=${from}`;
+const loginUrl = `${base}?tab=login&method=${from}&skip_loader=1`;
 ---
 
 <Layout title="注册成功">
