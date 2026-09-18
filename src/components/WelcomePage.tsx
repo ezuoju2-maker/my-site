@@ -7,9 +7,9 @@ import UserCard from "./welcome/UserCard";
 import Banner from "./welcome/Banner";
 import Notice from "./welcome/Notice";
 import QuickNav from "./welcome/QuickNav";
+import SearchBar from "./welcome/SearchBar";
 import Sidebar, { type CatKey } from "./welcome/Sidebar";
 import GameGrid from "./welcome/GameGrid";
-import { IcoSearch } from "./welcome/icons";
 
 type UserInfo = {
   id: string;
@@ -52,7 +52,7 @@ export default function WelcomePage() {
 
   if (status === "loading" || !user) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-neutral-50">
+      <main className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900" />
           <p className="mt-4 text-sm text-neutral-500">正在加载…</p>
@@ -62,27 +62,18 @@ export default function WelcomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 pb-8">
+    <main className="min-h-screen bg-slate-50 pb-8">
       <TopBar />
 
-      <div className="mx-auto max-w-2xl space-y-3 px-4 py-3">
+      <div className="mx-auto max-w-2xl space-y-3 px-4">
         <UserCard user={user} />
         <Banner />
         <Notice />
         <QuickNav />
+        <SearchBar />
 
-        {/* 搜索 */}
-        <div className="flex items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-4 py-3">
-          <IcoSearch />
-          <input
-            type="text"
-            placeholder="搜索游戏 / 输入关键词"
-            className="h-6 w-full border-0 bg-transparent text-sm outline-none placeholder:text-neutral-400"
-          />
-        </div>
-
-        {/* 两栏：侧栏 + 主内容 */}
-        <div className="grid grid-cols-[80px_1fr] gap-2.5">
+        {/* 两栏：侧栏 + 游戏网格 */}
+        <div className="grid grid-cols-[80px_1fr] gap-2.5 pb-4">
           <Sidebar active={cat} onChange={setCat} />
           <GameGrid />
         </div>
