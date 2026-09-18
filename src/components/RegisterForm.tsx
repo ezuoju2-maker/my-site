@@ -760,18 +760,19 @@ export default function RegisterForm() {
           length={6}
           autoFocus={false}
         />
-        <div className="mt-3 flex justify-center">
-          <button
-            type="button"
-            onClick={handleSendEmailCode}
-            disabled={emailCodeCooldown > 0}
-            className="text-sm text-neutral-700 underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {emailCodeCooldown > 0
-              ? t("register.resend_in_seconds").replace("{n}", String(emailCodeCooldown))
-              : "获取验证码"}
-          </button>
-        </div>
+        <p className="mt-2 text-center text-xs text-neutral-500">
+          未接收到邮箱验证码可去垃圾邮件查看是否有
+        </p>
+        <button
+          type="button"
+          onClick={handleSendEmailCode}
+          disabled={emailCodeCooldown > 0}
+          className="mt-3 h-11 w-full rounded-lg border border-neutral-300 bg-white text-sm font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {emailCodeCooldown > 0
+            ? t("register.resend_in_seconds").replace("{n}", String(emailCodeCooldown))
+            : "获取验证码"}
+        </button>
         {emailCodeError && (
           <p className="mt-2 text-center text-sm text-red-500">{emailCodeError}</p>
         )}
