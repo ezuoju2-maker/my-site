@@ -19,6 +19,34 @@ import {
 import { getCooldownRemaining, setCooldown, getCount, bumpCounter } from "../../../lib/rate-limit";
 import { sendEmail } from "../../../lib/email";
 
+/**
+ * 带指数退避和抖动的重试工具
+ * 用于处理 D1 等外部服务可能出现的瞬时错误
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  baseDelayMs = 200,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[retry] attempt ${attempt}/${maxAttempts} failed: ${msg}`);
+
+      if (attempt < maxAttempts) {
+        // 指数退避 + 抖动：200ms, 400ms, 800ms (± 50ms 抖动)
+        const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 100;
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
 const RESEND_COOLDOWN_SECONDS = 60;
 const EMAIL_DAILY_LIMIT = 5;
 const OTP_PURPOSE = "email-verification";
@@ -190,7 +218,7 @@ export const POST: APIRoute = async ({ request }) => {
     // 不重置 attemptsKey：防止攻击者通过反复请求 OTP 循环猜测
     await setCooldown(ipCooldownKey, RESEND_COOLDOWN_SECONDS);
     await setCooldown(emailCooldownKey, RESEND_COOLDOWN_SECONDS);
-    await bumpCounter(dailyKey, 86400);
+    await retryWithBackoff(() => bumpCounter(dailyKey, 86400), 3);
   } catch (error) {
     console.error("OTP KV storage error", error);
     return json({ ok: false, error: "OTP_SERVICE_ERROR" }, 500, {}, origin);
