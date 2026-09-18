@@ -36,16 +36,30 @@ export async function sendEmail(
       }
     }
 
+    // 第一步：发送邮件
+    let sendOk = false;
     try {
       await provider.send(args, apiKey);
-      await incrementTodayCount(provider.id);
-      console.log(`[email] sent via ${provider.id}`);
-      return { ok: true, providerId: provider.id };
+      sendOk = true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[email] ${provider.id} failed: ${msg}`);
-      attempts.push(`${provider.id}:error(${msg.slice(0, 80)})`);
+      console.warn(`[email] ${provider.id} send failed: ${msg}`);
+      attempts.push(`${provider.id}:send-error(${msg.slice(0, 80)})`);
       // 继续尝试下一个 provider
+      continue;
+    }
+
+    // 第二步：记账（独立 try-catch，失败不影响发送结果）
+    if (sendOk) {
+      try {
+        await incrementTodayCount(provider.id);
+      } catch (quotaErr) {
+        const qmsg = quotaErr instanceof Error ? quotaErr.message : String(quotaErr);
+        console.warn(`[email] ${provider.id} quota increment failed: ${qmsg}`);
+        // 不抛出：邮件已经发出去了，记账失败只是额度少算一次
+      }
+      console.log(`[email] sent via ${provider.id}`);
+      return { ok: true, providerId: provider.id };
     }
   }
 
