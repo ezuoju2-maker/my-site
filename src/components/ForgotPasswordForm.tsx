@@ -1,9 +1,11 @@
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import CapWidget from "./CapWidget";
 import VerifyCodeInput from "./VerifyCodeInput";
+import { EyeIcon } from "./icons/EyeIcon";
+import { ClearIcon } from "./icons/ClearIcon";
 import { getBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
 
@@ -60,8 +62,15 @@ export default function ForgotPasswordForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [captchaError, setCaptchaError] = useState("");
   const [capKey, setCapKey] = useState(0);
+
+  const passwordMismatch = useMemo(
+    () => confirmPassword.length > 0 && newPassword !== confirmPassword,
+    [newPassword, confirmPassword],
+  );
 
   const emailRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
@@ -348,17 +357,40 @@ export default function ForgotPasswordForm() {
           {t("forgot.new_password")}
         </label>
 
-        <input
-          ref={passwordRef}
-          id="forgot-password"
-          type="password"
-          autoComplete="new-password"
-          value={newPassword}
-          onChange={(event) => setNewPassword(event.target.value)}
-          placeholder={t("forgot.error.NEW_PASSWORD_REQUIRED")}
-          className="w-full rounded-lg border px-4 py-3 outline-none"
-          disabled={loading || resetting}
-        />
+        <div className="relative">
+          <input
+            ref={passwordRef}
+            id="forgot-password"
+            type={showNewPassword ? "text" : "password"}
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            placeholder={t("forgot.error.NEW_PASSWORD_REQUIRED")}
+            className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pr-24 text-base outline-none focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
+            disabled={loading || resetting}
+          />
+          <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
+            <button
+              type="button"
+              onClick={() => setNewPassword("")}
+              disabled={!newPassword}
+              className={`flex h-10 w-10 items-center justify-center ${
+                newPassword ? "text-neutral-500" : "pointer-events-none text-transparent"
+              }`}
+              aria-label="清空新密码"
+            >
+              <ClearIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowNewPassword((v) => !v)}
+              className="flex h-10 w-10 items-center justify-center text-neutral-500"
+              aria-label={showNewPassword ? "隐藏密码" : "显示密码"}
+            >
+              <EyeIcon hidden={!showNewPassword} />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -369,17 +401,47 @@ export default function ForgotPasswordForm() {
           {t("forgot.confirm_password")}
         </label>
 
-        <input
-          ref={confirmPasswordRef}
-          id="forgot-confirm-password"
-          type="password"
-          autoComplete="new-password"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          placeholder={t("forgot.confirm_password_placeholder")}
-          className="w-full rounded-lg border px-4 py-3 outline-none"
-          disabled={loading || resetting}
-        />
+        <div className="relative">
+          <input
+            ref={confirmPasswordRef}
+            id="forgot-confirm-password"
+            type={showConfirmPassword ? "text" : "password"}
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            placeholder={t("forgot.confirm_password_placeholder")}
+            className={`w-full rounded-lg border bg-white px-4 py-3 pr-24 text-base outline-none ${
+              passwordMismatch
+                ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                : "border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
+            }`}
+            disabled={loading || resetting}
+          />
+          <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center">
+            <button
+              type="button"
+              onClick={() => setConfirmPassword("")}
+              disabled={!confirmPassword}
+              className={`flex h-10 w-10 items-center justify-center ${
+                confirmPassword ? "text-neutral-500" : "pointer-events-none text-transparent"
+              }`}
+              aria-label="清空确认密码"
+            >
+              <ClearIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((v) => !v)}
+              className="flex h-10 w-10 items-center justify-center text-neutral-500"
+              aria-label={showConfirmPassword ? "隐藏密码" : "显示密码"}
+            >
+              <EyeIcon hidden={!showConfirmPassword} />
+            </button>
+          </div>
+        </div>
+        {passwordMismatch && (
+          <p className="mt-1.5 text-sm text-red-500">两次输入的密码不一致</p>
+        )}
       </div>
 
       {error && (
