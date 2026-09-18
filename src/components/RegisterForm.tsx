@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
 import CapWidget from "./CapWidget";
+import VerifyCodeInput from "./VerifyCodeInput";
 import { withBase } from "../lib/url";
 import { Requirement } from "./Requirement";
 import { useTranslation } from "../i18n/useTranslation";
@@ -145,20 +146,6 @@ export default function RegisterForm() {
     }
   }
 
-  async function handleGoToVerify() {
-    // 保存表单数据到 sessionStorage，供下一步使用
-    try {
-      sessionStorage.setItem("register_form", JSON.stringify({
-        username: username.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-        agreement,
-      }));
-    } catch {}
-
-    // 直接跳转到验证码页
-    window.location.href = withBase("register/verify/?email=" + encodeURIComponent(email.trim().toLowerCase()));
-  }
 
   async function handleSendEmailCode() {
     if (!email.trim()) {
@@ -771,6 +758,33 @@ export default function RegisterForm() {
       )}
 
       <div>
+        <label className="mb-2 block text-sm font-medium text-neutral-700">
+          邮箱验证码
+        </label>
+        <VerifyCodeInput
+          value={emailCode}
+          onChange={handleEmailCodeChange}
+          length={6}
+          autoFocus={false}
+        />
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={handleSendEmailCode}
+            disabled={emailCodeCooldown > 0}
+            className="text-sm text-neutral-700 underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {emailCodeCooldown > 0
+              ? t("register.resend_in_seconds").replace("{n}", String(emailCodeCooldown))
+              : "获取验证码"}
+          </button>
+        </div>
+        {emailCodeError && (
+          <p className="mt-2 text-center text-sm text-red-500">{emailCodeError}</p>
+        )}
+      </div>
+
+      <div>
         <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-neutral-600">
           <input
             type="checkbox"
@@ -806,12 +820,11 @@ export default function RegisterForm() {
       </div>
 
       <button
-        type="button"
-        onClick={handleGoToVerify}
+        type="submit"
         disabled={loading}
         className="h-12 w-full rounded-lg bg-neutral-900 px-4 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
       >
-        验证并注册
+        {loading ? t("register.submitting") : "注册"}
       </button>
     </form>
   );
