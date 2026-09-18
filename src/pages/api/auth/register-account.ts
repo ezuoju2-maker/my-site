@@ -6,7 +6,6 @@ import { env } from "cloudflare:workers";
 import { hashPassword, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../../lib/auth";
 import { corsHeaders, getAllowedOrigin, rejectCrossSiteRequest } from "../../../lib/cors";
 import { extractCaptchaToken, verifyCaptcha } from "../../../lib/captcha";
-import { createSession, sessionCookie } from "../../../lib/auth";
 
 export const prerender = import.meta.env.GITHUB_PAGES === "true";
 
@@ -113,8 +112,6 @@ export const POST: APIRoute = async ({ request }) => {
       .bind(userId, username, email, passwordHash)
       .run();
 
-    const session = await createSession(userId, username, false, 1);
-
     return new Response(
       JSON.stringify({ ok: true, user: { id: userId, username } }),
       {
@@ -123,7 +120,6 @@ export const POST: APIRoute = async ({ request }) => {
           "Content-Type": "application/json; charset=utf-8",
           "Cache-Control": "no-store",
           ...(origin ? corsHeaders(origin) : {}),
-          "Set-Cookie": sessionCookie(session.token, session.maxAge),
         },
       },
     );
