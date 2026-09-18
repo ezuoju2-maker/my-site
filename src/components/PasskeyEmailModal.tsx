@@ -27,11 +27,15 @@ export default function PasskeyEmailModal({
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <h2 className="text-lg font-semibold text-neutral-900">Passkey 注册</h2>
         <p className="mt-1 text-xs text-neutral-500">
-          请输入邮箱，用于设备丢失时找回账号
+          请填写真实且可正常接收邮件的邮箱地址
         </p>
-        <p className="mt-1 text-xs text-amber-600">
-          提示：此邮箱仅用于绑定，不会收到验证邮件
-        </p>
+        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+          <p className="font-medium">⚠️ 邮箱的重要性</p>
+          <p className="mt-1">
+            当你更换设备或 Passkey 丢失时，我们只能通过此邮箱发送验证码帮你找回账号。
+            邮箱错误将导致账号无法恢复。
+          </p>
+        </div>
 
         <input
           type="email"
