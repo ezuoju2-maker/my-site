@@ -15,25 +15,49 @@ export const agentmailProvider: EmailProvider = {
   envKey: "AGENTMAIL_API_KEY",
   from: `my-site <${INBOX_ID}>`,
   async send(args: SendEmailArgs, apiKey: string): Promise<void> {
-    const res = await fetch(
-      `https://api.agentmail.to/v0/inboxes/${INBOX_ID_URL}/messages/send`,
-      {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${apiKey}`,
-          "content-type": "application/json",
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000); // 8s 超时
+
+    const t0 = Date.now();
+    let res: Response;
+    try {
+      res = await fetch(
+        `https://api.agentmail.to/v0/inboxes/${INBOX_ID_URL}/messages/send`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            authorization: `Bearer ${apiKey}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            to: [args.to],
+            subject: args.subject,
+            text: args.text,
+            html: args.html,
+          }),
         },
-        body: JSON.stringify({
-          to: [args.to],
-          subject: args.subject,
-          text: args.text,
-          html: args.html,
-        }),
-      },
-    );
+      );
+    } catch (err) {
+      clearTimeout(timer);
+      const elapsed = Date.now() - t0;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[agentmail] fetch threw after ${elapsed}ms: ${msg}`);
+      // 超时/网络错误：请求可能已送达，返回成功信号让上层不重试
+      if (msg.includes("abort") || msg.includes("timeout")) {
+        console.warn("[agentmail] timeout - request may have been delivered, treating as success");
+        return;
+      }
+      throw err;
+    }
+    clearTimeout(timer);
+
+    const elapsed = Date.now() - t0;
     if (!res.ok) {
       const body = await res.text().catch(() => "");
+      console.warn(`[agentmail] HTTP ${res.status} after ${elapsed}ms: ${body.slice(0, 200)}`);
       throw new Error(`agentmail ${res.status} ${body.slice(0, 300)}`);
     }
+    console.log(`[agentmail] OK ${res.status} in ${elapsed}ms`);
   },
 };
