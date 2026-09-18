@@ -1,5 +1,5 @@
 import { useState } from "react";
-import LoginForm from "./LoginForm";
+import LoginMethodTabs from "./LoginMethodTabs";
 import RegisterForm from "./RegisterForm";
 
 type Tab = "login" | "register";
@@ -43,7 +43,7 @@ export default function AuthTabs({ initialTab = "login" }: { initialTab?: Tab })
 
       {/* 内容区 */}
       <div className="p-5 sm:p-6">
-        {tab === "login" ? <LoginForm /> : <RegisterForm />}
+        {tab === "login" ? <LoginMethodTabs /> : <RegisterForm />}
       </div>
     </div>
   );
