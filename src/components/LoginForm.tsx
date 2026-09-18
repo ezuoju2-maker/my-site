@@ -10,7 +10,6 @@ import { useTranslation } from "../i18n/useTranslation";
 const ENABLE_CAP = import.meta.env.PUBLIC_ENABLE_CAP !== "false";
 import { EyeIcon } from "./icons/EyeIcon";
 import { ClearIcon } from "./icons/ClearIcon";
-import PasskeyButtons from "./PasskeyButtons";
 
 export default function LoginForm() {
   const { t } = useTranslation();
@@ -348,19 +347,6 @@ export default function LoginForm() {
         </svg>
         使用 GitHub 登录
       </a>
-
-
-      <PasskeyButtons mode="login" />
-
-      <p className="pt-1 text-center text-sm text-neutral-500">
-        {t("login.no_account")}{" "}
-        <a
-          href={withBase("register/")}
-          className="font-medium text-neutral-800 underline underline-offset-4"
-        >
-          {t("login.register")}
-        </a>
-      </p>
     </form>
   );
 }
