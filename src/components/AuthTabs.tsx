@@ -122,7 +122,6 @@ export default function AuthTabs() {
     setPasskeyError("");
     setPasskeyLoading(true);
     try {
-      // 无邮箱，触发 Discoverable Credential 流程（浏览器会弹出所有可用的 passkey）
       const optRes = await fetch(`${API_BASE_URL}/api/auth/passkey/register-options`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
