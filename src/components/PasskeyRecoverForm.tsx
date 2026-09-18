@@ -14,6 +14,7 @@ export default function PasskeyRecoverForm() {
   const [codeStatus, setCodeStatus] = useState<"idle" | "success" | "error">("idle");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [registering, setRegistering] = useState(false);
   const verifyingRef = useRef(false);
 
   useEffect(() => {
@@ -69,8 +70,9 @@ export default function PasskeyRecoverForm() {
       const data = (await res.json()) as { ok?: boolean; error?: string; ticket?: string };
       if (data.ok && data.ticket) {
         setCodeStatus("success");
-        // TODO: 第 3b 批 — 用 ticket 在新设备注册 Passkey
-        setTimeout(() => setStep("done"), 800);
+        setInfo("验证成功，正在注册新 Passkey…");
+        // 自动在新设备上注册 Passkey
+        setTimeout(() => registerNewPasskey(), 600);
       } else {
         setCodeStatus("error");
         const map: Record<string, string> = {
@@ -87,6 +89,47 @@ export default function PasskeyRecoverForm() {
     } finally {
       setVerifying(false);
       verifyingRef.current = false;
+    }
+  }
+
+  async function registerNewPasskey() {
+    setRegistering(true);
+    setError("");
+    try {
+      // 1. 获取 WebAuthn 注册选项
+      const optRes = await fetch(`${API_BASE_URL}/api/auth/passkey/register-options`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const optData = (await optRes.json()) as { challengeId?: string; options?: unknown; error?: string };
+      if (!optData.challengeId || !optData.options) throw new Error(optData.error || "获取选项失败");
+
+      // 2. 触发 WebAuthn 注册
+      const { startRegistration } = await import("@simplewebauthn/browser");
+      const credential = await startRegistration({ optionsJSON: optData.options as never });
+
+      // 3. 提交验证
+      const verRes = await fetch(`${API_BASE_URL}/api/auth/passkey/register-verify`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: optData.challengeId, credential }),
+      });
+      const verData = (await verRes.json()) as { ok?: boolean; error?: string };
+      if (!verData.ok) throw new Error(verData.error || "注册失败");
+
+      setStep("done");
+      setTimeout(() => { window.location.href = "/welcome/"; }, 1200);
+    } catch (e: any) {
+      const name = e?.name || "";
+      if (name === "AbortError" || name === "NotAllowedError") {
+        setError("已取消，请点击下方按钮重新尝试");
+        setRegistering(false);
+        return;
+      }
+      setError("注册新 Passkey 失败，请点击下方按钮重试");
+      setRegistering(false);
     }
   }
 
@@ -179,15 +222,27 @@ export default function PasskeyRecoverForm() {
           {!verifying && error && <p className="mt-4 text-center text-sm text-red-500">{error}</p>}
           {!verifying && info && !error && <p className="mt-4 text-center text-xs text-green-600">{info}</p>}
 
-          <div className="mt-6 text-center text-xs text-neutral-500">
-            {cooldown > 0 ? (
-              <span>重新发送 ({cooldown}s)</span>
-            ) : (
-              <button type="button" onClick={resend} className="text-neutral-800 underline underline-offset-4">
-                重新发送验证码
-              </button>
-            )}
-          </div>
+          {!registering && (
+            <div className="mt-6 text-center text-xs text-neutral-500">
+              {cooldown > 0 ? (
+                <span>重新发送 ({cooldown}s)</span>
+              ) : (
+                <button type="button" onClick={resend} className="text-neutral-800 underline underline-offset-4">
+                  重新发送验证码
+                </button>
+              )}
+            </div>
+          )}
+
+          {registering && error && (
+            <button
+              type="button"
+              onClick={() => registerNewPasskey()}
+              className="mt-4 w-full text-xs text-neutral-700 underline underline-offset-4"
+            >
+              重新注册 Passkey
+            </button>
+          )}
         </div>
       )}
 
@@ -198,8 +253,8 @@ export default function PasskeyRecoverForm() {
               <path d="M20 6 9 17l-5-5" />
             </svg>
           </div>
-          <p className="mt-4 text-sm font-medium text-neutral-900">验证成功</p>
-          <p className="mt-1 text-xs text-neutral-500">下一步：在新设备上注册 Passkey（开发中）</p>
+          <p className="mt-4 text-sm font-medium text-neutral-900">Passkey 已重新注册</p>
+          <p className="mt-1 text-xs text-neutral-500">即将进入网站…</p>
         </div>
       )}
     </div>

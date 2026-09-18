@@ -264,6 +264,21 @@ export default function AuthTabs() {
               ))}
         </div>
 
+        {tab === "login" && (
+          <div className="border-t border-neutral-100 pt-3 pb-1">
+            <a
+              href="/passkey/recover/"
+              className="flex items-center justify-center gap-1 py-2 text-xs text-neutral-500 hover:text-neutral-800"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              换设备了？用邮箱找回 Passkey
+            </a>
+          </div>
+        )}
+
         {passkeyLoading && (
           <p className="px-4 pb-3 text-center text-xs text-neutral-500">正在调用 Passkey…</p>
         )}
