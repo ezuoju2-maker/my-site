@@ -312,6 +312,19 @@
 
   const loader = document.getElementById("q8-loader");
   if (loader) {
+    // 检测返回/前进导航：不显示加载动画
+    let isBackForward = false;
+    try {
+      const navEntries = performance.getEntriesByType("navigation");
+      const navType = (navEntries[0] as PerformanceNavigationTiming | undefined)?.type;
+      if (navType === "back_forward") isBackForward = true;
+    } catch {}
+
+    if (isBackForward) {
+      loader.remove();
+      // @ts-ignore
+      window.__q8_loader_done = true;
+    } else {
     {
       const startTime = Date.now();
       const barFill = document.getElementById("q8-bar-fill");
@@ -358,6 +371,7 @@
         hideLoader("max-duration");
       }, MAX_DURATION);
 
+    }
     }
   }
 </script>

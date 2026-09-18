@@ -146,7 +146,11 @@ export default function PasskeyRecoverForm() {
   }
 
   function goBack() {
-    if (step === "code") { setStep("email"); setCode(""); setError(""); setInfo(""); return; }
+    if (step === "code" || step === "choice") { 
+      setStep(step === "choice" ? "code" : "email"); 
+      setCode(""); setError(""); setInfo(""); 
+      return; 
+    }
     if (window.history.length > 1) window.history.back();
     else window.location.href = "/";
   }
