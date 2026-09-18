@@ -8,6 +8,7 @@ const ENABLE_CAP = import.meta.env.PUBLIC_ENABLE_CAP !== "false";
 
 export default function AccountRegisterForm() {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -38,6 +39,9 @@ export default function AccountRegisterForm() {
     if (!/^[a-z0-9_]{3,20}$/.test(username.trim().toLowerCase())) {
       e.username = "3～20 位，仅支持小写字母、数字、下划线";
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      e.email = "请输入有效邮箱地址";
+    }
     if (validCount !== 5) e.password = "密码不满足全部要求";
     if (confirm !== password) e.confirm = "两次输入的密码不一致";
     if (ENABLE_CAP && !captchaToken) e.captcha = "请完成人机验证";
@@ -59,6 +63,7 @@ export default function AccountRegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: username.trim().toLowerCase(),
+          email: email.trim().toLowerCase(),
           password,
           captchaToken,
         }),
@@ -66,7 +71,9 @@ export default function AccountRegisterForm() {
       const data = await parseApiResponse(res);
       if (!res.ok || !data.ok) {
         const map: Record<string, string> = {
+          ACCOUNT_EXISTS: "该账号或邮箱已被使用",
           USERNAME_EXISTS: "该账号已被使用",
+          INVALID_EMAIL: "邮箱格式不正确",
           INVALID_USERNAME: "账号格式不正确",
           INVALID_PASSWORD: "密码强度不够",
           CAPTCHA_FAILED: "人机验证失败",
@@ -129,6 +136,35 @@ export default function AccountRegisterForm() {
           >
             {showPw ? "🙈" : "👁"}
           </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-neutral-700">邮箱</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setFieldErr((p) => ({ ...p, email: "" })); }}
+          placeholder="your@email.com"
+          autoComplete="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          className={`h-11 w-full rounded-lg border bg-white px-3 text-base outline-none ${
+            fieldErr.email ? "border-red-400" : "border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200"
+          }`}
+        />
+        {fieldErr.email ? (
+          <p className="mt-1.5 text-xs text-red-500">{fieldErr.email}</p>
+        ) : (
+          <p className="mt-1.5 text-xs text-neutral-500">用于忘记密码时通过邮箱找回</p>
+        )}
+
+        <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+          <p className="font-medium">⚠️ 邮箱的重要性</p>
+          <p className="mt-1">
+            忘记密码或更换设备时，我们只能通过此邮箱发送验证码帮你找回账号。
+            邮箱错误将导致账号无法恢复。
+          </p>
         </div>
       </div>
 

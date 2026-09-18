@@ -52,12 +52,12 @@ export default function AccountLoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3" noValidate>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-neutral-700">账号</label>
+        <label className="mb-1.5 block text-sm font-medium text-neutral-700">账号 / 邮箱</label>
         <input
           type="text"
           value={username}
           onChange={(e) => { setUsername(e.target.value); setError(""); }}
-          placeholder="请输入账号"
+          placeholder="请输入账号或邮箱"
           autoComplete="username"
           autoCapitalize="none"
           autoCorrect="off"

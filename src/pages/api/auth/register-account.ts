@@ -30,6 +30,14 @@ function isValidUsername(u: string) {
   return /^[a-z0-9_]{3,20}$/.test(u);
 }
 
+function normalizeEmail(v: unknown) {
+  return typeof v === "string" ? v.trim().toLowerCase() : "";
+}
+
+function isValidEmail(e: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
 function isValidPassword(p: string) {
   return (
     p.length >= PASSWORD_MIN_LENGTH &&
@@ -63,7 +71,7 @@ export const POST: APIRoute = async ({ request }) => {
   const rejected = rejectCrossSiteRequest(request);
   if (rejected) return rejected;
 
-  let body: { username?: unknown; password?: unknown; captchaToken?: unknown };
+  let body: { username?: unknown; email?: unknown; password?: unknown; captchaToken?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -78,9 +86,11 @@ export const POST: APIRoute = async ({ request }) => {
   if (!captchaOk) return json({ ok: false, error: "CAPTCHA_FAILED" }, 403, {}, origin);
 
   const username = normalizeUsername(body.username);
+  const email = normalizeEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
 
   if (!isValidUsername(username)) return json({ ok: false, error: "INVALID_USERNAME" }, 400, {}, origin);
+  if (!isValidEmail(email)) return json({ ok: false, error: "INVALID_EMAIL" }, 400, {}, origin);
   if (!isValidPassword(password)) return json({ ok: false, error: "INVALID_PASSWORD" }, 400, {}, origin);
 
   const db = env.DB;
@@ -88,20 +98,19 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const existing = await db
-      .prepare("SELECT id FROM users WHERE lower(username) = ?1 LIMIT 1")
-      .bind(username)
+      .prepare("SELECT id FROM users WHERE lower(username) = ?1 OR lower(email) = ?2 LIMIT 1")
+      .bind(username, email)
       .first();
-    if (existing) return json({ ok: false, error: "USERNAME_EXISTS" }, 409, {}, origin);
+    if (existing) return json({ ok: false, error: "ACCOUNT_EXISTS" }, 409, {}, origin);
 
     const userId = crypto.randomUUID();
-    const placeholderEmail = `account-${userId}@local.invalid`;
     const passwordHash = await hashPassword(password);
 
     await db
       .prepare(
         "INSERT INTO users (id, username, email, password_hash, session_version, role) VALUES (?1, ?2, ?3, ?4, 1, 'user')",
       )
-      .bind(userId, username, placeholderEmail, passwordHash)
+      .bind(userId, username, email, passwordHash)
       .run();
 
     const session = await createSession(userId, username, false, 1);
@@ -120,8 +129,8 @@ export const POST: APIRoute = async ({ request }) => {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("UNIQUE constraint failed: users.username")) {
-      return json({ ok: false, error: "USERNAME_EXISTS" }, 409, {}, origin);
+    if (message.includes("UNIQUE constraint failed: users.username") || message.includes("UNIQUE constraint failed: users.email")) {
+      return json({ ok: false, error: "ACCOUNT_EXISTS" }, 409, {}, origin);
     }
     console.error("Account registration failed", error);
     return json({ ok: false, error: "REGISTRATION_FAILED" }, 500, {}, origin);
