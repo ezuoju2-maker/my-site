@@ -3,6 +3,7 @@ import { parseApiResponse } from "../lib/api-response";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import CapWidget from "./CapWidget";
+import VerifyCodeInput from "./VerifyCodeInput";
 import { getBase } from "../lib/url";
 import { useTranslation } from "../i18n/useTranslation";
 
@@ -313,40 +314,30 @@ export default function ForgotPasswordForm() {
           {t("forgot.email_code")}
         </label>
 
-        <div className="flex gap-2">
-          <input
-            ref={codeRef}
-            id="forgot-code"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            value={emailCode}
-            onChange={(event) =>
-              setEmailCode(
-                event.target.value.replace(/\D/g, "").slice(0, 6),
-              )
-            }
-            placeholder={t("forgot.email_code_placeholder")}
-            className="min-w-0 flex-1 rounded-lg border px-4 py-3 outline-none"
-            disabled={loading || resetting}
-          />
-
-          <button
-            type="button"
-            onClick={sendCode}
-            disabled={loading || resetting || countdown > 0}
-            className="shrink-0 rounded-lg border px-4 py-3 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading
-              ? t("forgot.send_code_sending")
-              : countdown > 0
-                ? `${countdown}s`
-                : codeSent
-                  ? t("forgot.send_code_resend")
-                  : t("forgot.send_code")}
-          </button>
-        </div>
+        <VerifyCodeInput
+          value={emailCode}
+          onChange={setEmailCode}
+          length={6}
+          autoFocus={false}
+          disabled={loading || resetting}
+        />
+        <p className="mt-2 text-center text-xs text-neutral-500">
+          未接收到邮箱验证码可去垃圾邮件查看是否有
+        </p>
+        <button
+          type="button"
+          onClick={sendCode}
+          disabled={loading || resetting || countdown > 0}
+          className="mt-3 h-11 w-full rounded-lg border border-neutral-300 bg-white text-sm font-medium text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading
+            ? t("forgot.send_code_sending")
+            : countdown > 0
+              ? `重新发送 (${countdown}s)`
+              : codeSent
+                ? "重新发送验证码"
+                : "获取验证码"}
+        </button>
       </div>
 
       <div>
