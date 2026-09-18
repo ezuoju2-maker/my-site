@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { API_BASE_URL } from "../lib/api";
 import VerifyCodeInput from "./VerifyCodeInput";
+
+type Status = "idle" | "success" | "error";
 
 export default function VerifyCodeForm() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
+  const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(60);
+  const verifyingRef = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -20,32 +25,72 @@ export default function VerifyCodeForm() {
   }, [cooldown]);
 
   function handleBack() {
-    window.location.href = "/";
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/";
+    }
   }
 
   async function handleResend() {
-    if (cooldown > 0) return;
-    // TODO: 后续接入重新发送验证码
-    setCooldown(60);
-  }
-
-  function handleComplete(v: string) {
-    // TODO: 后续接入验证 + 创建账号
-    setCode(v);
-  }
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (code.length !== 6) {
-      setError("请输入完整的 6 位验证码");
-      return;
+    if (cooldown > 0 || !email) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/send-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (res.ok && data.ok) {
+        setCooldown(60);
+        setError("");
+        setStatus("idle");
+        setCode("");
+      } else {
+        setError("重新发送失败，请稍后再试");
+      }
+    } catch {
+      setError("网络错误");
     }
-    setSubmitting(true);
-    // TODO: 用户后续开发
-    setTimeout(() => {
-      setSubmitting(false);
-      setError("验证码验证功能开发中");
-    }, 400);
+  }
+
+  async function verifyCode(v: string) {
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
+    setVerifying(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/verify-email-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: v }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (data.ok) {
+        setStatus("success");
+        // TODO: 你后续开发 —— 验证成功后创建账号 / 跳转
+      } else {
+        setStatus("error");
+        const map: Record<string, string> = {
+          EMAIL_CODE_EXPIRED: "验证码已过期，请重新发送",
+          INVALID_CODE: "验证码错误，请重试",
+          TOO_MANY_ATTEMPTS: "尝试次数过多，请重新发送验证码",
+        };
+        setError(map[data.error as string] || "验证失败，请重试");
+      }
+    } catch {
+      setStatus("error");
+      setError("网络错误，请重试");
+    } finally {
+      setVerifying(false);
+      verifyingRef.current = false;
+    }
+  }
+
+  function handleChange(v: string) {
+    setCode(v);
+    if (status !== "idle") setStatus("idle");
+    if (error) setError("");
   }
 
   return (
@@ -65,10 +110,8 @@ export default function VerifyCodeForm() {
         <h2 className="text-sm font-medium text-neutral-900">人机验证</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6">
-        <p className="text-center text-sm text-neutral-600">
-          验证码已发送至
-        </p>
+      <div className="p-6">
+        <p className="text-center text-sm text-neutral-600">验证码已发送至</p>
         <p className="mt-1 text-center text-sm font-medium text-neutral-900 break-all">
           {email || "（未知邮箱）"}
         </p>
@@ -76,14 +119,22 @@ export default function VerifyCodeForm() {
         <div className="mt-6">
           <VerifyCodeInput
             value={code}
-            onChange={setCode}
-            onComplete={handleComplete}
+            onChange={handleChange}
+            onComplete={verifyCode}
+            status={status}
+            disabled={verifying}
             autoFocus
           />
         </div>
 
-        {error && (
+        {verifying && (
+          <p className="mt-4 text-center text-xs text-neutral-500">验证中…</p>
+        )}
+        {!verifying && error && (
           <p className="mt-4 text-center text-sm text-red-500">{error}</p>
+        )}
+        {!verifying && status === "success" && (
+          <p className="mt-4 text-center text-sm text-green-600">验证成功</p>
         )}
 
         <div className="mt-6 text-center text-xs text-neutral-500">
@@ -99,15 +150,7 @@ export default function VerifyCodeForm() {
             </button>
           )}
         </div>
-
-        <button
-          type="submit"
-          disabled={submitting || code.length !== 6}
-          className="mt-6 h-12 w-full rounded-lg bg-neutral-900 px-4 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? "验证中…" : "下一步"}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }
