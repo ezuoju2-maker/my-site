@@ -6,7 +6,6 @@ type Props = {
     username: string;
     displayName: string;
     avatarUrl: string | null;
-    email: string;
     role: string;
   };
 };
@@ -35,25 +34,29 @@ export default function UserCard({ user }: Props) {
         <IcoArrow />
       </div>
 
-      {/* 账号状态 */}
+      {/* 钱包余额 */}
       <div className="border-t border-neutral-100 p-4">
-        <div className="text-xs text-neutral-500">账号状态</div>
-        <div className="mt-1 text-2xl font-bold tracking-tight text-neutral-900">
-          {user.role === "admin" ? "管理员" : "已登录"}
+        <div className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-900 text-lg">💰</span>
+          <span className="text-sm text-neutral-500">钱包余额</span>
+        </div>
+        <div className="mt-2 flex items-baseline gap-1">
+          <span className="text-2xl font-bold text-neutral-900">¥</span>
+          <span className="text-3xl font-bold tracking-tight text-neutral-900">0.00</span>
         </div>
       </div>
 
       {/* 3 个操作按钮 */}
       <div className="grid grid-cols-3 gap-2 px-4 pb-4">
-        <a href="/settings/devices/" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-700">
-          <span>📱</span>管理设备
-        </a>
-        <a href="/forgot-password/" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-700">
-          <span>🔒</span>修改密码
-        </a>
-        <a href="/passkey/recover/" className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-neutral-900 text-xs font-medium text-white">
-          <span>🔑</span>Passkey
-        </a>
+        <button type="button" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-700">
+          <span>📊</span>查看流水
+        </button>
+        <button type="button" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-700">
+          <span>💳</span>提现
+        </button>
+        <button type="button" className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-neutral-900 text-xs font-medium text-white">
+          <span>💰</span>充值
+        </button>
       </div>
     </div>
   );
