@@ -15,9 +15,7 @@ export default function LoginBrand() {
 
   return (
     <div className="mb-6 text-center">
-      <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-sm font-semibold tracking-wide text-neutral-700">
-        LOGO
-      </div>
+      <img src="/q8-logo.svg" alt="Q8" className="mx-auto h-14 w-14 text-neutral-900" />
 
       <h1 className="text-xl font-semibold tracking-tight text-neutral-900">
         {t("login.site_name")}

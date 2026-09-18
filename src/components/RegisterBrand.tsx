@@ -7,9 +7,7 @@ export default function RegisterBrand() {
   return (
     <header className="text-center">
       <a href={getBase()} className="inline-block">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-sm font-semibold tracking-wide text-neutral-700">
-          LOGO
-        </div>
+        <img src="/q8-logo.svg" alt="Q8" className="mx-auto h-14 w-14 text-neutral-900" />
       </a>
 
       <h1 className="mt-3 text-lg font-semibold tracking-tight text-neutral-900">
