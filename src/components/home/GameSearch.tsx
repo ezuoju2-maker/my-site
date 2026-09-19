@@ -13,7 +13,7 @@ export default function GameSearch({ onSearch }: { onSearch: (q: string) => void
     <form
       onSubmit={submit}
       className="h-card h-card-lg flex items-center gap-2"
-      style={{ padding: "8px 10px 8px 18px", height: 60 }}
+      style={{ padding: "8px 8px 8px 18px", height: 60 }}
     >
       <Search size={18} strokeWidth={2} className="shrink-0 text-neutral-400" />
       <input
@@ -26,7 +26,7 @@ export default function GameSearch({ onSearch }: { onSearch: (q: string) => void
       />
       <button
         type="submit"
-        className="h-tap h-10 shrink-0 rounded-full bg-neutral-900 px-4 text-[13px] font-bold text-white"
+        className="h-tap h-[44px] shrink-0 rounded-full bg-neutral-900 px-5 text-[13px] font-bold text-white"
       >
         搜索
       </button>

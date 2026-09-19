@@ -16,7 +16,7 @@ export default function BottomNavigation() {
   const [active, setActive] = useState("home");
 
   return (
-    <nav className="h-card h-card-lg grid grid-cols-6" style={{ padding: "12px 6px" }} aria-label="主导航">
+    <nav className="h-card h-card-lg grid grid-cols-6" style={{ padding: "14px 8px" }} aria-label="主导航">
       {ITEMS.map(({ key, label, href, Icon }) => {
         const isActive = active === key;
         return (
@@ -24,19 +24,19 @@ export default function BottomNavigation() {
             key={key}
             href={href}
             onClick={() => setActive(key)}
-            className="h-tap flex flex-col items-center justify-center gap-1.5 py-1"
+            className="h-tap flex flex-col items-center justify-center gap-1.5"
             aria-label={label}
           >
             <span
-              className={`flex h-10 w-10 items-center justify-center rounded-2xl transition-all ${
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-all ${
                 isActive
                   ? "bg-gradient-to-br from-neutral-800 to-neutral-950 text-white shadow-[0_4px_12px_-3px_rgba(0,0,0,0.35)]"
-                  : "bg-neutral-100 text-[#6f7075]"
+                  : "bg-transparent text-[#6f7075]"
               }`}
             >
-              <Icon size={19} strokeWidth={isActive ? 2.2 : 1.9} />
+              <Icon size={isActive ? 20 : 22} strokeWidth={isActive ? 2.2 : 1.8} />
             </span>
-            <span className={`text-[11px] ${isActive ? "font-bold text-neutral-900" : "font-medium text-[#6f7075]"}`}>
+            <span className={`text-[11px] leading-none ${isActive ? "font-bold text-neutral-900" : "font-medium text-[#6f7075]"}`}>
               {label}
             </span>
           </a>

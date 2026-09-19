@@ -1,4 +1,4 @@
-import "../components/home/home.css";
+import "./home/home.css";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
@@ -63,8 +63,8 @@ export default function WelcomePage() {
   if (status === "loading") {
     return (
       <main className="h-shell">
-        <div className="h-container" style={{ paddingTop: 40 }}>
-          <p className="text-center text-[13px] text-neutral-400">加载中…</p>
+        <div className="h-container" style={{ paddingTop: 40, textAlign: "center" }}>
+          <p style={{ fontSize: 13, color: "#a3a5aa" }}>加载中…</p>
         </div>
       </main>
     );
@@ -73,12 +73,22 @@ export default function WelcomePage() {
   if (status === "error" || !user) {
     return (
       <main className="h-shell">
-        <div className="h-container" style={{ paddingTop: 40 }}>
-          <p className="text-center text-[13px] text-neutral-400">加载失败，请稍后重试</p>
+        <div className="h-container" style={{ paddingTop: 40, textAlign: "center" }}>
+          <p style={{ fontSize: 13, color: "#a3a5aa" }}>加载失败，请稍后重试</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mx-auto mt-4 block rounded-full bg-neutral-900 px-5 py-2 text-[13px] font-medium text-white"
+            style={{
+              marginTop: 16,
+              display: "inline-block",
+              padding: "8px 20px",
+              borderRadius: 999,
+              background: "#171717",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 500,
+              border: 0,
+            }}
           >
             重新加载
           </button>
@@ -92,7 +102,13 @@ export default function WelcomePage() {
       <Header />
       <div
         className="h-container"
-        style={{ paddingTop: 6, paddingBottom: 28, display: "flex", flexDirection: "column", gap: 14 }}
+        style={{
+          paddingTop: 4,
+          paddingBottom: "calc(28px + env(safe-area-inset-bottom))",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
       >
         <UserCard user={user} />
         <HeroBanner />

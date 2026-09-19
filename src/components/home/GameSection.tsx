@@ -25,14 +25,17 @@ export default function GameSection({
   }, [games, cat, query]);
 
   return (
-    <section className="grid gap-3" style={{ gridTemplateColumns: "80px 1fr" }}>
+    <section
+      className="grid items-start"
+      style={{ gridTemplateColumns: "92px minmax(0, 1fr)", gap: 12 }}
+    >
       <GameCategory active={cat} onChange={setCat} />
 
       <div className="h-card h-card-lg" style={{ padding: 14 }}>
         {/* 头部 */}
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Flame size={18} strokeWidth={2.2} style={{ color: "#e53935" }} />
+            <Flame size={18} strokeWidth={2.3} style={{ color: "#e53935" }} />
             <span className="text-[15px] font-black text-neutral-900">热门游戏</span>
           </div>
           <a href="/games" className="flex items-center gap-0.5 text-[11px] font-medium text-[#a0a4aa]">
@@ -46,7 +49,7 @@ export default function GameSection({
             暂无相关游戏
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2" style={{ gap: 10 }}>
             {filtered.map((g) => (
               <GameCard key={g.id} game={g} />
             ))}

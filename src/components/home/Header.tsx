@@ -10,6 +10,13 @@ export default function Header() {
     if (saved) setLang(saved);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const onClick = () => setOpen(false);
+    window.addEventListener("click", onClick);
+    return () => window.removeEventListener("click", onClick);
+  }, [open]);
+
   function choose(l: string) {
     setLang(l);
     try { window.localStorage.setItem("q8_lang", l); } catch {}
@@ -17,40 +24,53 @@ export default function Header() {
   }
 
   return (
-    <header className="h-container" style={{ paddingTop: 18, paddingBottom: 6 }}>
-      <div className="flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 shadow-[0_4px_16px_-6px_rgba(0,0,0,0.35)]">
+    <header className="h-container" style={{ paddingTop: 16, paddingBottom: 4 }}>
+      <div className="flex items-center justify-between gap-3">
+        {/* Logo 组 */}
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-neutral-900"
+            style={{ boxShadow: "0 6px 18px -6px rgba(0,0,0,0.35)" }}
+          >
             <img src="/q8-logo.png" alt="Q8" className="h-7 w-7 object-contain" style={{ filter: "invert(1)" }} />
           </div>
-          <div className="leading-tight">
-            <div className="text-[20px] font-black tracking-tight text-neutral-900">Q8Top</div>
-            <div className="text-[12px] text-[#8c8c8c]">www.q8top.cc</div>
+          <div className="min-w-0 leading-tight">
+            <div className="truncate text-[20px] font-black tracking-tight text-neutral-900">Q8Top</div>
+            <div className="truncate text-[12px] text-[#8c8c8c]">www.q8top.cc</div>
           </div>
         </div>
 
-        {/* 语言选择 */}
-        <div className="relative">
+        {/* 语言按钮 */}
+        <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             aria-label="切换语言"
             onClick={() => setOpen((v) => !v)}
-            className="h-tap flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-[13px] font-medium text-neutral-700 shadow-sm"
+            className="h-tap flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-[13px] font-medium text-neutral-700"
+            style={{ boxShadow: "0 2px 8px -3px rgba(0,0,0,0.08)" }}
           >
             <Globe size={15} strokeWidth={2} />
-            {lang}
-            <ChevronDown size={13} strokeWidth={2.5} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+            <span>{lang}</span>
+            <ChevronDown
+              size={13}
+              strokeWidth={2.5}
+              className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            />
           </button>
 
           {open && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-32 overflow-hidden rounded-2xl border border-neutral-100 bg-white py-1 shadow-lg">
+            <div
+              className="absolute right-0 top-full z-50 mt-2 w-32 overflow-hidden rounded-2xl border border-neutral-100 bg-white py-1"
+              style={{ boxShadow: "0 8px 24px -6px rgba(0,0,0,0.12)" }}
+            >
               {["中文", "English"].map((l) => (
                 <button
                   key={l}
                   type="button"
                   onClick={() => choose(l)}
-                  className={`block w-full px-4 py-2 text-left text-[13px] transition-colors hover:bg-neutral-50 ${lang === l ? "font-semibold text-neutral-900" : "text-neutral-600"}`}
+                  className={`block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-neutral-50 ${
+                    lang === l ? "font-semibold text-neutral-900" : "text-neutral-600"
+                  }`}
                 >
                   {l}
                 </button>
