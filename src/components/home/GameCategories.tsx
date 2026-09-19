@@ -19,7 +19,7 @@ export default function GameCategories({
   onChange: (id: string) => void;
 }) {
   return (
-    <aside className="flex flex-col gap-0.5 rounded-2xl border border-neutral-100 bg-white p-1.5 shadow-sm" aria-label="游戏分类">
+    <aside className="flex flex-col gap-0.5 rounded-2xl border border-neutral-100 bg-white p-1.5 shadow-sm">
       {CATEGORIES.map((c: Category) => {
         const Icon = ICONS[c.iconKey];
         const isActive = active === c.id;
@@ -28,10 +28,9 @@ export default function GameCategories({
             key={c.id}
             type="button"
             aria-label={c.name}
-            aria-pressed={isActive}
             onClick={() => onChange(c.id)}
-            className={`flex flex-col items-center gap-1 rounded-xl py-2.5 transition-all active:scale-95 ${
-              isActive ? "bg-neutral-900 text-white shadow-sm" : "text-neutral-500 hover:bg-neutral-50"
+            className={`flex flex-col items-center gap-1 rounded-xl py-2.5 active:scale-95 ${
+              isActive ? "bg-neutral-900 text-white" : "text-neutral-500 hover:bg-neutral-50"
             }`}
           >
             <Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} />

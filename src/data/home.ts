@@ -10,10 +10,10 @@ export const CATEGORIES: Category[] = [
 ];
 
 export const MOCK_GAMES: Game[] = [
-  { id: "go", name: "GO 棋牌", category: "cards", image: "/assets/games/go.webp", badge: "HOT" },
-  { id: "wg", name: "WG 棋牌", category: "cards", image: "/assets/games/wg.webp", badge: "推荐" },
-  { id: "ky", name: "KY 棋牌", category: "cards", image: "/assets/games/ky.webp", badge: "HOT" },
-  { id: "leg", name: "LEG 棋牌", category: "cards", image: "/assets/games/leg.webp", badge: "推荐" },
-  { id: "baisheng", name: "百胜棋牌", category: "cards", image: "/assets/games/baisheng.webp", badge: "HOT" },
-  { id: "wl", name: "WL 棋牌", category: "cards", image: "/assets/games/wl.webp", badge: "推荐" },
+  { id: "go", name: "GO 棋牌", category: "cards", badge: "HOT" },
+  { id: "wg", name: "WG 棋牌", category: "cards", badge: "推荐" },
+  { id: "ky", name: "KY 棋牌", category: "cards", badge: "HOT" },
+  { id: "leg", name: "LEG 棋牌", category: "cards", badge: "推荐" },
+  { id: "baisheng", name: "百胜棋牌", category: "cards", badge: "HOT" },
+  { id: "wl", name: "WL 棋牌", category: "cards", badge: "推荐" },
 ];

@@ -4,7 +4,7 @@ export default function Announcement() {
   return (
     <a
       href="/announcements"
-      className="flex h-14 items-center gap-2.5 rounded-2xl border border-neutral-100 bg-white px-4 shadow-sm transition-colors active:bg-neutral-50"
+      className="flex h-14 items-center gap-2.5 rounded-2xl border border-neutral-100 bg-white px-4 shadow-sm active:bg-neutral-50"
     >
       <Volume2 size={18} strokeWidth={1.9} className="shrink-0 text-neutral-800" />
       <span className="shrink-0 text-[14px] font-semibold text-neutral-900">公告</span>

@@ -31,7 +31,7 @@ export default function GameSearch({ onSearch }: { onSearch: (q: string) => void
       />
       <button
         type="submit"
-        className="h-11 shrink-0 rounded-xl bg-neutral-900 px-4 text-[13px] font-semibold text-white transition-transform active:scale-95"
+        className="h-11 shrink-0 rounded-xl bg-neutral-900 px-4 text-[13px] font-semibold text-white active:scale-95"
       >
         搜索
       </button>
