@@ -1,38 +1,26 @@
 .q8-user-card {
-  position: relative;
   background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
-  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
-.q8-crown {
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  width: 110px;
-  height: auto;
-  pointer-events: none;
-  user-select: none;
-}
-
-.q8-user-top {
-  position: relative;
+.q8-user-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-right: 82px;
+  padding: 18px 18px 16px;
 }
 
 .q8-avatar {
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%);
-  box-shadow: 0 0 0 2.5px #fff, 0 4px 14px -3px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 .q8-user-info {
@@ -43,15 +31,15 @@
 .q8-user-name-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
 .q8-user-name {
-  font-size: 20px;
-  font-weight: 700;
-  color: #17181b;
-  max-width: 130px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 140px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -62,90 +50,103 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: #f5e8c9;
-  color: #8a682b;
-  font-size: 11px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ffd88a 0%, #f6b73c 100%);
+  color: #6b4a00;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
 }
 
 .q8-user-id {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 4px;
+  gap: 4px;
+  margin-top: 3px;
   border: 0;
   background: transparent;
-  color: #85888d;
-  font-size: 13px;
+  color: var(--text-secondary);
+  font-size: 12px;
   padding: 0;
   cursor: pointer;
 }
 
 .q8-user-arrow {
   flex-shrink: 0;
-  color: #c4c6c9;
+  color: var(--text-muted);
 }
 
 .q8-wallet {
-  margin-top: 22px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--card-border);
 }
 
 .q8-wallet-label {
-  font-size: 14px;
-  color: #6f7378;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .q8-wallet-amount {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: 4px;
 }
 
 .q8-wallet-num {
-  font-size: 40px;
+  font-size: 32px;
   font-weight: 700;
-  letter-spacing: -1px;
-  line-height: 1;
-  color: #17181b;
+  letter-spacing: -0.8px;
+  line-height: 1.1;
+  color: var(--text);
 }
 
 .q8-wallet-eye {
   border: 0;
   background: transparent;
   padding: 4px;
-  color: #a1a4aa;
+  color: var(--text-muted);
   cursor: pointer;
 }
 
 .q8-wallet-actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .q8-action-btn {
-  height: 58px;
-  border-radius: 18px;
+  height: 42px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 13px;
   font-weight: 600;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--card-border);
   background: #fff;
-  color: #333;
+  color: var(--text);
   cursor: pointer;
+  transition: all 180ms ease;
+}
+.q8-action-btn:hover {
+  background: #fafafa;
+}
+.q8-action-btn:active {
+  transform: scale(0.98);
 }
 
-.q8-action-btn.gold {
-  background: #fff3d6;
-  color: #8d692e;
-  border-color: #fff3d6;
+.q8-action-btn.accent {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px -4px rgba(255, 36, 66, 0.4);
+}
+.q8-action-btn.accent:hover {
+  background: var(--accent-hover);
 }

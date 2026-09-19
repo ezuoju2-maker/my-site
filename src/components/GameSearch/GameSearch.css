@@ -2,16 +2,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 64px;
-  padding: 0 8px 0 20px;
+  height: 48px;
+  padding: 0 6px 0 16px;
   background: #fff;
-  border-radius: 999px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
 }
 
 .q8-search-icon {
   flex-shrink: 0;
-  color: #999ca1;
+  color: var(--text-muted);
 }
 
 .q8-search-input {
@@ -21,28 +22,29 @@
   border: 0;
   outline: none;
   background: transparent;
-  font-size: 15px;
-  color: #17181b;
+  font-size: 14px;
+  color: var(--text);
   font-family: inherit;
 }
 .q8-search-input::placeholder {
-  color: #a1a4a9;
+  color: var(--text-muted);
 }
 
 .q8-search-btn {
   flex-shrink: 0;
-  height: 48px;
-  padding: 0 22px;
+  height: 36px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 999px;
-  background: #181818;
+  border-radius: 10px;
+  background: var(--accent);
   color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 180ms ease;
+  transition: all 180ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 .q8-search-btn:active {
   transform: scale(0.96);
+  background: var(--accent-hover);
 }

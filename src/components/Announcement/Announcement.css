@@ -1,40 +1,45 @@
 .q8-announce {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 68px;
-  padding: 0 18px;
+  gap: 10px;
+  height: 56px;
+  padding: 0 16px;
   background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
   text-decoration: none;
   color: inherit;
+  transition: background 180ms ease;
+}
+.q8-announce:hover {
+  background: #fafafa;
 }
 
 .q8-announce-icon {
   flex-shrink: 0;
-  color: #17181b;
+  color: var(--accent);
 }
 
 .q8-announce-label {
   flex-shrink: 0;
-  font-size: 15px;
-  font-weight: 800;
-  color: #17181b;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .q8-announce-divider {
   flex-shrink: 0;
   width: 1px;
-  height: 16px;
-  background: #ededed;
+  height: 14px;
+  background: var(--card-border);
 }
 
 .q8-announce-text {
   min-width: 0;
   flex: 1;
   font-size: 13px;
-  color: #70747b;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -42,5 +47,5 @@
 
 .q8-announce-arrow {
   flex-shrink: 0;
-  color: #c4c6c9;
+  color: var(--text-muted);
 }

@@ -1,42 +1,42 @@
 .q8-cats {
   background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
-  padding: 10px 6px;
+  border-radius: 18px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  padding: 8px 5px;
   align-self: flex-start;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .q8-cat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px 0;
+  gap: 5px;
+  padding: 9px 0;
   border: 0;
   background: transparent;
-  color: #70747b;
-  border-radius: 18px;
+  color: var(--text-secondary);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 180ms ease;
   -webkit-tap-highlight-color: transparent;
 }
-.q8-cat:active { transform: scale(0.96); }
+.q8-cat:active { transform: scale(0.95); }
 
 .q8-cat.active {
-  background: linear-gradient(180deg, #262626 0%, #0f0f0f 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 12px -3px rgba(0, 0, 0, 0.3);
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 .q8-cat-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 .q8-cat-label {
@@ -45,5 +45,5 @@
   line-height: 1;
 }
 .q8-cat.active .q8-cat-label {
-  font-weight: 700;
+  font-weight: 600;
 }

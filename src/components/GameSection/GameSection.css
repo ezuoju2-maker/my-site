@@ -1,14 +1,15 @@
 .q8-games-layout {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
   align-items: flex-start;
 }
 
 .q8-games-panel {
   background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
+  border-radius: 18px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
   padding: 14px;
 }
 
@@ -16,21 +17,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .q8-games-title {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 16px;
-  font-weight: 800;
-  color: #17181b;
+  gap: 5px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
   letter-spacing: -0.2px;
 }
 
 .q8-games-title-flame {
-  color: #ef3f3f;
+  color: var(--accent);
 }
 
 .q8-games-more {
@@ -38,7 +39,7 @@
   align-items: center;
   gap: 2px;
   font-size: 12px;
-  color: #a1a4aa;
+  color: var(--text-muted);
   text-decoration: none;
   font-weight: 500;
 }
@@ -46,35 +47,35 @@
 .q8-games-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .q8-games-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 0;
+  padding: 40px 0;
   font-size: 13px;
-  color: #a1a4aa;
+  color: var(--text-muted);
 }
 
 .q8-games-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  height: 52px;
-  margin-top: 14px;
-  border-radius: 999px;
-  border: 1px solid #ededed;
+  gap: 3px;
+  height: 42px;
+  margin-top: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
   background: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  color: #17181b;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
   text-decoration: none;
   transition: background 180ms ease;
   cursor: pointer;
 }
 .q8-games-footer:hover {
-  background: #f8f9fb;
+  background: #fafafa;
 }
