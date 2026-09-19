@@ -1,0 +1,59 @@
+:root {
+  --h-bg: #f6f7f9;
+  --h-card: #ffffff;
+  --h-text: #202124;
+  --h-text-2: #777b82;
+  --h-text-muted: #a0a4aa;
+  --h-gold: #a47a2d;
+  --h-gold-bg: #fff4dc;
+  --h-danger: #e53935;
+  --h-success: #32a66a;
+  --h-border: rgba(0, 0, 0, 0.05);
+}
+
+.h-shell {
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 50% -10%, #ffffff 0%, #f6f7f9 60%);
+  overflow-x: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--h-text);
+}
+
+.h-container {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.h-card {
+  background: var(--h-card);
+  border-radius: 24px;
+  border: 1px solid var(--h-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.h-card-lg {
+  border-radius: 24px;
+}
+
+.h-card-md {
+  border-radius: 18px;
+}
+
+.h-card-sm {
+  border-radius: 14px;
+}
+
+.h-pill {
+  border-radius: 999px;
+}
+
+.h-tap {
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  cursor: pointer;
+}
+.h-tap:active {
+  transform: scale(0.98);
+}

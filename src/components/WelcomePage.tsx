@@ -1,30 +1,31 @@
+import "../components/home/home.css";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
-import TopBar from "./welcome/TopBar";
-import UserCard from "./welcome/UserCard";
-import Banner from "./welcome/Banner";
-import Notice from "./welcome/Notice";
-import QuickNav from "./welcome/QuickNav";
-import SearchBar from "./welcome/SearchBar";
-import Sidebar, { type CatKey } from "./welcome/Sidebar";
-import GameGrid from "./welcome/GameGrid";
+import Header from "./home/Header";
+import UserCard from "./home/UserCard";
+import HeroBanner from "./home/HeroBanner";
+import Announcement from "./home/Announcement";
+import BottomNavigation from "./home/BottomNavigation";
+import GameSearch from "./home/GameSearch";
+import GameSection from "./home/GameSection";
+import { MOCK_GAMES } from "../data/home";
+import type { User } from "../types/home";
 
-type UserInfo = {
+type ApiUser = {
   id: string;
   username: string;
   email: string;
   role: string;
   displayName: string;
   avatarUrl: string | null;
-  createdAt?: string;
 };
 
 export default function WelcomePage() {
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [status, setStatus] = useState<"loading" | "ok">("loading");
-  const [cat, setCat] = useState<CatKey>("hot");
+  const [user, setUser] = useState<User | null>(null);
+  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -40,43 +41,65 @@ export default function WelcomePage() {
         const data = await parseApiResponse(res);
         if (cancelled) return;
         if (!data.ok || !data.user) { window.location.replace(getBase()); return; }
-        setUser(data.user as UserInfo);
+        const u = data.user as ApiUser;
+        setUser({
+          id: u.id,
+          username: u.username,
+          displayName: u.displayName,
+          avatar: u.avatarUrl || undefined,
+          vipLevel: 1,
+          balance: 0,
+          role: u.role,
+        });
         setStatus("ok");
       } catch {
-        if (!cancelled) window.location.replace(getBase());
+        if (!cancelled) setStatus("error");
       }
     }
     void load();
     return () => { cancelled = true; };
   }, []);
 
-  if (status === "loading" || !user) {
+  if (status === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900" />
-          <p className="mt-4 text-sm text-neutral-500">正在加载…</p>
+      <main className="h-shell">
+        <div className="h-container" style={{ paddingTop: 40 }}>
+          <p className="text-center text-[13px] text-neutral-400">加载中…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "error" || !user) {
+    return (
+      <main className="h-shell">
+        <div className="h-container" style={{ paddingTop: 40 }}>
+          <p className="text-center text-[13px] text-neutral-400">加载失败，请稍后重试</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mx-auto mt-4 block rounded-full bg-neutral-900 px-5 py-2 text-[13px] font-medium text-white"
+          >
+            重新加载
+          </button>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-8">
-      <TopBar />
-
-      <div className="mx-auto max-w-2xl space-y-3 px-4">
+    <main className="h-shell">
+      <Header />
+      <div
+        className="h-container"
+        style={{ paddingTop: 6, paddingBottom: 28, display: "flex", flexDirection: "column", gap: 14 }}
+      >
         <UserCard user={user} />
-        <Banner />
-        <Notice />
-        <QuickNav />
-        <SearchBar />
-
-        {/* 两栏：侧栏 + 游戏网格 */}
-        <div className="grid grid-cols-[80px_1fr] gap-2.5 pb-4">
-          <Sidebar active={cat} onChange={setCat} />
-          <GameGrid />
-        </div>
+        <HeroBanner />
+        <Announcement />
+        <BottomNavigation />
+        <GameSearch onSearch={setQuery} />
+        <GameSection games={MOCK_GAMES} query={query} />
       </div>
     </main>
   );
