@@ -110,7 +110,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
     return new Response(
-      JSON.stringify({ ok: true, user: { id: user.id, username: user.username, role: user.role || "user" } }),
+      JSON.stringify({ ok: true, user: { id: user.id, username: user.username } }),
       {
         status: 200,
         headers: {

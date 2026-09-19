@@ -60,3 +60,9 @@ package.json.before-*
 *.log
 user_login_devices.sql
 p*.mjs
+!scripts/pack-source.mjs
+cleanup-report.txt
+astro-check-report.txt
+astro-check-report2.txt
+build-report.txt
+build-report2.txt

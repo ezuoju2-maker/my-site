@@ -265,7 +265,6 @@ export const POST: APIRoute = async ({ request }) => {
           id: user.id,
           username: user.username,
           email: user.email,
-          role: user.role || "user",
         },
         device_id: deviceId,
         risk: riskResult ? { score: riskResult.score, level: riskResult.level, isNewDevice: riskResult.signals.isNewDevice, reasons: riskResult.reasons } : null,

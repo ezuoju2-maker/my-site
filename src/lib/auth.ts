@@ -42,7 +42,6 @@ export type ActiveSession = {
   userId: string;
   username: string;
   sessionVersion: number;
-  role: string;
 };
 
 type StoredPassword = {
@@ -249,10 +248,10 @@ export async function getSession(request: Request): Promise<ActiveSession | null
 
   try {
     const user = await env.DB.prepare(
-      "SELECT session_version, role FROM users WHERE id = ?1 LIMIT 1",
+      "SELECT session_version FROM users WHERE id = ?1 LIMIT 1",
     )
       .bind(stored.userId)
-      .first<{ session_version: number; role: string }>();
+      .first<{ session_version: number }>();
 
     if (!user || user.session_version !== stored.sessionVersion) {
       await deleteSessionRecord(token);
@@ -264,8 +263,7 @@ export async function getSession(request: Request): Promise<ActiveSession | null
       userId: stored.userId,
       username: stored.username,
       sessionVersion: stored.sessionVersion,
-      role: user.role || "user",
-    };
+      };
   } catch {
     return null;
   }

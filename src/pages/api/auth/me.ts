@@ -75,7 +75,6 @@ export const GET: APIRoute = async ({ request }) => {
             userId: trusted.userId,
             username: row.username,
             sessionVersion: row.session_version,
-            role: "user",
           };
         }
       }
@@ -101,7 +100,6 @@ export const GET: APIRoute = async ({ request }) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role || "user",
         displayName: user.display_name || user.username,
         avatarUrl: user.avatar_url || null,
       },
