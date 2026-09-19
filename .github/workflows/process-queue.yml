@@ -1,0 +1,35 @@
+name: Process Registration Queue
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call process-queue endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          API_URL: https://xx-drp.pages.dev/api/cron/process-queue
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::warning::CRON_SECRET not configured, skipping"
+            exit 0
+          fi
+          HTTP_CODE=$(curl -sS -o /tmp/queue.json -w '%{http_code}' \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            "${API_URL}")
+          echo "HTTP status: ${HTTP_CODE}"
+          cat /tmp/queue.json
+          echo ""
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::process-queue failed (HTTP ${HTTP_CODE})"
+            exit 1
+          fi

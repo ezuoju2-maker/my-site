@@ -12,15 +12,20 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
-    name: Type check and audit
+    name: Typecheck and static build validation
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -30,22 +35,54 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Astro type check
+      - name: Astro check
         run: npx astro check
-        continue-on-error: false
 
-      - name: Build (GitHub Pages static mode)
+      - name: Create isolated static build workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_ROOT="${RUNNER_TEMP}/my-site-pages-build"
+          rm -rf "$BUILD_ROOT"
+          mkdir -p "$BUILD_ROOT"
+
+          git archive --format=tar HEAD | tar -xf - -C "$BUILD_ROOT"
+
+          rm -rf "$BUILD_ROOT/src/pages/api"
+          rm -f "$BUILD_ROOT/src/middleware.ts"
+
+          test -f "$BUILD_ROOT/package.json"
+          test ! -d "$BUILD_ROOT/src/pages/api"
+          test ! -f "$BUILD_ROOT/src/middleware.ts"
+
+          echo "BUILD_ROOT=$BUILD_ROOT" >> "$GITHUB_ENV"
+
+      - name: Install static-build dependencies
+        working-directory: ${{ runner.temp }}/my-site-pages-build
+        run: npm ci
+
+      - name: Build static fallback
+        working-directory: ${{ runner.temp }}/my-site-pages-build
         env:
           GITHUB_PAGES: "true"
           PUBLIC_API_BASE_URL: "https://xx-drp.pages.dev"
+        run: npm run build
+
+      - name: Verify static output
+        shell: bash
         run: |
-          rm -rf src/pages/api
-          rm -rf src/middleware.ts
-          npm run build
+          set -euo pipefail
+
+          test -f "$BUILD_ROOT/dist/index.html"
+
+          if find "$BUILD_ROOT/dist/api" -type f -print -quit 2>/dev/null | grep -q .; then
+            echo "::error::Static build contains API files."
+            exit 1
+          fi
+
+          echo "Static fallback validation: PASS"
 
       - name: npm audit (high and above, non-blocking)
         run: npm audit --audit-level=high
         continue-on-error: true
-
-      - name: Done
-        run: echo "CI checks completed."

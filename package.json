@@ -10,8 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "deploy": "npm run build && npx wrangler deploy",
-    "build:pages": "rm -rf src/pages/api && astro build"
+    "deploy": "npm run build && npx wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "12.6.0",

@@ -194,14 +194,27 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!sendResult.ok) {
     if (sendResult.error === "ALL_EMAIL_PROVIDERS_EXHAUSTED") {
+      // 邮件配额耗尽：写入排队表，配额恢复后自动发送
+      try {
+        await env.DB.prepare(
+          "INSERT INTO registration_queue (id, email, ip_address) VALUES (?1, ?2, ?3)"
+        ).bind(
+          crypto.randomUUID(),
+          email,
+          request.headers.get("CF-Connecting-IP") || "unknown"
+        ).run();
+      } catch (e) {
+        console.warn("[send-code] queue insert failed", e);
+      }
       return json(
         {
           ok: false,
           error: "EMAIL_QUOTA_EXHAUSTED",
-          message: "今日注册邮箱配额已满，请明日再试",
+          message: "今日注册邮箱配额已满，已为你加入排队，配额恢复后将自动发送验证码",
+          queued: true,
         },
         503,
-        { "Retry-After": "86400" },
+        { "Retry-After": "3600" },
         origin,
       );
     }
