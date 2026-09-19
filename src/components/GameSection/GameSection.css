@@ -1,0 +1,80 @@
+.q8-games-layout {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.q8-games-panel {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
+  padding: 14px;
+}
+
+.q8-games-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.q8-games-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #17181b;
+  letter-spacing: -0.2px;
+}
+
+.q8-games-title-flame {
+  color: #ef3f3f;
+}
+
+.q8-games-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: #a1a4aa;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.q8-games-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.q8-games-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  font-size: 13px;
+  color: #a1a4aa;
+}
+
+.q8-games-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 52px;
+  margin-top: 14px;
+  border-radius: 999px;
+  border: 1px solid #ededed;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: #17181b;
+  text-decoration: none;
+  transition: background 180ms ease;
+  cursor: pointer;
+}
+.q8-games-footer:hover {
+  background: #f8f9fb;
+}

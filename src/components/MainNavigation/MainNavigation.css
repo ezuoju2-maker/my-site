@@ -1,0 +1,55 @@
+.q8-nav {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 14px 8px;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
+}
+
+.q8-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 180ms ease;
+}
+.q8-nav-item:active {
+  transform: scale(0.96);
+}
+
+.q8-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: #f3f4f6;
+  color: #70747b;
+  transition: all 200ms ease;
+}
+
+.q8-nav-item.active .q8-nav-icon {
+  background: #181818;
+  color: #ffffff;
+  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.4);
+}
+
+.q8-nav-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #70747b;
+  transition: all 200ms ease;
+}
+
+.q8-nav-item.active .q8-nav-label {
+  color: #17181b;
+  font-weight: 700;
+}

@@ -1,15 +1,15 @@
-import "./home/home.css";
+import "../styles/globals.css";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../lib/api";
 import { parseApiResponse } from "../lib/api-response";
 import { getBase } from "../lib/url";
-import Header from "./home/Header";
-import UserCard from "./home/UserCard";
-import HeroBanner from "./home/HeroBanner";
-import Announcement from "./home/Announcement";
-import BottomNavigation from "./home/BottomNavigation";
-import GameSearch from "./home/GameSearch";
-import GameSection from "./home/GameSection";
+import Header from "./Header/Header";
+import UserCard from "./UserCard/UserCard";
+import HeroBanner from "./HeroBanner/HeroBanner";
+import Announcement from "./Announcement/Announcement";
+import MainNavigation from "./MainNavigation/MainNavigation";
+import GameSearch from "./GameSearch/GameSearch";
+import GameSection from "./GameSection/GameSection";
 import { MOCK_GAMES } from "../data/home";
 import type { User } from "../types/home";
 
@@ -62,9 +62,9 @@ export default function WelcomePage() {
 
   if (status === "loading") {
     return (
-      <main className="h-shell">
-        <div className="h-container" style={{ paddingTop: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 13, color: "#a3a5aa" }}>加载中…</p>
+      <main className="q8-page">
+        <div className="q8-container" style={{ paddingTop: 40, textAlign: "center" }}>
+          <p style={{ fontSize: 13, color: "#a1a4aa" }}>加载中…</p>
         </div>
       </main>
     );
@@ -72,22 +72,15 @@ export default function WelcomePage() {
 
   if (status === "error" || !user) {
     return (
-      <main className="h-shell">
-        <div className="h-container" style={{ paddingTop: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 13, color: "#a3a5aa" }}>加载失败，请稍后重试</p>
+      <main className="q8-page">
+        <div className="q8-container" style={{ paddingTop: 40, textAlign: "center" }}>
+          <p style={{ fontSize: 13, color: "#a1a4aa" }}>加载失败，请稍后重试</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
             style={{
-              marginTop: 16,
-              display: "inline-block",
-              padding: "8px 20px",
-              borderRadius: 999,
-              background: "#171717",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 500,
-              border: 0,
+              marginTop: 16, padding: "8px 20px", borderRadius: 999,
+              background: "#171717", color: "#fff", fontSize: 13, fontWeight: 600, border: 0, cursor: "pointer",
             }}
           >
             重新加载
@@ -98,24 +91,17 @@ export default function WelcomePage() {
   }
 
   return (
-    <main className="h-shell">
+    <main className="q8-page">
       <Header />
-      <div
-        className="h-container"
-        style={{
-          paddingTop: 4,
-          paddingBottom: "calc(28px + env(safe-area-inset-bottom))",
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-        }}
-      >
-        <UserCard user={user} />
-        <HeroBanner />
-        <Announcement />
-        <BottomNavigation />
-        <GameSearch onSearch={setQuery} />
-        <GameSection games={MOCK_GAMES} query={query} />
+      <div className="q8-container">
+        <div className="q8-stack">
+          <UserCard user={user} />
+          <HeroBanner />
+          <Announcement />
+          <MainNavigation />
+          <GameSearch onSearch={setQuery} />
+          <GameSection games={MOCK_GAMES} query={query} />
+        </div>
       </div>
     </main>
   );

@@ -1,0 +1,46 @@
+.q8-announce {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 68px;
+  padding: 0 18px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.045);
+  text-decoration: none;
+  color: inherit;
+}
+
+.q8-announce-icon {
+  flex-shrink: 0;
+  color: #17181b;
+}
+
+.q8-announce-label {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #17181b;
+}
+
+.q8-announce-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 16px;
+  background: #ededed;
+}
+
+.q8-announce-text {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  color: #70747b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.q8-announce-arrow {
+  flex-shrink: 0;
+  color: #c4c6c9;
+}

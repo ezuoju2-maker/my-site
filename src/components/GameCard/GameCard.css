@@ -1,0 +1,101 @@
+.q8-game-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.7 / 1;
+  border-radius: 17px;
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  background: #171717;
+  cursor: pointer;
+  box-shadow: 0 4px 16px -6px rgba(0, 0, 0, 0.25);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.q8-game-card:active {
+  transform: scale(0.98);
+}
+
+.q8-game-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.q8-game-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.q8-game-fallback.g-go { background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 55%, #0a0a0a 100%); }
+.q8-game-fallback.g-wg { background: linear-gradient(135deg, #334155 0%, #1e293b 55%, #0a0a0a 100%); }
+.q8-game-fallback.g-ky { background: linear-gradient(135deg, #1e293b 0%, #0f172a 55%, #000000 100%); }
+.q8-game-fallback.g-leg { background: linear-gradient(135deg, #334155 0%, #1e293b 55%, #0a0a0a 100%); }
+.q8-game-fallback.g-baisheng { background: linear-gradient(135deg, #991b1b 0%, #450a0a 55%, #0a0a0a 100%); }
+.q8-game-fallback.g-wl { background: linear-gradient(135deg, #334155 0%, #1e293b 55%, #0a0a0a 100%); }
+
+/* 内联 SVG 牌面 */
+.q8-game-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 22%;
+}
+.q8-game-svg svg {
+  height: 78%;
+  width: auto;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+}
+
+.q8-game-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.0) 35%,
+    rgba(0, 0, 0, 0.65) 100%
+  );
+  pointer-events: none;
+}
+
+.q8-game-badge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 4;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+}
+.q8-game-badge.hot { background: #ef3f3f; }
+.q8-game-badge.recommend { background: #31ad70; }
+
+.q8-game-name {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  z-index: 4;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

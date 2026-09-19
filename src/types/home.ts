@@ -13,8 +13,7 @@ export type Game = {
   name: string;
   category: string;
   image: string;
-  hot: boolean;
-  recommended: boolean;
+  badge: "HOT" | "推荐" | null;
 };
 
 export type Category = {
@@ -23,10 +22,9 @@ export type Category = {
   iconKey: "flame" | "gamepad" | "target" | "cards" | "fish" | "device";
 };
 
-export type Banner = {
+export type BannerSlide = {
   id: string;
   title: string;
   subtitle: string;
   image: string;
-  dark: boolean;
 };
